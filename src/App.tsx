@@ -1,6 +1,5 @@
 import {
   ArrowDown,
-  CalendarDays,
   House,
   Leaf,
   ArrowUpRight,
@@ -9,25 +8,18 @@ import { Button } from "./components/Button";
 import {
   Freshness,
   GeographicApplicability,
-  InformationCard,
   OfficialSource,
   TrustBadge,
 } from "./components/InformationCard";
+import { BankHolidaysCard } from "./components/BankHolidaysCard";
 import { Neighbourhood } from "./components/Neighbourhood";
 import "./App.css";
 
-const bankHoliday = {
-  title: "英国的 Bank Holiday，怎么安排？",
-  summary:
-    "准备安排假期？先查看所在地区的银行假日。英格兰和威尔士、苏格兰、北爱尔兰的日期可能不同；出行前，也记得确认交通与商店的营业安排。",
-  source: { name: "GOV.UK", href: "https://www.gov.uk/bank-holidays" },
-  trust: { tone: "reviewed" as const, label: "已核对 · 状态示例" },
-  freshness: {
-    label: "样例更新：2026年10月2日 14:32",
-    dateTime: "2026-10-02T14:32:00+01:00",
-  },
-  region: "England & Wales",
-  category: "日常生活",
+const officialSource = { name: "GOV.UK", href: "https://www.gov.uk/bank-holidays" };
+// Only the adjacent design-system sample uses demo freshness; the card uses API evidence.
+const demoFreshness = {
+  label: "样例更新：2026年10月2日 14:32",
+  dateTime: "2026-10-02T14:32:00+01:00",
 };
 const palette = [
   ["page", "暖纸白", "#F7F5EE"],
@@ -97,7 +89,7 @@ function App() {
         </section>
         <div className="review-note">
           <span className="note-dot" />
-          仅供设计评审：以下为本地样例，核对状态与更新时间均为展示数据。本页不是产品首页。
+          仅供设计评审：银行假日卡片使用后端来源数据；右侧核对状态与更新时间仍为展示样例。本页不是产品首页。
         </div>
         <section
           id="information"
@@ -112,10 +104,7 @@ function App() {
             <p>先读懂内容，再看来源、状态与适用范围。</p>
           </div>
           <div className="information-grid">
-            <InformationCard
-              {...bankHoliday}
-              icon={<CalendarDays size={18} aria-hidden="true" />}
-            />
+            <BankHolidaysCard />
             <aside className="trust-guide" aria-labelledby="trust-title">
               <h3 id="trust-title">让可信任，有迹可循</h3>
               <p className="text-muted text-sm">四层信息，各司其职。</p>
@@ -123,7 +112,7 @@ function App() {
                 <div>
                   <dt>01 · 来源</dt>
                   <dd>
-                    <OfficialSource source={bankHoliday.source} />
+                    <OfficialSource source={officialSource} />
                     <p>官方出处与原文链接，不等同于本站已核对。</p>
                   </dd>
                 </div>
@@ -139,7 +128,7 @@ function App() {
                 <div>
                   <dt>03 · 更新信息</dt>
                   <dd>
-                    <Freshness {...bankHoliday.freshness} />
+                    <Freshness {...demoFreshness} />
                     <p>展示给定时间，不代表实时更新。</p>
                   </dd>
                 </div>
