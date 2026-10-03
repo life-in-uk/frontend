@@ -11,6 +11,7 @@ import {
   OfficialSource,
   TrustBadge,
 } from "./components/InformationCard";
+import { UndergroundCard } from "./components/UndergroundCard";
 import { BankHolidaysCard } from "./components/BankHolidaysCard";
 import { Neighbourhood } from "./components/Neighbourhood";
 import "./App.css";
@@ -143,6 +144,7 @@ function App() {
             </aside>
           </div>
         </section>
+        <UndergroundCard />
         <section
           className="foundation-section"
           aria-labelledby="foundation-title"

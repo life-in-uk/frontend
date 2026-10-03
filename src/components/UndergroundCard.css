@@ -1,0 +1,51 @@
+/* Scoped rules only: existing card tokens and the page's responsive rules remain intact. */
+.underground-card {
+  min-width: 0;
+}
+.underground-card h2 {
+  margin-block: 24px 16px;
+}
+.underground-card .provenance {
+  margin-bottom: 0;
+}
+.underground-content,
+.underground-card .metadata,
+.underground-card .source-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.underground-lines,
+.underground-statuses {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.underground-line {
+  padding-block: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.underground-line:first-child {
+  padding-top: 0;
+}
+.underground-line:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.underground-line h3 {
+  font-size: var(--text-lg);
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+}
+.underground-statuses {
+  display: grid;
+  gap: 12px;
+}
+.underground-description,
+.underground-reason {
+  white-space: pre-wrap;
+}
+.underground-reason {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  margin-top: 4px;
+}
