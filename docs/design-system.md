@@ -34,10 +34,11 @@ The original neighbourhood SVG is a lightweight composition study, not the final
 
 - `src/index.css`: semantic Tailwind v4 `@theme` variables, global typography and focus treatment.
 - `src/App.css`: showcase layout and component presentation; 800px and 480px breakpoints are web-specific choices.
-- `src/components/InformationCard.tsx`: typed source, supplied trust state, freshness and geographic primitives plus the specific information-card composition. It has no fetching, state inference or timers.
+- `src/components/InformationCard.tsx`: typed source, supplied trust state, freshness and geographic primitives plus the specific information-card composition. It has no fetching, state inference or timers. Trust and freshness are optional so a live consumer does not invent missing metadata; summary supports a semantic calendar-date element.
 - `src/components/Button.tsx`: small native button/Radix Slot composition. `asChild` accepts one native anchor for navigation. Native buttons retain disabled behaviour; use anchors only for navigation. It is intentionally not a generic component factory.
 - `src/components/Neighbourhood.tsx`: decorative inline SVG, hidden from assistive technology.
-- `src/App.tsx`: explicitly internal review composition with local fixtures, trust explanations, palette and type samples.
+- `src/components/BankHolidaysCard.tsx`: Issue #3 live consumer of the existing card, with endpoint-specific fetch/validation, loading/unavailable states and real observation metadata. It does not infer review state.
+- `src/App.tsx`: explicitly internal review composition with the live Bank Holidays card, labelled trust/type examples, palette and type samples.
 
 At narrow widths, columns stack and metadata wraps without truncation. Controls have at least 44px height, visible focus outlines and native keyboard semantics. A skip link reaches the main content. Source links have text labels and 44px hit height. Icons are decorative and state meaning is carried by text. No motion needs a reduced-motion override.
 

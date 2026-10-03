@@ -59,10 +59,12 @@ export function GeographicApplicability({ region }: { region: string }) {
 
 export type InformationCardProps = {
   title: string;
-  summary: string;
+  summary: ReactNode;
   source: Source;
-  trust: TrustState;
-  freshness: { label: string; dateTime: string };
+  trust?: TrustState;
+  freshness?: { label: string; dateTime: string };
+  footerNote?: string;
+  busy?: boolean;
   region: string;
   category?: string;
   icon?: ReactNode;
@@ -76,9 +78,11 @@ export function InformationCard({
   region,
   category,
   icon,
+  footerNote = "本地展示样例 · 非实时资讯",
+  busy = false,
 }: InformationCardProps) {
   return (
-    <article className="information-card">
+    <article className="information-card" aria-busy={busy}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         {category && (
           <span className="category">
@@ -86,17 +90,19 @@ export function InformationCard({
             {category}
           </span>
         )}
-        <TrustBadge state={trust} />
+        {trust && <TrustBadge state={trust} />}
       </div>
       <h3>{title}</h3>
-      <p className="card-summary">{summary}</p>
+      <p className="card-summary" role="status" aria-live="polite">
+        {summary}
+      </p>
       <div className="provenance">
         <OfficialSource source={source} />
         <GeographicApplicability region={region} />
-        <Freshness {...freshness} />
+        {freshness && <Freshness {...freshness} />}
       </div>
       <div className="card-bottom">
-        <span className="text-muted text-sm">本地展示样例 · 非实时资讯</span>
+        <span className="text-muted text-sm">{footerNote}</span>
         <Button asChild variant="secondary">
           <a href={source.href}>
             查看官方原文
