@@ -4,6 +4,13 @@ import {
   isUndergroundResponse,
   formatUndergroundObservation,
 } from "../src/underground/api.ts";
+import {
+  PRESENTATION_LABELS,
+  classifyStatus,
+  hasMeaningfulReason,
+  lineColour,
+  summariseLines,
+} from "../src/underground/presentation.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -41,6 +48,15 @@ const fixture = {
       ],
     },
     {
+      lineId: "victoria",
+      lineName: "Victoria",
+      statuses: [
+        { severity: 10, description: "Good Service", reason: null },
+        { severity: 9, description: "Minor Delays", reason: "Fixture delay." },
+        { severity: 6, description: "Severe Delays", reason: "  " },
+      ],
+    },
+    {
       lineId: "empty-statuses",
       lineName: "Empty-status fixture",
       statuses: [],
@@ -51,10 +67,11 @@ const unavailable = "Underground status is temporarily unavailable.";
 const emptyMessage =
   "No Underground line status information was included in this observation.";
 
-async function newPage(width) {
+async function newPage(width, reducedMotion = "no-preference") {
   const context = await browser.newContext({
     viewport: { width, height: 1000 },
     timezoneId: "America/Los_Angeles",
+    reducedMotion,
   });
   const page = await context.newPage();
   const requests = [];
@@ -112,15 +129,81 @@ async function assertFacts(page, data) {
       await line.locator(".underground-description").allTextContents(),
       expected.statuses.map((status) => status.description),
     );
-    assert.deepEqual(
-      await line.locator(".underground-reason").allTextContents(),
-      expected.statuses
-        .filter(
-          (status) => status.reason !== null && status.reason.trim().length > 0,
-        )
-        .map((status) => status.reason),
+    const marker = await line
+      .locator(".underground-marker")
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+    const colour = lineColour(expected.lineId);
+    assert.equal(
+      marker,
+      colour
+        ? `rgb(${[1, 3, 5].map((i) => parseInt(colour.slice(i, i + 2), 16)).join(", ")})`
+        : "rgba(0, 0, 0, 0)",
+      `identity marker for ${expected.lineId}`,
     );
+    const statuses = line.locator(".underground-status");
+    for (let s = 0; s < expected.statuses.length; s++) {
+      const status = expected.statuses[s];
+      const presentation = classifyStatus(status);
+      const item = statuses.nth(s);
+      assert.equal(await item.getAttribute("data-presentation"), presentation);
+      const led = item.locator(".underground-led");
+      assert.equal(
+        await led.getAttribute("aria-label"),
+        PRESENTATION_LABELS[presentation],
+      );
+      const box = await led.boundingBox();
+      assert(box.width >= 7 && box.width <= 9, "LED core is 7-9px");
+      // The exact status text is visible beside the LED: colour is never the only signal.
+      assert(await item.locator(".underground-description").isVisible());
+    }
+    // Reasons: collapsed by default, revealed exactly on demand, collapsible again.
+    const reasons = expected.statuses
+      .filter((status) => hasMeaningfulReason(status.reason))
+      .map((status) => status.reason);
+    const toggles = line.locator(".underground-toggle");
+    assert.equal(await toggles.count(), reasons.length);
+    assert.equal(
+      await line.locator(".underground-reason").count(),
+      reasons.length,
+    );
+    for (let r = 0; r < reasons.length; r++) {
+      const toggle = toggles.nth(r);
+      const reason = page.locator(
+        `[id="${await toggle.getAttribute("aria-controls")}"]`,
+      );
+      assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+      assert.equal(await reason.isVisible(), false);
+      await toggle.click();
+      assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+      assert(await reason.isVisible());
+      assert.equal(await reason.textContent(), reasons[r]);
+      // Keyboard collapses it again, with a visible focus ring.
+      await toggle.focus();
+      assert.equal(
+        await toggle.evaluate((el) => getComputedStyle(el).outlineWidth),
+        "3px",
+      );
+      await page.keyboard.press("Enter");
+      assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+      assert.equal(await reason.isVisible(), false);
+      await page.keyboard.press("Space");
+      assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+      await toggle.click();
+      assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+    }
   }
+  const { affected, unclassified } = summariseLines(data.lines);
+  const summary = await card.locator(".underground-summary").innerText();
+  assert(
+    summary.includes(`${affected} of ${data.lines.length}`) || affected === 0,
+  );
+  if (unclassified > 0)
+    assert(summary.includes(`${unclassified} not classified`));
+  assert.equal(
+    await card.locator(".underground-reason:visible").count(),
+    0,
+    "every reason is collapsed again",
+  );
   assert.equal(
     await card.locator("time").getAttribute("datetime"),
     data.observedAt,
@@ -189,6 +272,102 @@ try {
       await context.close();
       console.log(
         `PASS ${width}px: local loading, all lines/statuses, A/B/A repeats, exact wording/reasons, UK observedAt, long wrapping, keyboard focus, no TfL requests or polling`,
+      );
+    }
+    for (const reducedMotion of ["no-preference", "reduce"]) {
+      const { context, page } = await newPage(1440, reducedMotion);
+      await page.route("**/api/travel/underground", (route) =>
+        route.fulfill({ json: fixture }),
+      );
+      await page.goto(baseURL);
+      const card = page.locator(".underground-card");
+      await card.locator("time").waitFor();
+      const animation = (state) =>
+        card
+          .locator(
+            `.underground-status[data-presentation="${state}"] .underground-led`,
+          )
+          .first()
+          .evaluate((el) => {
+            const halo = getComputedStyle(el, "::after");
+            return { name: halo.animationName, content: halo.content };
+          });
+      for (const state of ["normal", "disruption", "severe"]) {
+        const { name } = await animation(state);
+        assert.equal(
+          name,
+          reducedMotion === "reduce" ? "none" : "underground-led-breathe",
+          `${state} LED under ${reducedMotion}`,
+        );
+      }
+      // Unknown LEDs have no halo at all, animated or not.
+      assert.equal((await animation("unknown")).content, "none");
+      await context.close();
+      console.log(
+        `PASS LED motion (${reducedMotion}): breathing halo ${reducedMotion === "reduce" ? "disabled, static state kept" : "running"}; unknown LED unlit`,
+      );
+    }
+    {
+      // Desktop columns are independent stacks: a reason grows only its own column.
+      const { context, page } = await newPage(1440, "reduce");
+      await page.route("**/api/travel/underground", (route) =>
+        route.fulfill({ json: fixture }),
+      );
+      await page.goto(baseURL);
+      const card = page.locator(".underground-card");
+      await card.locator("time").waitFor();
+      const layout = () =>
+        card.locator(".underground-line").evaluateAll((els) =>
+          els.map((el) => {
+            const box = el.getBoundingClientRect();
+            const origin = el
+              .closest(".underground-card")
+              .getBoundingClientRect();
+            return {
+              id: el.dataset.lineId,
+              x: Math.round(box.x - origin.x),
+              y: Math.round(box.y - origin.y),
+            };
+          }),
+        );
+      const before = await layout();
+      // DOM/backend order runs down the first column, then the second.
+      assert.deepEqual(
+        before.map((line) => line.id),
+        fixture.lines.map((line) => line.lineId),
+      );
+      const half = Math.ceil(fixture.lines.length / 2);
+      const [left, right] = [before.slice(0, half), before.slice(half)];
+      assert(left.every((line) => line.x === left[0].x));
+      assert(
+        right.every((line) => line.x === right[0].x && line.x > left[0].x),
+      );
+      assert.equal(right[0].y, left[0].y, "both columns start together");
+      for (const [name, column] of [
+        ["Status B", 0],
+        ["Minor Delays", 1],
+      ]) {
+        const toggle = card.getByRole("button", { name: new RegExp(name) });
+        const opened = await layout();
+        await toggle.click();
+        const after = await layout();
+        const other = column === 0 ? [half, after.length] : [0, half];
+        assert.deepEqual(
+          after.slice(...other),
+          opened.slice(...other),
+          `expanding ${name} must not move the other column`,
+        );
+      }
+      for (const name of ["Status B", "Minor Delays"])
+        await card.getByRole("button", { name: new RegExp(name) }).click();
+      assert.deepEqual(
+        await layout(),
+        before,
+        "collapsing restores the layout",
+      );
+      await context.close();
+      console.log(
+        "PASS desktop columns: backend order down each column; expanding a reason moves only its own column; collapse restores layout",
       );
     }
     const cases = [

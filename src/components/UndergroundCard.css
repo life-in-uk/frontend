@@ -1,12 +1,40 @@
 /* Scoped rules only: existing card tokens and the page's responsive rules remain intact. */
 .underground-card {
   min-width: 0;
+  /* Operational LED colours: independent of TfL line identity colours. */
+  --led-normal: #1f9d55;
+  --led-disruption: #e09a0b;
+  --led-severe: #d93025;
+  --led-unknown: #8b928a;
+}
+.underground-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 16px;
+  margin-bottom: 12px;
+}
+.underground-header .category {
+  grid-column: 1 / -1;
 }
 .underground-card h2 {
-  margin-block: 24px 16px;
+  margin-block: 8px 0;
+}
+.underground-summary {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  text-align: right;
 }
 .underground-card .provenance {
-  margin-bottom: 0;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 20px;
+  row-gap: 0;
+  margin-block: 12px 0;
+  padding-top: 8px;
 }
 .underground-content,
 .underground-card .metadata,
@@ -21,31 +49,212 @@
   list-style: none;
 }
 .underground-line {
-  padding-block: 20px;
   border-bottom: 1px solid var(--color-border);
 }
-.underground-line:first-child {
-  padding-top: 0;
-}
 .underground-line:last-child {
-  padding-bottom: 0;
   border-bottom: 0;
 }
-.underground-line h3 {
-  font-size: var(--text-lg);
-  margin: 0 0 12px;
+/* Wide cards split the backend sequence into two independent column stacks:
+   the first half runs down the left, the rest down the right. Revealing a
+   reason only lengthens its own column and never moves lines across. */
+@media (min-width: 900px) {
+  .underground-lines {
+    columns: 2;
+    column-gap: 40px;
+  }
+  .underground-line {
+    break-inside: avoid;
+  }
+  .underground-column-start {
+    break-before: column;
+  }
+  .underground-column-end {
+    border-bottom: 0;
+  }
+}
+.underground-row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+  min-height: 44px;
+  padding-block: 4px;
+  padding-left: 16px;
+}
+/* Identity marker: a short rail in the line's TfL colour; it carries no status meaning. */
+.underground-marker {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--line-colour);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 12%);
+}
+.underground-marker-neutral {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-muted);
+}
+.underground-card .underground-line h3 {
+  flex: 1 1 8rem;
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: 1.35;
   white-space: pre-wrap;
+  min-width: 0;
 }
 .underground-statuses {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
 }
-.underground-description,
-.underground-reason {
+.underground-status {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.5;
+  gap: 8px;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+.underground-description {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.underground-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 32px;
+  margin-right: -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.underground-toggle:hover {
+  background: var(--color-page);
+}
+.underground-toggle .underground-description {
+  text-decoration: underline dotted var(--color-muted);
+  text-underline-offset: 4px;
+}
+.underground-chevron {
+  color: var(--color-muted);
+  transition: transform 160ms ease;
+}
+.underground-toggle[aria-expanded="true"] .underground-chevron {
+  transform: rotate(180deg);
 }
 .underground-reason {
+  margin: 0 0 10px 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-page);
   color: var(--color-muted);
   font-size: var(--text-sm);
-  margin-top: 4px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* PCB-style status LED: a small lit core, inner highlight and restrained halo. */
+.underground-led {
+  --led: var(--led-unknown);
+  position: relative;
+  flex: none;
+  /* Centre on the first text line, so wrapped statuses keep the LED beside their start. */
+  margin-top: calc(0.75em - 4px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 42%,
+    color-mix(in srgb, var(--led) 30%, white) 0 22%,
+    var(--led) 62%,
+    color-mix(in srgb, var(--led) 82%, black) 100%
+  );
+  box-shadow: 0 0 3px 1px color-mix(in srgb, var(--led) 50%, transparent);
+}
+.underground-led::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--led) 38%, transparent) 0,
+    transparent 70%
+  );
+  opacity: 0.55;
+  animation: underground-led-breathe 4.8s ease-in-out infinite;
+}
+.underground-led:has(+ .underground-toggle) {
+  margin-top: calc(0.75em);
+}
+.underground-led-normal {
+  --led: var(--led-normal);
+}
+.underground-led-disruption {
+  --led: var(--led-disruption);
+}
+.underground-led-severe {
+  --led: var(--led-severe);
+}
+.underground-led-disruption::after,
+.underground-led-severe::after {
+  inset: -5px;
+  animation-duration: 3.2s;
+}
+/* Unknown: unlit hollow LED, so it never implies a service state. */
+.underground-led-unknown {
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1.5px var(--led-unknown);
+}
+.underground-led-unknown::after {
+  content: none;
+}
+@keyframes underground-led-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .underground-led::after {
+    animation: none;
+  }
+  .underground-chevron {
+    transition: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .underground-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .underground-summary {
+    margin-top: 4px;
+    text-align: left;
+  }
+  .underground-card .underground-line h3 {
+    font-size: 0.9375rem;
+  }
+  .underground-reason {
+    margin-left: 0;
+  }
 }

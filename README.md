@@ -81,3 +81,14 @@ git diff --check
 ```
 
 Use the same external Playwright/Chromium setup described above to run `npm run test:underground:browser`, setting `FRONTEND_URL` to the running Vite address. Default mode uses authored response fixtures to verify rendering, repeats, ordering, exact text, reasons, malformed/non-success responses, local loading, persisted-empty behaviour, no polling, cancellation and long-text wrapping at 1440px/390px. `REAL_BACKEND=1` instead performs an unmocked backend/browser verification and requires already persisted line facts. Set `REAL_BACKEND=unavailable` to verify a real development backend currently returning 404 without inserting a snapshot; this verifies the integration path and safe unavailable UI, not real line rendering. Neither mode triggers acquisition or changes evidence. Screenshots go to `/tmp/life-uk-underground-review`. The Bank Holidays browser regression suite isolates the new endpoint with a test-only empty response.
+
+## Compact Underground status (Issue #7)
+
+Presentation-only refinement of the same `GET /api/travel/underground` data. Each line is one compact row: a short rail in the line's TfL identity colour, the exact line name, and per status a small PCB-style LED beside the exact status text. Line colour and LED colour are independent systems.
+
+`src/underground/presentation.ts` documents both frontend-local V1 rules:
+
+- Line colours, keyed by backend `lineId`, are the RGB references from the TfL Colour standard, Issue 11 (https://content.tfl.gov.uk/tfl-colour-standard.pdf). Unknown ids get a neutral outlined marker.
+- A status is classified only when its severity and description match the same Tube entry in TfL's severity metadata and that status is defined on https://tfl.gov.uk/status-updates/status-definitions: Good Service → normal; Minor Delays → disruption; Severe Delays, Suspended, Part Suspended, Planned Closure, Part Closure → severe. Anything else is shown as an unlit "not classified" LED.
+
+LEDs breathe slowly (no blinking); `prefers-reduced-motion: reduce` keeps them static. Meaningful reasons are collapsed behind a button carrying `aria-expanded`, and reveal the exact source text. On wide screens the backend sequence fills two independent columns, the first half down the left and the rest down the right, so revealing a reason only lengthens its own column. Narrow screens use one column in backend order.
