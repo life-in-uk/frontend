@@ -30,7 +30,7 @@ The card loads independently, aborts on unmount and has a 10-second request dead
 
 ### Local connection
 
-Run the accepted backend against the existing development database using its normal setup, without invoking acquisition. Vite proxies only the Bank Holidays path to `http://127.0.0.1:8080` by default. For a backend on another port:
+Run the accepted backend against the existing development database using its normal setup, without invoking acquisition. Vite proxies the Bank Holidays and Underground paths to `http://127.0.0.1:8080` by default. For a backend on another port:
 
 ```sh
 BANK_HOLIDAYS_API_TARGET=http://127.0.0.1:8081 npm run dev
@@ -49,3 +49,35 @@ PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs FRONTEND_URL=http://127.0.0.1:51
 ```
 
 This checks pending/loading, title/date rendering, regional isolation, network/404/500/invalid responses, exhausted calendars, request deadline and the surrounding UI at 1440px and 390px. Fixtures are test-only. Add `REAL_BACKEND=1` to perform the final unmocked backend/browser check using already persisted evidence. It makes GET requests only and writes screenshots to `/tmp/life-uk-bank-holidays-review` (override with `SCREENSHOT_DIR`). Unit tests remain runnable without browsers, a backend or a database.
+
+## Underground Current State (Issue #5)
+
+The focused London Underground component reads only `GET /api/travel/underground` and can display persisted Current State. The frontend does not acquire, parse raw TfL data, poll, or project a snapshot. There are no other transport modes, location filtering, translations, Change History or freshness classifications.
+
+`src/underground/api.ts` explicitly models `observedAt`, lines and statuses. Every field is validated before any facts render. Severity must be a signed 32-bit integer, matching the accepted backend Java `int`; it is retained without colour/ranking semantics. The accepted DTO always emits `reason: string | null` (missing source reasons become null). Invalid JSON/DTO and non-success responses fail closed.
+
+All lines and statuses render in backend order, including repeated statuses. Keys include source positions; nothing is deduplicated or selected as primary/worst/best. Source names, descriptions and meaningful reasons retain their exact wording and whitespace. Null, empty or whitespace-only reasons add no fabricated explanation. Valid lines with no statuses still show their name without invented service information.
+
+`Source observed: … UK time` formats the UTC instant in Europe/London; the exact timestamp is retained in the model and `<time datetime>`. It does not claim live service. A valid `200` with `lines: []` shows a neutral empty-observation message and timestamp. A `404`, `500`, network failure, request deadline or malformed response shows a distinct local unavailable message without fake facts. Loading is local, with a 10-second deadline and abort-on-unmount cleanup. Transport for London is identified through a normal attribution/navigation link, never a data request.
+
+The new endpoint shares the existing server-side `BANK_HOLIDAYS_API_TARGET` backend setting, despite that setting's original endpoint-specific name. Both paths default to port 8080. For a separately running accepted backend:
+
+```sh
+BANK_HOLIDAYS_API_TARGET=http://127.0.0.1:8082 npm run dev
+```
+
+Production must route both relative API paths on the same origin. No CORS or backend configuration change is introduced by this frontend issue.
+
+Validation:
+
+```sh
+node --test tests/underground.test.mjs
+node --test tests/bank-holidays.test.mjs
+npm test
+npm run lint
+npx tsc -b
+npm run build
+git diff --check
+```
+
+Use the same external Playwright/Chromium setup described above to run `npm run test:underground:browser`, setting `FRONTEND_URL` to the running Vite address. Default mode uses authored response fixtures to verify rendering, repeats, ordering, exact text, reasons, malformed/non-success responses, local loading, persisted-empty behaviour, no polling, cancellation and long-text wrapping at 1440px/390px. `REAL_BACKEND=1` instead performs an unmocked backend/browser verification and requires already persisted line facts. Set `REAL_BACKEND=unavailable` to verify a real development backend currently returning 404 without inserting a snapshot; this verifies the integration path and safe unavailable UI, not real line rendering. Neither mode triggers acquisition or changes evidence. Screenshots go to `/tmp/life-uk-underground-review`. The Bank Holidays browser regression suite isolates the new endpoint with a test-only empty response.

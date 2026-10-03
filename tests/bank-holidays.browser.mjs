@@ -63,6 +63,10 @@ async function newPage(width, timezoneId = "Europe/London", fixedClock = true) {
     viewport: { width, height: 1000 },
     timezoneId,
   });
+  // Keep the Bank Holidays regression suite independent of Underground availability.
+  await context.route("**/api/travel/underground", (route) => route.fulfill({
+    json: { observedAt: "2026-10-03T15:47:08Z", lines: [] },
+  }));
   const page = await context.newPage();
   if (fixedClock)
     await page.clock.install({ time: new Date("2026-10-03T12:00:00Z") });
@@ -113,7 +117,7 @@ try {
       await route.fulfill({ json: fixture });
     });
     await page.goto(baseURL);
-    const card = page.locator(".information-card");
+    const card = page.locator(".information-section:not(.underground-section) .information-card");
     await page.getByRole("status").filter({ hasText: "正在加载" }).waitFor();
     assert.equal(await card.getAttribute("aria-busy"), "true");
     assert(!(await card.innerText()).includes("England and Wales API fixture"));
@@ -187,7 +191,7 @@ try {
       .getByRole("status")
       .filter({ hasText: "银行假日信息暂时无法加载" })
       .waitFor();
-    const text = await page.locator(".information-card").innerText();
+    const text = await page.locator(".information-section:not(.underground-section) .information-card").innerText();
     for (const excluded of [
       "Christmas Day",
       "25 December",
@@ -198,7 +202,7 @@ try {
       "本地展示样例",
     ])
       assert(!text.includes(excluded));
-    assert.equal(await page.locator(".information-card time").count(), 0);
+    assert.equal(await page.locator(".information-section:not(.underground-section) .information-card time").count(), 0);
     await assertHomepage(page, requests, runtimeErrors, 390);
     await page.screenshot({
       path: `${screenshots}/failure-${name.replaceAll(" ", "-")}.png`,
@@ -224,7 +228,7 @@ try {
       .filter({ hasText: "没有今天或之后" })
       .waitFor();
     assert(
-      !(await page.locator(".information-card").innerText()).includes(
+      !(await page.locator(".information-section:not(.underground-section) .information-card").innerText()).includes(
         "Past fixture",
       ),
     );
@@ -271,7 +275,7 @@ try {
         holiday,
         "Existing backend evidence must contain an upcoming event",
       );
-      const card = page.locator(".information-card");
+      const card = page.locator(".information-section:not(.underground-section) .information-card");
       await card
         .getByRole("heading", { name: holiday.title, exact: true })
         .waitFor();
