@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { CarFront, LocateFixed, RefreshCw } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { CarFront, LocateFixed, RefreshCw, Search } from "lucide-react";
 import { Button } from "./Button";
 import { Freshness, OfficialSource } from "./InformationCard";
 import { getRoads, RoadsUnavailableError } from "../roads/api";
@@ -9,6 +10,14 @@ import {
   formatDistance,
   formatRoadsTime,
 } from "../roads/presentation";
+import {
+  MAX_PLACE_QUERY_LENGTH,
+  normalisePlaceQuery,
+  PlaceQueryInvalidError,
+  PlacesUnavailableError,
+  searchPlaces,
+} from "../places/api";
+import type { Place, PlaceType } from "../places/api";
 import "./RoadsCard.css";
 
 type Coordinates = { latitude: number; longitude: number };
@@ -22,6 +31,19 @@ type Phase =
   | { status: "ready"; data: RoadsResponse }
   | { status: "unavailable" }
   | { status: "failed" };
+/** Place lookup state, kept separate from the Roads request state. */
+type PlaceSearch =
+  | { status: "idle" }
+  | { status: "blank" }
+  | { status: "searching" }
+  | { status: "results"; places: Place[]; attribution: string }
+  | { status: "empty" }
+  | { status: "invalid" }
+  | { status: "unavailable" }
+  | { status: "failed" };
+/** The one location the Roads results currently describe. */
+type ActiveLocation =
+  { kind: "place"; label: string; attribution: string } | { kind: "device" };
 
 // One position per explicit request; never watchPosition or background tracking.
 const POSITION_OPTIONS: PositionOptions = {
@@ -30,27 +52,45 @@ const POSITION_OPTIONS: PositionOptions = {
   maximumAge: 60_000,
 };
 const REQUEST_DEADLINE_MS = 10_000;
+const PLACE_TYPE_LABELS: Record<PlaceType, string> = {
+  postcode: "Postcode",
+  city: "City",
+  town: "Town",
+  village: "Village",
+  hamlet: "Hamlet",
+  suburb: "Suburb",
+  settlement: "Settlement",
+};
 
 export function RoadsCard() {
   const [phase, setPhase] = useState<Phase>({ status: "idle" });
+  const [placeSearch, setPlaceSearch] = useState<PlaceSearch>({
+    status: "idle",
+  });
+  const [queryText, setQueryText] = useState("");
+  const [active, setActive] = useState<ActiveLocation | null>(null);
   // Precise coordinates live only in this component's memory for the page session.
   const coordinates = useRef<Coordinates | null>(null);
   const request = useRef<AbortController | null>(null);
-  // Each lookup gets a generation; late geolocation/fetch results from older ones are ignored.
+  const placeRequest = useRef<AbortController | null>(null);
+  // Each lookup gets a generation; late results from superseded ones are ignored.
   const generation = useRef(0);
+  const placeGeneration = useRef(0);
   const mounted = useRef(true);
   const content = useRef<HTMLDivElement>(null);
   const moveFocus = useRef(false);
+  const inputId = useId();
 
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
       request.current?.abort();
+      placeRequest.current?.abort();
     };
   }, []);
 
-  // Actions replace the control that was pressed, so keep keyboard focus in the card.
+  // When the pressed control disappears, keep keyboard focus in the card.
   useEffect(() => {
     if (!moveFocus.current || phase.status === "locating") return;
     if (phase.status === "loading") return;
@@ -83,9 +123,34 @@ export function RoadsCard() {
       .finally(() => window.clearTimeout(timeout));
   }
 
-  function locate() {
-    moveFocus.current = true;
+  function cancelPlaceSearch() {
+    placeGeneration.current++;
+    placeRequest.current?.abort();
+  }
+
+  // A searched place becomes the single active location.
+  function choosePlace(place: Place, attribution: string, focus: boolean) {
+    cancelPlaceSearch();
+    moveFocus.current = focus;
+    coordinates.current = {
+      latitude: place.latitude,
+      longitude: place.longitude,
+    };
+    setActive({ kind: "place", label: place.label, attribution });
+    setPlaceSearch({ status: "idle" });
+    query(coordinates.current);
+  }
+
+  // Device location replaces any searched place as the single active location.
+  // Choosing a location also cancels any pending place search, so a late single
+  // match can never replace the newer choice.
+  function locate(focus: boolean) {
+    cancelPlaceSearch();
+    setPlaceSearch({ status: "idle" });
+    moveFocus.current = focus;
     request.current?.abort();
+    coordinates.current = null;
+    setActive(null);
     const current = ++generation.current;
     if (!("geolocation" in navigator) || !navigator.geolocation) {
       setPhase({ status: "unsupported" });
@@ -99,6 +164,7 @@ export function RoadsCard() {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         };
+        setActive({ kind: "device" });
         query(coordinates.current);
       },
       (error) => {
@@ -114,14 +180,66 @@ export function RoadsCard() {
     );
   }
 
-  // Reuses the in-memory location; asks the browser again only if there is none.
+  // Reuses the active in-memory location; asks the browser only if there is none.
   function recheck() {
     moveFocus.current = true;
     if (coordinates.current) query(coordinates.current);
-    else locate();
+    else locate(true);
   }
 
-  const busy = phase.status === "locating" || phase.status === "loading";
+  // Searches only on explicit submit (button or Enter), never while typing.
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = normalisePlaceQuery(queryText);
+    cancelPlaceSearch();
+    if (text === null) {
+      setPlaceSearch({ status: "blank" });
+      return;
+    }
+    if (text.length > MAX_PLACE_QUERY_LENGTH) {
+      setPlaceSearch({ status: "invalid" });
+      return;
+    }
+    const current = placeGeneration.current;
+    const controller = new AbortController();
+    placeRequest.current = controller;
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      REQUEST_DEADLINE_MS,
+    );
+    setPlaceSearch({ status: "searching" });
+    searchPlaces(text, controller.signal)
+      .then((data) => {
+        if (!mounted.current || current !== placeGeneration.current) return;
+        if (data.places.length === 0) setPlaceSearch({ status: "empty" });
+        // A single match is used directly.
+        else if (data.places.length === 1)
+          choosePlace(data.places[0], data.attribution, false);
+        else
+          setPlaceSearch({
+            status: "results",
+            places: data.places,
+            attribution: data.attribution,
+          });
+      })
+      .catch((error: unknown) => {
+        if (!mounted.current || current !== placeGeneration.current) return;
+        setPlaceSearch({
+          status:
+            error instanceof PlaceQueryInvalidError
+              ? "invalid"
+              : error instanceof PlacesUnavailableError
+                ? "unavailable"
+                : "failed",
+        });
+      })
+      .finally(() => window.clearTimeout(timeout));
+  }
+
+  const busy =
+    phase.status === "locating" ||
+    phase.status === "loading" ||
+    placeSearch.status === "searching";
 
   return (
     <section
@@ -140,33 +258,128 @@ export function RoadsCard() {
             National Highways · nearby current disruptions
           </p>
         </header>
+        <div className="roads-chooser">
+          <form className="roads-search" role="search" onSubmit={submitSearch}>
+            <label htmlFor={inputId} className="roads-search-label">
+              Search postcode, town or place
+            </label>
+            <div className="roads-search-row">
+              <input
+                id={inputId}
+                className="roads-search-input"
+                type="search"
+                inputMode="search"
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={MAX_PLACE_QUERY_LENGTH}
+                value={queryText}
+                onChange={(event) => setQueryText(event.target.value)}
+              />
+              <Button type="submit" variant="secondary">
+                <Search size={16} aria-hidden="true" />
+                Search
+              </Button>
+            </div>
+          </form>
+          <button
+            type="button"
+            className="roads-link roads-locate"
+            onClick={() => locate(false)}
+          >
+            <LocateFixed size={16} aria-hidden="true" />
+            Use my location
+          </button>
+          <div className="roads-places" aria-live="polite">
+            {placeSearch.status === "blank" && (
+              <p role="status">Enter a postcode, town or place.</p>
+            )}
+            {placeSearch.status === "searching" && (
+              <p role="status">Searching for places…</p>
+            )}
+            {placeSearch.status === "empty" && (
+              <p role="status">No matching place found.</p>
+            )}
+            {placeSearch.status === "invalid" && (
+              <p role="status">
+                That search can’t be used. Try a postcode, town or place name.
+              </p>
+            )}
+            {placeSearch.status === "unavailable" && (
+              <p role="status">
+                Place search is temporarily unavailable. You can still use your
+                location.
+              </p>
+            )}
+            {placeSearch.status === "failed" && (
+              <p role="status">Place search couldn’t be completed.</p>
+            )}
+            {placeSearch.status === "results" && (
+              <>
+                <p role="status">
+                  {placeSearch.places.length} places found. Choose one:
+                </p>
+                <ul className="roads-candidates">
+                  {placeSearch.places.map((place, index) => (
+                    <li key={`${place.id}/${index}`}>
+                      <button
+                        type="button"
+                        className="roads-candidate"
+                        onClick={() =>
+                          choosePlace(place, placeSearch.attribution, true)
+                        }
+                      >
+                        <span>{place.label}</span>
+                        <span className="roads-candidate-type">
+                          {PLACE_TYPE_LABELS[place.type]}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="roads-attribution">{placeSearch.attribution}</p>
+              </>
+            )}
+          </div>
+        </div>
         <div
           className="roads-content"
           aria-live="polite"
           tabIndex={-1}
           ref={content}
         >
+          {active && (
+            <p className="roads-active">
+              {active.kind === "place" ? (
+                <>
+                  Showing roads near{" "}
+                  <strong className="roads-active-label">{active.label}</strong>
+                </>
+              ) : (
+                <>
+                  Showing roads near{" "}
+                  <strong className="roads-active-label">
+                    your current location
+                  </strong>
+                </>
+              )}
+            </p>
+          )}
           {phase.status === "idle" && (
             <>
               <p>
-                Road disruptions depend on where you are. Share your location
-                once to see nearby National Highways disruptions.
+                Search for a place or use your location to see nearby National
+                Highways disruptions.
               </p>
-              <div className="roads-actions">
-                <Button type="button" onClick={locate}>
-                  <LocateFixed size={16} aria-hidden="true" />
-                  Use my location
-                </Button>
-              </div>
               <p className="roads-note">
-                Your location is used only for this lookup and is not saved.
+                Searches and locations are used only for this lookup and are not
+                saved.
               </p>
             </>
           )}
           {phase.status === "unsupported" && (
             <p role="status">
-              This browser can’t share your location, so nearby road disruptions
-              can’t be shown.
+              This browser can’t share your location. You can search for a place
+              instead.
             </p>
           )}
           {phase.status === "locating" && (
@@ -175,11 +388,15 @@ export function RoadsCard() {
           {phase.status === "denied" && (
             <>
               <p role="status">
-                Location access wasn’t allowed. To see nearby disruptions, allow
-                location for this site in your browser, then try again.
+                Location access wasn’t allowed. Search for a place instead, or
+                allow location for this site in your browser and try again.
               </p>
               <div className="roads-actions">
-                <Button type="button" variant="secondary" onClick={locate}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => locate(true)}
+                >
                   Try again
                 </Button>
               </div>
@@ -189,7 +406,11 @@ export function RoadsCard() {
             <>
               <p role="status">Your location couldn’t be found.</p>
               <div className="roads-actions">
-                <Button type="button" variant="secondary" onClick={locate}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => locate(true)}
+                >
                   Try again
                 </Button>
               </div>
@@ -281,9 +502,6 @@ export function RoadsCard() {
                   <RefreshCw size={16} aria-hidden="true" />
                   Refresh
                 </Button>
-                <button type="button" className="roads-link" onClick={locate}>
-                  Use my location again
-                </button>
               </div>
             </>
           )}
@@ -297,8 +515,13 @@ export function RoadsCard() {
           )}
           {phase.status === "ready" && phase.data.disruptions.length > 0 && (
             <p className="roads-note">
-              Distances are straight-line from your location, not driving
+              Distances are straight-line from the chosen location, not driving
               distance.
+            </p>
+          )}
+          {active?.kind === "place" && (
+            <p className="roads-note roads-attribution">
+              Place search: {active.attribution}
             </p>
           )}
           <OfficialSource
