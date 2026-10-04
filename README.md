@@ -92,3 +92,15 @@ Presentation-only refinement of the same `GET /api/travel/underground` data. Eac
 - A status is classified only when its severity and description match the same Tube entry in TfL's severity metadata and that status is defined on https://tfl.gov.uk/status-updates/status-definitions: Good Service → normal; Minor Delays → disruption; Severe Delays, Suspended, Part Suspended, Planned Closure, Part Closure → severe. Anything else is shown as an unlit "not classified" LED.
 
 LEDs breathe slowly (no blinking); `prefers-reduced-motion: reduce` keeps them static. Meaningful reasons are collapsed behind a button carrying `aria-expanded`, and reveal the exact source text. On wide screens the backend sequence fills two independent columns, the first half down the left and the rest down the right, so revealing a reason only lengthens its own column. Narrow screens use one column in backend order.
+
+## Roads near you (Issue #9)
+
+The Roads card reads only `GET /api/travel/roads?lat=<latitude>&lon=<longitude>` (backend Issue #30). It starts idle: no Roads request and no location prompt happen until the user chooses **Use my location**. The browser is then asked for one position (`getCurrentPosition`, never `watchPosition`); its coordinates are sent unchanged to the backend, which owns the 15 km relevance rule and nearest-first ordering. The frontend never filters, re-ranks or recalculates relevance, and never contacts National Highways.
+
+`src/roads/api.ts` models the backend `RoadsResponse` exactly (absent provider values are explicit nulls) and validates every field, including geometry it does not display; malformed payloads fail closed. `404` shows "Road information is temporarily unavailable."; other failures, malformed data and the 10-second deadline show a retryable error. Unsupported geolocation, denied permission and failed/timed-out lookups each get their own message, with no raw browser error text and no automatic re-prompt.
+
+Each disruption shows the road, direction, the provider's location description, the closure kind, any additional provider comment, the provider end time in UK time and the provider status. Provider codes such as `laneClosures` are shown as plain words ("Lane closures") without changing them. Distance is the backend's straight-line proximity in miles, not driving distance. Coordinates, geometry and provider IDs are never displayed. An empty result shows "No current National Highways disruptions found nearby." and never claims that roads are clear. The card shows the backend's snapshot time and National Highways attribution.
+
+Coordinates are held only in component memory for the current page. **Refresh** reuses them without asking the browser again; **Use my location again** asks once more. Nothing is written to web storage, cookies or IndexedDB, and there is no polling.
+
+Use the external Playwright setup described above to run `npm run test:roads:browser`. It mocks geolocation and every API response, so it needs no real location, backend or provider access.

@@ -1,0 +1,148 @@
+/* Scoped rules only: existing card tokens and the page's responsive rules remain intact. */
+.roads-card {
+  min-width: 0;
+}
+.roads-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 16px;
+  margin-bottom: 12px;
+}
+.roads-header .category {
+  grid-column: 1 / -1;
+}
+.roads-card h2 {
+  margin-block: 8px 0;
+}
+.roads-coverage {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  text-align: right;
+}
+.roads-content {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* Programmatic focus target only; the content itself is not interactive. */
+.roads-content:focus {
+  outline: none;
+}
+.roads-content > p {
+  margin: 0;
+}
+.roads-note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+.roads-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.roads-link {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.roads-summary {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+.roads-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.roads-item {
+  display: grid;
+  gap: 4px;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.roads-item:first-child {
+  padding-top: 0;
+}
+.roads-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+.roads-card .roads-item h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+.roads-direction {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.roads-distance {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.roads-location,
+.roads-comment {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.roads-comment {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+.roads-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+.roads-kind {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.roads-card .provenance {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 20px;
+  margin-block: 16px 0;
+  padding-top: 8px;
+}
+.roads-card .metadata,
+.roads-card .source-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .roads-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .roads-coverage {
+    margin-top: 4px;
+    text-align: left;
+  }
+}

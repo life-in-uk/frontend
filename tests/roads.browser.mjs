@@ -1,0 +1,637 @@
+// Deterministic Roads browser checks: geolocation and every API response are
+// mocked, so no real location, backend or National Highways request is used.
+import assert from "node:assert/strict";
+import { mkdir } from "node:fs/promises";
+import { formatRoadsTime } from "../src/roads/presentation.ts";
+const { chromium } = await import(
+  process.env.PLAYWRIGHT_MODULE || "playwright"
+);
+const baseURL = process.env.FRONTEND_URL || "http://127.0.0.1:5179";
+const screenshots = process.env.SCREENSHOT_DIR || "/tmp/life-uk-roads-review";
+await mkdir(screenshots, { recursive: true });
+const browser = await chromium.launch({ headless: true });
+
+const position = { latitude: 52.193516, longitude: -0.90838 };
+const fixture = {
+  snapshotAt: "2026-10-04T12:37:37.802125Z",
+  relevanceRadiusMeters: 15000.0,
+  disruptions: [
+    {
+      situationId: "fixture/second-nearest-is-listed-first",
+      recordId: "r-1",
+      recordVersion: "1",
+      descriptions: [
+        "laneClosures",
+        "Fixture comment: recovery vehicle on scene",
+      ],
+      type: { value: "laneClosures", extendedValue: null },
+      cause: {
+        type: "roadOrCarriagewayOrLaneManagement",
+        managementType: { value: "laneClosures", extendedValue: null },
+      },
+      status: "active",
+      startTime: "2026-10-04T11:56:19.190Z",
+      endTime: "2026-10-04T12:11:19.190Z",
+      distanceMeters: 0,
+      locations: [
+        {
+          description: "Fixture M1 northbound within J15",
+          roads: [
+            {
+              name: "M1",
+              direction: "northBound",
+              relativeDirection: "aligned",
+            },
+          ],
+          coordinates: [{ latitude: 52.111111, longitude: -0.777777 }],
+        },
+      ],
+    },
+    {
+      situationId: "fixture/optional-values-null",
+      recordId: "r-2",
+      recordVersion: null,
+      descriptions: [],
+      type: null,
+      cause: null,
+      status: null,
+      startTime: null,
+      endTime: null,
+      distanceMeters: 1276.380340910437,
+      locations: [
+        {
+          description: "Fixture A14 location without direction",
+          roads: [{ name: "A14", direction: null, relativeDirection: null }],
+          coordinates: [],
+        },
+      ],
+    },
+    {
+      situationId: "fixture/third",
+      recordId: "r-3",
+      recordVersion: "2",
+      descriptions: [],
+      type: { value: "carriagewayClosures", extendedValue: null },
+      cause: null,
+      status: "suspended",
+      startTime: null,
+      endTime: "2026-12-04T09:30:00Z",
+      distanceMeters: 14_999,
+      locations: [
+        {
+          description: "Fixture M6 southbound between J1 and J2",
+          roads: [
+            { name: "M6", direction: "southBound", relativeDirection: null },
+          ],
+          coordinates: [],
+        },
+      ],
+    },
+  ],
+};
+const empty = { ...fixture, disruptions: [] };
+
+// Replaces browser geolocation and records every storage write.
+function installMocks({ mode, coords, delayMs }) {
+  window.__roadsTest = {
+    calls: 0,
+    watch: 0,
+    options: null,
+    storage: [],
+    idb: 0,
+  };
+  const record = (kind) =>
+    function (key) {
+      window.__roadsTest.storage.push(`${kind}:${key}`);
+    };
+  Storage.prototype.setItem = record("storage");
+  if (window.indexedDB) {
+    const open = window.indexedDB.open.bind(window.indexedDB);
+    window.indexedDB.open = (...args) => {
+      window.__roadsTest.idb++;
+      return open(...args);
+    };
+  }
+  if (mode === "unsupported") {
+    Object.defineProperty(Navigator.prototype, "geolocation", {
+      configurable: true,
+      get: () => undefined,
+    });
+    return;
+  }
+  const codes = { PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 };
+  const geolocation = {
+    getCurrentPosition(success, failure, options) {
+      window.__roadsTest.calls++;
+      window.__roadsTest.options = options;
+      const outcome = window.__roadsTest.next ?? mode;
+      setTimeout(() => {
+        if (outcome === "success")
+          success({
+            coords: { ...coords, accuracy: 10 },
+            timestamp: Date.now(),
+          });
+        else
+          failure({
+            ...codes,
+            code: codes[outcome],
+            message: "RAW BROWSER MESSAGE",
+          });
+      }, delayMs);
+    },
+    watchPosition() {
+      window.__roadsTest.watch++;
+      return 1;
+    },
+    clearWatch() {},
+  };
+  Object.defineProperty(Navigator.prototype, "geolocation", {
+    configurable: true,
+    get: () => geolocation,
+  });
+}
+
+async function newPage(
+  width,
+  { mode = "success", coords = position, delayMs = 0, roads } = {},
+) {
+  const context = await browser.newContext({
+    viewport: { width, height: 1000 },
+    timezoneId: "America/Los_Angeles",
+  });
+  // Keep the other live cards independent of any backend.
+  await context.route("**/api/bank-holidays", (route) =>
+    route.fulfill({ status: 404, json: {} }),
+  );
+  await context.route("**/api/travel/underground", (route) =>
+    route.fulfill({ json: { observedAt: "2026-10-03T15:47:08Z", lines: [] } }),
+  );
+  const roadsRequests = [];
+  await context.route("**/api/travel/roads**", async (route) => {
+    roadsRequests.push(route.request().url());
+    if (roads) await roads(route, roadsRequests.length);
+    else await route.abort("failed");
+  });
+  await context.addInitScript(installMocks, { mode, coords, delayMs });
+  const page = await context.newPage();
+  const requests = [];
+  const errors = [];
+  page.on("request", (request) => requests.push(request.url()));
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto(baseURL);
+  const card = page.locator(".roads-card");
+  await card.waitFor();
+  const geo = () => page.evaluate(() => window.__roadsTest);
+  return { context, page, card, requests, roadsRequests, errors, geo };
+}
+
+async function assertSafe({ page, card, requests, errors, geo }, width) {
+  const text = await card.innerText();
+  // Precise coordinates (user or geometry) and raw browser errors never appear.
+  for (const banned of [
+    String(position.latitude),
+    String(position.longitude),
+    "52.19",
+    "-0.90",
+    "52.111111",
+    "-0.777777",
+    "RAW BROWSER MESSAGE",
+    "fixture/",
+    "r-1",
+  ])
+    assert(!text.includes(banned), `card must not show ${banned}`);
+  const state = await geo();
+  assert.deepEqual(state.storage, [], "nothing written to web storage");
+  assert.equal(state.idb, 0, "IndexedDB not used");
+  assert.equal(await page.evaluate(() => document.cookie), "");
+  assert.equal(state.watch, 0, "watchPosition never used");
+  for (const url of requests) {
+    const { hostname, pathname } = new URL(url);
+    assert(!/nationalhighways|highways\.gov/i.test(hostname), url);
+    if (pathname.startsWith("/api/travel/roads"))
+      assert.equal(pathname, "/api/travel/roads");
+  }
+  assert(
+    (await card.getByRole("link", { name: /National Highways/ }).count()) === 1,
+  );
+  assert(text.includes("National Highways · nearby current disruptions"));
+  assert.equal(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+    width,
+  );
+  assert.deepEqual(errors, []);
+}
+
+const roadsCount = (requests) =>
+  requests.filter((url) => new URL(url).pathname === "/api/travel/roads")
+    .length;
+
+try {
+  // Initial state: no backend request and no location prompt until asked.
+  for (const width of [1440, 390]) {
+    const ctx = await newPage(width, {
+      roads: (route) => route.fulfill({ json: fixture }),
+    });
+    const { page, card, requests, geo } = ctx;
+    await page.waitForLoadState("networkidle");
+    await page.clock.install();
+    await page.clock.runFor(120_000);
+    assert.equal(roadsCount(requests), 0);
+    assert.equal((await geo()).calls, 0);
+    const action = card.getByRole("button", { name: "Use my location" });
+    assert(await action.isVisible());
+    const text = await card.innerText();
+    assert(!text.includes("M1") && !text.includes("Lane closures"));
+    assert.equal(await card.locator(".roads-item, time").count(), 0);
+    await assertSafe(ctx, width);
+    await page.screenshot({
+      path: `${screenshots}/initial-${width}.png`,
+      fullPage: true,
+    });
+    await ctx.context.close();
+    console.log(
+      `PASS ${width}px initial: action shown, no Roads request, no geolocation, no fake data`,
+    );
+  }
+
+  // Successful lookup via keyboard, results, refresh and re-locate.
+  for (const width of [1440, 390]) {
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const ctx = await newPage(width, {
+      roads: async (route, n) => {
+        if (n === 1) await gate;
+        await route.fulfill({ json: fixture });
+      },
+    });
+    const { page, card, roadsRequests, requests, geo } = ctx;
+    await card.getByRole("button", { name: "Use my location" }).focus();
+    await page.keyboard.press("Enter");
+    await card
+      .getByRole("status")
+      .filter({ hasText: "Checking nearby" })
+      .waitFor();
+    assert.equal(await card.getAttribute("aria-busy"), "true");
+    const state = await geo();
+    assert.equal(state.calls, 1);
+    assert.equal(state.options.enableHighAccuracy, false);
+    const url = new URL(roadsRequests[0]);
+    assert.equal(url.pathname, "/api/travel/roads");
+    assert.equal(url.searchParams.get("lat"), String(position.latitude));
+    assert.equal(url.searchParams.get("lon"), String(position.longitude));
+    release();
+    await card.locator(".roads-item").first().waitFor();
+    assert.equal(await card.getAttribute("aria-busy"), "false");
+    // Keyboard focus stays inside the card after the pressed control is replaced.
+    assert(await card.evaluate((el) => el.contains(document.activeElement)));
+
+    const items = card.locator(".roads-item");
+    assert.equal(await items.count(), 3);
+    assert.deepEqual(await items.locator(".roads-location").allTextContents(), [
+      "Fixture M1 northbound within J15",
+      "Fixture A14 location without direction",
+      "Fixture M6 southbound between J1 and J2",
+    ]);
+    const first = items.nth(0);
+    assert.equal(
+      await first
+        .locator("h3")
+        .innerText()
+        .then((t) => t.replace(/\s+/g, " ")),
+      "M1 Northbound",
+    );
+    assert.equal(
+      await first.locator(".roads-distance").textContent(),
+      "Under 0.1 miles away",
+    );
+    assert.equal(
+      await first.locator(".roads-kind").textContent(),
+      "Lane closures",
+    );
+    assert.deepEqual(await first.locator(".roads-comment").allTextContents(), [
+      "Fixture comment: recovery vehicle on scene",
+    ]);
+    assert.equal(
+      await first.locator("time").getAttribute("datetime"),
+      "2026-10-04T12:11:19.190Z",
+    );
+    assert.equal(
+      await first.locator("time").textContent(),
+      formatRoadsTime("2026-10-04T12:11:19.190Z"),
+    );
+    assert((await first.innerText()).includes("4 October 2026 at 13:11"));
+    assert((await first.innerText()).includes("Provider status: Active"));
+    // Optional values absent: nothing invented.
+    const second = items.nth(1);
+    assert.equal(await second.locator("h3").innerText(), "A14");
+    assert.equal(
+      await second
+        .locator(".roads-direction, .roads-kind, .roads-comment, time")
+        .count(),
+      0,
+    );
+    assert(!(await second.innerText()).includes("Provider"));
+    assert.equal(
+      await second.locator(".roads-distance").textContent(),
+      "0.8 miles away",
+    );
+    const third = items.nth(2);
+    assert.equal(
+      await third.locator(".roads-distance").textContent(),
+      "9.3 miles away",
+    );
+    assert((await third.innerText()).includes("4 December 2026 at 09:30"));
+    assert((await third.innerText()).includes("Southbound"));
+    const summary = await card.locator(".roads-summary").innerText();
+    assert.equal(summary, "3 disruptions within 9.3 miles, nearest first.");
+    assert((await card.innerText()).includes("not driving distance"));
+    assert.equal(
+      await card.locator(".provenance time").getAttribute("datetime"),
+      fixture.snapshotAt,
+    );
+    await assertSafe(ctx, width);
+    await page.screenshot({
+      path: `${screenshots}/results-${width}.png`,
+      fullPage: true,
+    });
+
+    // Refresh reuses the in-memory location: new request, no new geolocation.
+    await card.getByRole("button", { name: "Refresh" }).click();
+    await card.locator(".roads-item").first().waitFor();
+    assert.equal(roadsRequests.length, 2);
+    assert.equal((await geo()).calls, 1);
+    assert.equal(
+      new URL(roadsRequests[1]).search,
+      new URL(roadsRequests[0]).search,
+    );
+    // No polling.
+    await page.clock.install();
+    await page.clock.runFor(30 * 60_000);
+    assert.equal(roadsRequests.length, 2);
+    // Re-locating is explicit and asks the browser once more.
+    await card.getByRole("button", { name: "Use my location again" }).click();
+    await page.clock.runFor(10);
+    await card.locator(".roads-item").first().waitFor();
+    assert.equal((await geo()).calls, 2);
+    assert.equal(roadsRequests.length, 3);
+    assert.equal(roadsCount(requests), 3);
+    await assertSafe(ctx, width);
+    await ctx.context.close();
+    console.log(
+      `PASS ${width}px success: keyboard action, exact coordinates sent once to /api/travel/roads, backend order, optional values absent, readable distance/UK times, refresh reuses location without geolocation, re-locate asks again, no polling or persistence`,
+    );
+  }
+
+  // Empty result is a calm success.
+  {
+    const ctx = await newPage(390, {
+      roads: (route) => route.fulfill({ json: empty }),
+    });
+    const { card } = ctx;
+    await card.getByRole("button", { name: "Use my location" }).click();
+    await card
+      .getByRole("status")
+      .filter({
+        hasText: "No current National Highways disruptions found nearby.",
+      })
+      .waitFor();
+    const text = await card.innerText();
+    assert(!/clear|unavailable|couldn’t/i.test(text));
+    assert.equal(await card.locator(".roads-item").count(), 0);
+    assert(await card.getByRole("button", { name: "Refresh" }).isVisible());
+    await assertSafe(ctx, 390);
+    await ctx.context.close();
+    console.log("PASS empty: successful neutral message, no 'all clear' claim");
+  }
+
+  // Unsupported browser.
+  {
+    const ctx = await newPage(390, { mode: "unsupported" });
+    const { card, roadsRequests } = ctx;
+    await card.getByRole("button", { name: "Use my location" }).click();
+    await card
+      .getByRole("status")
+      .filter({ hasText: "can’t share your location" })
+      .waitFor();
+    assert.equal(roadsRequests.length, 0);
+    await assertSafe(ctx, 390);
+    await ctx.context.close();
+    console.log("PASS unsupported: clear message, no request");
+  }
+
+  // Denied, unavailable and timeout: no request, no automatic re-prompt, explicit retry.
+  for (const [mode, message] of [
+    ["PERMISSION_DENIED", "Location access wasn’t allowed"],
+    ["POSITION_UNAVAILABLE", "Your location couldn’t be found."],
+    ["TIMEOUT", "Your location couldn’t be found."],
+  ]) {
+    const ctx = await newPage(390, {
+      mode,
+      roads: (route) => route.fulfill({ json: fixture }),
+    });
+    const { page, card, roadsRequests, geo } = ctx;
+    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("status").filter({ hasText: message }).waitFor();
+    await page.clock.install();
+    await page.clock.runFor(120_000);
+    assert.equal((await geo()).calls, 1, "no automatic re-prompt");
+    assert.equal(roadsRequests.length, 0);
+    await assertSafe(ctx, 390);
+    // Explicit retry asks again; this time the browser succeeds.
+    await page.evaluate(() => {
+      window.__roadsTest.next = "success";
+    });
+    await card.getByRole("button", { name: "Try again" }).click();
+    await page.clock.runFor(10);
+    await card.locator(".roads-item").first().waitFor();
+    assert.equal((await geo()).calls, 2);
+    assert.equal(roadsRequests.length, 1);
+    await ctx.context.close();
+    console.log(
+      `PASS ${mode}: bounded message, no raw error, no request, retry only on request`,
+    );
+  }
+
+  // Backend failures: bounded states, retry reuses in-memory location, no fake data.
+  for (const [name, handle, message] of [
+    [
+      "404 unavailable",
+      (route) =>
+        route.fulfill({
+          status: 404,
+          json: { code: "ROADS_UNAVAILABLE", message: "private" },
+        }),
+      "Road information is temporarily unavailable.",
+    ],
+    [
+      "500",
+      (route) =>
+        route.fulfill({
+          status: 500,
+          json: { code: "ROADS_READ_FAILED", message: "private" },
+        }),
+      "Road information couldn’t be loaded.",
+    ],
+    [
+      "network",
+      (route) => route.abort("failed"),
+      "Road information couldn’t be loaded.",
+    ],
+    [
+      "invalid JSON",
+      (route) => route.fulfill({ contentType: "application/json", body: "{" }),
+      "Road information couldn’t be loaded.",
+    ],
+    [
+      "malformed DTO",
+      (route) =>
+        route.fulfill({
+          json: {
+            ...fixture,
+            disruptions: [...fixture.disruptions, { situationId: "bad" }],
+          },
+        }),
+      "Road information couldn’t be loaded.",
+    ],
+  ]) {
+    const ctx = await newPage(390, {
+      roads: (route, n) =>
+        n === 1 ? handle(route) : route.fulfill({ json: fixture }),
+    });
+    const { card, roadsRequests, geo } = ctx;
+    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("status").filter({ hasText: message }).waitFor();
+    const text = await card.innerText();
+    for (const banned of [
+      "Fixture",
+      "M1",
+      "ROADS_",
+      "private",
+      "Lane closures",
+    ])
+      assert(!text.includes(banned), `${name}: must not show ${banned}`);
+    assert.equal(
+      await card.locator(".roads-item, .provenance time").count(),
+      0,
+    );
+    await assertSafe(ctx, 390);
+    await card.getByRole("button", { name: "Try again" }).click();
+    await card.locator(".roads-item").first().waitFor();
+    assert.equal(roadsRequests.length, 2);
+    assert.equal((await geo()).calls, 1, "retry reuses in-memory location");
+    await ctx.context.close();
+    console.log(
+      `PASS ${name}: bounded state, no partial/fake data, retry reuses location`,
+    );
+  }
+
+  // Request deadline aborts a stalled request.
+  {
+    const ctx = await newPage(390, {
+      roads: () => new Promise(() => {}),
+    });
+    const { page, card } = ctx;
+    await page.clock.install();
+    await card.getByRole("button", { name: "Use my location" }).click();
+    await page.clock.runFor(10);
+    await card
+      .getByRole("status")
+      .filter({ hasText: "Checking nearby" })
+      .waitFor();
+    await page.clock.runFor(10_001);
+    await card
+      .getByRole("status")
+      .filter({ hasText: "couldn’t be loaded" })
+      .waitFor();
+    await ctx.context.close();
+    console.log(
+      "PASS deadline: stalled request aborted into a retryable state",
+    );
+  }
+
+  // Unmounting while the Roads request is pending aborts it without stale rendering.
+  {
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const ctx = await newPage(390, {
+      roads: async (route) => {
+        await gate;
+        await route.fulfill({ json: fixture }).catch(() => {});
+      },
+    });
+    const { page, errors } = ctx;
+    const aborted = [];
+    page.on("requestfailed", (request) => {
+      if (new URL(request.url()).pathname === "/api/travel/roads")
+        aborted.push(request.url());
+    });
+    await page.evaluate(async () => {
+      const [{ default: React }, { default: ReactDOM }, { RoadsCard }] =
+        await Promise.all([
+          import("/node_modules/.vite/deps/react.js"),
+          import("/node_modules/.vite/deps/react-dom_client.js"),
+          import("/src/components/RoadsCard.tsx"),
+        ]);
+      const host = document.createElement("div");
+      host.id = "roads-unmount-test";
+      document.body.appendChild(host);
+      globalThis.roadsTestRoot = ReactDOM.createRoot(host);
+      globalThis.roadsTestRoot.render(React.createElement(RoadsCard));
+    });
+    const isolated = page.locator("#roads-unmount-test .roads-card");
+    await isolated.getByRole("button", { name: "Use my location" }).click();
+    await isolated
+      .getByRole("status")
+      .filter({ hasText: "Checking nearby" })
+      .waitFor();
+    await page.evaluate(() => globalThis.roadsTestRoot.unmount());
+    await page.waitForTimeout(50);
+    assert.equal(aborted.length, 1, "unmount must abort the pending request");
+    release();
+    await page.waitForTimeout(50);
+    assert.equal(await isolated.count(), 0);
+    assert.deepEqual(errors, []);
+    await ctx.context.close();
+    console.log(
+      "PASS unmount: pending Roads request aborted; no stale rendering or errors",
+    );
+  }
+
+  // A location answer arriving after the card unmounts is ignored.
+  {
+    const ctx = await newPage(390, {
+      delayMs: 200,
+      roads: (route) => route.fulfill({ json: fixture }),
+    });
+    const { page, roadsRequests, errors } = ctx;
+    await page.evaluate(async () => {
+      const [{ default: React }, { default: ReactDOM }, { RoadsCard }] =
+        await Promise.all([
+          import("/node_modules/.vite/deps/react.js"),
+          import("/node_modules/.vite/deps/react-dom_client.js"),
+          import("/src/components/RoadsCard.tsx"),
+        ]);
+      const host = document.createElement("div");
+      host.id = "roads-late-test";
+      document.body.appendChild(host);
+      globalThis.roadsLateRoot = ReactDOM.createRoot(host);
+      globalThis.roadsLateRoot.render(React.createElement(RoadsCard));
+    });
+    await page
+      .locator("#roads-late-test .roads-card")
+      .getByRole("button", { name: "Use my location" })
+      .click();
+    await page.evaluate(() => globalThis.roadsLateRoot.unmount());
+    await page.waitForTimeout(400);
+    assert.equal(roadsRequests.length, 0, "late position starts no request");
+    assert.deepEqual(errors, []);
+    await ctx.context.close();
+    console.log("PASS late geolocation after unmount: ignored, no request");
+  }
+} finally {
+  await browser.close();
+}

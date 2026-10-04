@@ -117,7 +117,7 @@ try {
       await route.fulfill({ json: fixture });
     });
     await page.goto(baseURL);
-    const card = page.locator(".information-section:not(.underground-section) .information-card");
+    const card = page.locator(".information-grid .information-card");
     await page.getByRole("status").filter({ hasText: "正在加载" }).waitFor();
     assert.equal(await card.getAttribute("aria-busy"), "true");
     assert(!(await card.innerText()).includes("England and Wales API fixture"));
@@ -191,7 +191,7 @@ try {
       .getByRole("status")
       .filter({ hasText: "银行假日信息暂时无法加载" })
       .waitFor();
-    const text = await page.locator(".information-section:not(.underground-section) .information-card").innerText();
+    const text = await page.locator(".information-grid .information-card").innerText();
     for (const excluded of [
       "Christmas Day",
       "25 December",
@@ -202,7 +202,7 @@ try {
       "本地展示样例",
     ])
       assert(!text.includes(excluded));
-    assert.equal(await page.locator(".information-section:not(.underground-section) .information-card time").count(), 0);
+    assert.equal(await page.locator(".information-grid .information-card time").count(), 0);
     await assertHomepage(page, requests, runtimeErrors, 390);
     await page.screenshot({
       path: `${screenshots}/failure-${name.replaceAll(" ", "-")}.png`,
@@ -228,7 +228,7 @@ try {
       .filter({ hasText: "没有今天或之后" })
       .waitFor();
     assert(
-      !(await page.locator(".information-section:not(.underground-section) .information-card").innerText()).includes(
+      !(await page.locator(".information-grid .information-card").innerText()).includes(
         "Past fixture",
       ),
     );
@@ -275,7 +275,7 @@ try {
         holiday,
         "Existing backend evidence must contain an upcoming event",
       );
-      const card = page.locator(".information-section:not(.underground-section) .information-card");
+      const card = page.locator(".information-grid .information-card");
       await card
         .getByRole("heading", { name: holiday.title, exact: true })
         .waitFor();
