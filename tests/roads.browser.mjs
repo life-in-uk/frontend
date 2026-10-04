@@ -153,7 +153,7 @@ function installMocks({ mode, coords, delayMs }) {
 
 async function newPage(
   width,
-  { mode = "success", coords = position, delayMs = 0, roads } = {},
+  { mode = "success", coords = position, delayMs = 0, roads, places } = {},
 ) {
   const context = await browser.newContext({
     viewport: { width, height: 1000 },
@@ -172,6 +172,13 @@ async function newPage(
     if (roads) await roads(route, roadsRequests.length);
     else await route.abort("failed");
   });
+  // Place search is always mocked; nothing can reach OS Names.
+  const placeRequests = [];
+  await context.route("**/api/places/search**", async (route) => {
+    placeRequests.push(route.request().url());
+    if (places) await places(route, placeRequests.length);
+    else await route.abort("failed");
+  });
   await context.addInitScript(installMocks, { mode, coords, delayMs });
   const page = await context.newPage();
   const requests = [];
@@ -182,7 +189,16 @@ async function newPage(
   const card = page.locator(".roads-card");
   await card.waitFor();
   const geo = () => page.evaluate(() => window.__roadsTest);
-  return { context, page, card, requests, roadsRequests, errors, geo };
+  return {
+    context,
+    page,
+    card,
+    requests,
+    roadsRequests,
+    placeRequests,
+    errors,
+    geo,
+  };
 }
 
 async function assertSafe({ page, card, requests, errors, geo }, width) {
@@ -207,7 +223,7 @@ async function assertSafe({ page, card, requests, errors, geo }, width) {
   assert.equal(state.watch, 0, "watchPosition never used");
   for (const url of requests) {
     const { hostname, pathname } = new URL(url);
-    assert(!/nationalhighways|highways\.gov/i.test(hostname), url);
+    assert(!/nationalhighways|highways\.gov|os\.uk/i.test(hostname), url);
     if (pathname.startsWith("/api/travel/roads"))
       assert.equal(pathname, "/api/travel/roads");
   }
@@ -371,7 +387,7 @@ try {
     await page.clock.runFor(30 * 60_000);
     assert.equal(roadsRequests.length, 2);
     // Re-locating is explicit and asks the browser once more.
-    await card.getByRole("button", { name: "Use my location again" }).click();
+    await card.getByRole("button", { name: "Use my location" }).click();
     await page.clock.runFor(10);
     await card.locator(".roads-item").first().waitFor();
     assert.equal((await geo()).calls, 2);
@@ -631,6 +647,463 @@ try {
     assert.deepEqual(errors, []);
     await ctx.context.close();
     console.log("PASS late geolocation after unmount: ignored, no request");
+  }
+  // ---- Place search (Issue #12) ----
+  const attribution =
+    "Fixture attribution: Contains OS data © Crown copyright and database right 2026";
+  const place = (id, label, type, latitude, longitude) => ({
+    id: `osgb-fixture-${id}`,
+    label,
+    name: label.split(",")[0],
+    type,
+    area: null,
+    region: "Fixture Region",
+    country: "England",
+    latitude,
+    longitude,
+  });
+  const sheffield = place(
+    "1",
+    "Sheffield, Fixture Region",
+    "city",
+    53.381129,
+    -1.470085,
+  );
+  const sheffieldPark = place(
+    "2",
+    "Sheffield Park, Wealden, South East",
+    "hamlet",
+    50.991734,
+    0.023456,
+  );
+  const leeds = place(
+    "3",
+    "Leeds, Fixture Region",
+    "city",
+    53.799722,
+    -1.549167,
+  );
+  const leedsVillage = place(
+    "4",
+    "Leeds, Maidstone, South East",
+    "village",
+    51.247321,
+    0.613214,
+  );
+  const barnsley = place(
+    "5",
+    "Barnsley, Fixture Region",
+    "town",
+    53.552631,
+    -1.479726,
+  );
+  const placeResponse = (query, places) => ({ query, places, attribution });
+  const byQuery = {
+    Sheffield: placeResponse("Sheffield", [sheffield, sheffieldPark]),
+    Leeds: placeResponse("Leeds", [leeds, leedsVillage]),
+    Barnsley: placeResponse("Barnsley", [barnsley]),
+    Nowhere: placeResponse("Nowhere", []),
+  };
+  const placesByQuery = (route) =>
+    route.fulfill({
+      json: byQuery[new URL(route.request().url()).searchParams.get("q")],
+    });
+  const roadsAt = (url) => {
+    const query = new URL(url).searchParams;
+    return [Number(query.get("lat")), Number(query.get("lon"))];
+  };
+  const assertNoPlaceCoordinates = async (card) => {
+    const text = await card.innerText();
+    for (const candidate of [
+      sheffield,
+      sheffieldPark,
+      leeds,
+      leedsVillage,
+      barnsley,
+    ])
+      for (const banned of [
+        String(candidate.latitude),
+        String(candidate.longitude),
+        String(candidate.latitude).slice(0, 5),
+        candidate.id,
+      ])
+        assert(!text.includes(banned), `card must not show ${banned}`);
+  };
+  const search = (card) =>
+    card.getByRole("searchbox", { name: "Search postcode, town or place" });
+
+  // Explicit submit, candidates, selection, refresh and switching locations.
+  for (const width of [1440, 390]) {
+    const ctx = await newPage(width, {
+      places: placesByQuery,
+      roads: (route) => route.fulfill({ json: fixture }),
+    });
+    const { page, card, placeRequests, roadsRequests, geo } = ctx;
+    // Typing alone sends nothing.
+    await search(card).pressSequentially("  Sheffield  ", { delay: 5 });
+    await page.waitForTimeout(100);
+    assert.equal(placeRequests.length, 0, "typing must not search");
+    // The Search button submits the trimmed query.
+    await card.getByRole("button", { name: "Search", exact: true }).click();
+    await card
+      .getByRole("status")
+      .filter({ hasText: "2 places found" })
+      .waitFor();
+    assert.equal(placeRequests.length, 1);
+    assert.equal(new URL(placeRequests[0]).pathname, "/api/places/search");
+    assert.equal(new URL(placeRequests[0]).searchParams.get("q"), "Sheffield");
+    const candidates = card.locator(".roads-candidate");
+    assert.deepEqual(
+      (await candidates.allInnerTexts()).map((t) => t.replace(/\s+/g, " ")),
+      [
+        "Sheffield, Fixture Region City",
+        "Sheffield Park, Wealden, South East Hamlet",
+      ],
+    );
+    assert((await card.innerText()).includes(attribution));
+    assert.equal(roadsRequests.length, 0, "no Roads request before a choice");
+    await assertNoPlaceCoordinates(card);
+    await page.screenshot({
+      path: `${screenshots}/places-candidates-${width}.png`,
+      fullPage: true,
+    });
+
+    // Choosing a candidate uses its coordinates for the existing Roads API.
+    await candidates.nth(1).click();
+    await card.locator(".roads-item").first().waitFor();
+    assert.deepEqual(roadsAt(roadsRequests[0]), [
+      sheffieldPark.latitude,
+      sheffieldPark.longitude,
+    ]);
+    assert.equal(
+      await card.locator(".roads-active-label").innerText(),
+      sheffieldPark.label,
+    );
+    assert.equal(await card.locator(".roads-candidate").count(), 0);
+    assert(
+      (await card.locator(".provenance").innerText()).includes(attribution),
+    );
+    assert(
+      await card.getByRole("link", { name: /National Highways/ }).isVisible(),
+    );
+    assert.equal((await geo()).calls, 0, "no geolocation for searched places");
+    await assertNoPlaceCoordinates(card);
+    await page.screenshot({
+      path: `${screenshots}/places-selected-${width}.png`,
+      fullPage: true,
+    });
+
+    // Refresh reuses the selected place.
+    await card.getByRole("button", { name: "Refresh" }).click();
+    await card.locator(".roads-item").first().waitFor();
+    assert.equal(roadsRequests.length, 2);
+    assert.deepEqual(roadsAt(roadsRequests[1]), roadsAt(roadsRequests[0]));
+    assert.equal((await geo()).calls, 0);
+
+    // Enter submits; a single match is used directly and replaces the previous place.
+    await search(card).fill("Barnsley");
+    await search(card).press("Enter");
+    await card
+      .locator(".roads-active-label")
+      .filter({ hasText: barnsley.label })
+      .waitFor();
+    await card.locator(".roads-item").first().waitFor();
+    assert.equal(placeRequests.length, 2);
+    assert.deepEqual(roadsAt(roadsRequests[2]), [
+      barnsley.latitude,
+      barnsley.longitude,
+    ]);
+    assert.equal(await card.locator(".roads-candidate").count(), 0);
+
+    // Switching to browser geolocation replaces the searched place.
+    await card.getByRole("button", { name: "Use my location" }).click();
+    await card
+      .locator(".roads-active-label")
+      .filter({ hasText: "your current location" })
+      .waitFor();
+    await card.locator(".roads-item").first().waitFor();
+    assert.equal((await geo()).calls, 1);
+    assert.deepEqual(roadsAt(roadsRequests[3]), [
+      position.latitude,
+      position.longitude,
+    ]);
+    assert(
+      !(await card.locator(".provenance").innerText()).includes(attribution),
+    );
+    await card.getByRole("button", { name: "Refresh" }).click();
+    await card.locator(".roads-item").first().waitFor();
+    assert.deepEqual(roadsAt(roadsRequests[4]), [
+      position.latitude,
+      position.longitude,
+    ]);
+    assert.equal((await geo()).calls, 1, "refresh reuses device location");
+
+    // And searching again replaces geolocation.
+    await search(card).fill("Leeds");
+    await search(card).press("Enter");
+    await card.locator(".roads-candidate").first().waitFor();
+    await card.locator(".roads-candidate").first().click();
+    await card
+      .locator(".roads-active-label")
+      .filter({ hasText: leeds.label })
+      .waitFor();
+    await card.locator(".roads-item").first().waitFor();
+    assert.deepEqual(roadsAt(roadsRequests[5]), [
+      leeds.latitude,
+      leeds.longitude,
+    ]);
+    assert.equal((await geo()).calls, 1);
+    assert.equal(
+      await card.locator(".roads-active").count(),
+      1,
+      "one active location",
+    );
+    await assertNoPlaceCoordinates(card);
+    await assertSafe(ctx, width);
+    await ctx.context.close();
+    console.log(
+      `PASS ${width}px place search: no request while typing, Search/Enter submit trimmed query, candidates without coordinates/IDs, selection drives Roads with candidate coordinates, single match auto-selected, refresh reuses location, place ↔ geolocation switching, OS + National Highways attribution, nothing persisted`,
+    );
+  }
+
+  // Blank input and empty results: no request / no location invented.
+  {
+    const ctx = await newPage(390, { places: placesByQuery });
+    const { card, placeRequests, roadsRequests, geo } = ctx;
+    await card.getByRole("button", { name: "Search", exact: true }).click();
+    await card
+      .getByRole("status")
+      .filter({ hasText: "Enter a postcode, town or place." })
+      .waitFor();
+    await search(card).fill("   ");
+    await search(card).press("Enter");
+    assert.equal(placeRequests.length, 0, "blank input must not search");
+    await search(card).fill("Nowhere");
+    await search(card).press("Enter");
+    await card
+      .getByRole("status")
+      .filter({ hasText: "No matching place found." })
+      .waitFor();
+    assert.equal(placeRequests.length, 1);
+    assert.equal(roadsRequests.length, 0);
+    assert.equal((await geo()).calls, 0, "no automatic geolocation fallback");
+    assert.equal(
+      await card.locator(".roads-active, .roads-candidate").count(),
+      0,
+    );
+    await assertSafe(ctx, 390);
+    await ctx.context.close();
+    console.log(
+      "PASS blank/empty place search: no request for blank input, 'No matching place found.', no fallback",
+    );
+  }
+
+  // Place-search failures stay local, hide provider bodies and leave the card usable.
+  for (const [name, handle, message] of [
+    [
+      "400 invalid",
+      (route) =>
+        route.fulfill({
+          status: 400,
+          json: { code: "PLACE_QUERY_INVALID", message: "private" },
+        }),
+      "That search can’t be used.",
+    ],
+    [
+      "503 not configured",
+      (route) =>
+        route.fulfill({
+          status: 503,
+          json: { code: "PLACES_NOT_CONFIGURED", message: "private" },
+        }),
+      "Place search is temporarily unavailable.",
+    ],
+    [
+      "502 unavailable",
+      (route) =>
+        route.fulfill({
+          status: 502,
+          json: { code: "PLACES_UNAVAILABLE", message: "private" },
+        }),
+      "Place search is temporarily unavailable.",
+    ],
+    [
+      "500",
+      (route) =>
+        route.fulfill({
+          status: 500,
+          json: { code: "PLACES_SEARCH_FAILED", message: "private" },
+        }),
+      "Place search couldn’t be completed.",
+    ],
+    [
+      "network",
+      (route) => route.abort("failed"),
+      "Place search couldn’t be completed.",
+    ],
+    [
+      "malformed",
+      (route) =>
+        route.fulfill({
+          json: {
+            query: "Sheffield",
+            places: [{ ...sheffield, latitude: "53" }],
+            attribution,
+          },
+        }),
+      "Place search couldn’t be completed.",
+    ],
+  ]) {
+    const ctx = await newPage(390, {
+      places: (route, n) => (n === 1 ? handle(route) : placesByQuery(route)),
+      roads: (route) => route.fulfill({ json: fixture }),
+    });
+    const { card, roadsRequests } = ctx;
+    await search(card).fill("Sheffield");
+    await search(card).press("Enter");
+    await card.getByRole("status").filter({ hasText: message }).waitFor();
+    const text = await card.innerText();
+    for (const banned of [
+      "PLACE",
+      "private",
+      "Sheffield, Fixture",
+      attribution,
+    ])
+      assert(!text.includes(banned), `${name}: must not show ${banned}`);
+    assert.equal(roadsRequests.length, 0);
+    // Still usable: the next search works.
+    await search(card).press("Enter");
+    await card.locator(".roads-candidate").first().click();
+    await card.locator(".roads-item").first().waitFor();
+    await assertSafe(ctx, 390);
+    await ctx.context.close();
+    console.log(
+      `PASS place search ${name}: local bounded message, no provider body, card remains usable`,
+    );
+  }
+
+  // A slower earlier search cannot replace a newer one.
+  {
+    let releaseSheffield;
+    const sheffieldGate = new Promise((resolve) => {
+      releaseSheffield = resolve;
+    });
+    const ctx = await newPage(1440, {
+      places: async (route) => {
+        const q = new URL(route.request().url()).searchParams.get("q");
+        if (q === "Sheffield") await sheffieldGate;
+        await placesByQuery(route).catch(() => {});
+      },
+    });
+    const { page, card } = ctx;
+    await search(card).fill("Sheffield");
+    await search(card).press("Enter");
+    await card
+      .getByRole("status")
+      .filter({ hasText: "Searching for places" })
+      .waitFor();
+    await search(card).fill("Leeds");
+    await search(card).press("Enter");
+    await card.locator(".roads-candidate").first().waitFor();
+    releaseSheffield();
+    await page.waitForTimeout(200);
+    assert.deepEqual(
+      await card.locator(".roads-candidate > span:first-child").allInnerTexts(),
+      [leeds.label, leedsVillage.label],
+    );
+    await ctx.context.close();
+    console.log(
+      "PASS stale place search: earlier Sheffield response cannot replace newer Leeds results",
+    );
+  }
+
+  // A slower Roads response for an earlier choice cannot replace the newer location.
+  {
+    let releaseSheffield;
+    const sheffieldGate = new Promise((resolve) => {
+      releaseSheffield = resolve;
+    });
+    const ctx = await newPage(1440, {
+      places: placesByQuery,
+      roads: async (route) => {
+        const [lat] = roadsAt(route.request().url());
+        if (lat === sheffield.latitude) {
+          await sheffieldGate;
+          await route.fulfill({ json: fixture }).catch(() => {});
+        } else await route.fulfill({ json: empty });
+      },
+    });
+    const { page, card, roadsRequests } = ctx;
+    await search(card).fill("Sheffield");
+    await search(card).press("Enter");
+    await card.locator(".roads-candidate").first().click();
+    await card
+      .getByRole("status")
+      .filter({ hasText: "Checking nearby" })
+      .waitFor();
+    await search(card).fill("Leeds");
+    await search(card).press("Enter");
+    await card.locator(".roads-candidate").first().click();
+    await card
+      .getByRole("status")
+      .filter({
+        hasText: "No current National Highways disruptions found nearby.",
+      })
+      .waitFor();
+    releaseSheffield();
+    await page.waitForTimeout(200);
+    assert.equal(roadsRequests.length, 2);
+    assert.equal(
+      await card.locator(".roads-item").count(),
+      0,
+      "Sheffield results must not appear",
+    );
+    assert.equal(
+      await card.locator(".roads-active-label").innerText(),
+      leeds.label,
+    );
+    await ctx.context.close();
+    console.log(
+      "PASS stale Roads response: earlier Sheffield result cannot replace newer Leeds location",
+    );
+  }
+
+  // A single match arriving after the user chose geolocation does not take over.
+  {
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const ctx = await newPage(1440, {
+      places: async (route) => {
+        await gate;
+        await placesByQuery(route).catch(() => {});
+      },
+      roads: (route) => route.fulfill({ json: fixture }),
+    });
+    const { page, card, roadsRequests } = ctx;
+    await search(card).fill("Barnsley");
+    await search(card).press("Enter");
+    await card.getByRole("button", { name: "Use my location" }).click();
+    await card
+      .locator(".roads-active-label")
+      .filter({ hasText: "your current location" })
+      .waitFor();
+    release();
+    await page.waitForTimeout(200);
+    assert.equal(roadsRequests.length, 1);
+    assert.deepEqual(roadsAt(roadsRequests[0]), [
+      position.latitude,
+      position.longitude,
+    ]);
+    assert.equal(
+      await card.locator(".roads-active-label").innerText(),
+      "your current location",
+    );
+    await ctx.context.close();
+    console.log(
+      "PASS later location choice wins over a pending single-match search",
+    );
   }
 } finally {
   await browser.close();

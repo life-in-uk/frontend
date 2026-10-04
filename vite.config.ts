@@ -16,6 +16,9 @@ export default defineConfig(({ mode }) => {
         "/api/travel/roads": {
           target: backendTarget,
         },
+        "/api/places/search": {
+          target: backendTarget,
+        },
         "/api/bank-holidays": {
           target: backendTarget,
         },

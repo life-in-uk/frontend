@@ -104,3 +104,15 @@ Each disruption shows the road, direction, the provider's location description, 
 Coordinates are held only in component memory for the current page. **Refresh** reuses them without asking the browser again; **Use my location again** asks once more. Nothing is written to web storage, cookies or IndexedDB, and there is no polling.
 
 Use the external Playwright setup described above to run `npm run test:roads:browser`. It mocks geolocation and every API response, so it needs no real location, backend or provider access.
+
+## Place search for Roads (Issue #12)
+
+The Roads card offers two equal ways to choose where to check: **Search postcode, town or place** and **Use my location**. Geolocation stays optional and is never requested automatically.
+
+Search runs only on explicit submit (the Search button or Enter), never while typing. The query is trimmed; blank input sends nothing. `src/places/api.ts` calls `GET /api/places/search?q=…` (backend Issue #32, which alone talks to OS Names), models and validates `{query, places[], attribution}` strictly, and maps `400` to an invalid-query message, `502/503` to "temporarily unavailable", and other failures, malformed data and the 10-second deadline to a generic failure. Provider error bodies are never shown.
+
+Several candidates are listed compactly by their backend `label` and type, with the returned OS attribution. Choosing one makes it the single active location and calls the existing Roads API with its coordinates; a single match is used directly. The active place stays visible ("Showing roads near …"), its OS attribution is shown with the Roads results, and National Highways attribution remains. No match shows "No matching place found." without falling back to geolocation. Coordinates and OS IDs are never displayed.
+
+There is one active location at a time: choosing a place replaces a device location and vice versa. **Refresh** reuses the active location's in-memory coordinates. Queries, places and coordinates are held only in component memory; nothing is stored, logged or sent anywhere except these two backend endpoints.
+
+Superseded work cannot win: a new search cancels the previous one, any location choice cancels a pending search, and each Roads lookup cancels and supersedes the previous one, with generation checks ignoring late responses. Place-search and Roads loading/error states are independent. `npm run test:roads:browser` covers these flows with mocked geolocation and responses only.
