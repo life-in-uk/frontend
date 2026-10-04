@@ -91,11 +91,7 @@ async function assertPage(page, requests, errors, width) {
   );
   assert.equal(await page.locator(".foundation-card").count(), 2);
   assert.equal(
-    await page
-      .locator(
-        ".information-section:not(.underground-section) .information-card",
-      )
-      .count(),
+    await page.locator(".information-grid .information-card").count(),
     1,
   );
   assert.equal(
