@@ -11,7 +11,8 @@
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/bank-holidays.browser.mjs",
     "test:underground:browser": "node tests/underground.browser.mjs",
-    "test:roads:browser": "node tests/roads.browser.mjs"
+    "test:roads:browser": "node tests/roads.browser.mjs",
+    "test:health:browser": "node tests/health.browser.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

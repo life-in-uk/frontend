@@ -1,0 +1,1115 @@
+/* Health & NHS section. Uses the existing design tokens plus local tone
+   variables for the four category identities; no global overrides. */
+
+.tone-blue {
+  --tone-bg: #eef4fa;
+  --tone-strong: #d9e7f4;
+  --tone-ink: #2c5a8a;
+  --tone-border: #d6e3ef;
+}
+.tone-coral {
+  --tone-bg: #fbf0eb;
+  --tone-strong: #f4d9cf;
+  --tone-ink: #9a473a;
+  --tone-border: #f0dbd2;
+}
+.tone-green {
+  --tone-bg: #eef3ea;
+  --tone-strong: #d7e4cf;
+  --tone-ink: #38634b;
+  --tone-border: #d9e3d2;
+}
+.tone-lavender {
+  --tone-bg: #f3f0f8;
+  --tone-strong: #e2dcf0;
+  --tone-ink: #5c4d88;
+  --tone-border: #e2dcee;
+}
+.tone-neutral {
+  --tone-bg: var(--color-surface);
+  --tone-strong: var(--color-verified-soft);
+  --tone-ink: var(--color-brand);
+  --tone-border: var(--color-border);
+}
+
+.health-page {
+  max-width: 1184px;
+  margin-inline: auto;
+  padding-inline: 32px;
+  padding-bottom: 64px;
+  min-width: 0;
+}
+
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+.breadcrumb li {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.breadcrumb li + li::before {
+  content: "/";
+  margin-inline: 8px;
+  color: var(--color-border);
+}
+.breadcrumb a {
+  color: var(--color-brand);
+}
+
+.health-status {
+  margin-block: 32px;
+  color: var(--color-muted);
+}
+/* Hub-level unavailable/empty messages sit in a quiet panel. */
+.health-hub > .health-status {
+  margin-top: 48px;
+  padding: 24px 28px;
+  border-radius: 22px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.health-status-card {
+  margin-block: 24px;
+  padding: 32px;
+  border-radius: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+.health-status-card h1 {
+  font-size: var(--text-xl);
+  margin-bottom: 8px;
+}
+.health-status-card p {
+  color: var(--color-muted);
+  margin-bottom: 20px;
+}
+.not-found-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- Hub: hero ---------- */
+/* A compact split: copy leads, the photo supports. Height follows the copy. */
+.health-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  border-radius: 28px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 14px 40px rgb(40 55 47 / 0.06);
+  overflow: hidden;
+}
+.health-hero-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 28px 40px 24px 44px;
+  min-width: 0;
+}
+.health-hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+.health-hero h1 {
+  font-size: clamp(2.25rem, 3.8vw, 3rem);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-text);
+}
+.health-hero-lead {
+  max-width: 32rem;
+  color: var(--color-muted);
+  font-size: var(--text-base);
+  line-height: 1.8;
+}
+/* The supplied photo fills its column; the crop keeps the entrance and
+   signage in view. */
+.health-hero-media {
+  position: relative;
+  min-width: 0;
+  min-height: 240px;
+  background: #dbe8f3;
+}
+.health-hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 68% 50%;
+}
+
+/* Two calm, compact actions: 999 is easy to find, never an alarm. */
+.health-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+.health-hero-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.health-hero-action > svg:last-child {
+  color: var(--color-muted);
+}
+.health-hero-action-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--color-verified-soft);
+  color: var(--color-brand);
+}
+.health-hero-unsure:hover {
+  border-color: var(--color-brand);
+}
+.health-emergency {
+  border-color: #f0d6cb;
+  background: #fcf1ec;
+}
+.health-emergency .health-hero-action-icon {
+  background: #f6ddd3;
+  color: #9a473a;
+}
+.health-emergency strong {
+  color: #9a473a;
+  letter-spacing: 0.5px;
+}
+.health-emergency > svg:last-child {
+  color: #b0705f;
+}
+.health-emergency:hover {
+  border-color: #d9a898;
+}
+.health-hero-note {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* ---------- Hub: section headings ---------- */
+.health-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin-bottom: 16px;
+}
+.health-section-heading h2 {
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+.health-section-heading p {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---------- Hub: intent chips ---------- */
+.health-intents {
+  margin-top: 48px;
+}
+.intent-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.intent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.intent-chip svg {
+  color: var(--color-brand);
+}
+.intent-chip:hover {
+  border-color: var(--color-brand);
+  background: var(--color-verified-soft);
+}
+
+/* ---------- Hub: category cards ---------- */
+.health-categories {
+  margin-top: 40px;
+}
+/* Desktop: an editorial 7/5 then 5/7 rhythm; heights follow content. */
+.category-cards {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.category-cards > .is-wide {
+  grid-column: span 7;
+}
+.category-cards > .is-narrow {
+  grid-column: span 5;
+}
+.category-card {
+  position: relative;
+  container-type: inline-size;
+  min-width: 0;
+  border-radius: 28px;
+  border: 1px solid var(--tone-border);
+  background: var(--tone-bg);
+  overflow: hidden;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+.category-card:hover {
+  box-shadow: 0 14px 34px rgb(40 55 47 / 0.09);
+  transform: translateY(-2px);
+}
+.category-card:has(.category-card-link:focus-visible) {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+/* Compact cards (phones, two-up tablet): art sits beside the title. */
+.category-card-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  grid-template-areas:
+    "title visual"
+    "desc visual"
+    "links links"
+    "count count";
+  align-content: start;
+  height: 100%;
+  padding: 24px;
+}
+.category-card-body {
+  display: contents;
+}
+.category-card h3 {
+  grid-area: title;
+  align-self: end;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.category-card-link {
+  color: var(--color-text);
+  text-decoration: none;
+}
+.category-card-link:focus-visible {
+  outline: none;
+}
+/* The whole card opens the category's first Guide… */
+.category-card-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.category-card-description {
+  grid-area: desc;
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: 1.8;
+}
+.category-card-visual {
+  grid-area: visual;
+  align-self: start;
+  margin: -8px -10px 0 8px;
+}
+.category-art {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.category-art .art-stage {
+  fill: var(--tone-strong);
+}
+.category-art .art-ground {
+  fill: rgb(100 91 79 / 0.1);
+}
+/* …while each listed Guide stays directly reachable above it. */
+.category-guides {
+  grid-area: links;
+  display: grid;
+  gap: 8px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.category-guides a {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 11px 16px;
+  border-radius: 14px;
+  border: 1px solid rgb(100 91 79 / 0.08);
+  background: rgb(255 253 249 / 0.82);
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.category-guides a svg {
+  flex: none;
+  color: var(--tone-ink);
+  transition: transform 0.15s;
+}
+.category-guides a:hover {
+  background: var(--color-surface);
+  border-color: var(--tone-ink);
+}
+.category-guides a:hover svg {
+  transform: translateX(3px);
+}
+.category-guide-summary {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.8;
+}
+.category-card-count {
+  grid-area: count;
+  align-self: end;
+  margin-top: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tone-ink);
+  letter-spacing: 0.5px;
+}
+
+/* Medium cards (narrow desktop column): same layout, roomier art. */
+@container (min-width: 420px) {
+  .category-card-inner {
+    grid-template-columns: minmax(0, 1fr) 148px;
+    padding: 28px 32px;
+  }
+  .category-card-visual {
+    margin: -10px -14px 0 12px;
+  }
+  .category-card h3 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Wide cards: a two-column composition with a tall illustration panel. */
+@container (min-width: 520px) {
+  .category-card-inner {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 40%);
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas:
+      "title visual"
+      "desc visual"
+      "links visual"
+      "count visual";
+    padding: 32px 0 28px 32px;
+  }
+  .category-card h3 {
+    align-self: start;
+  }
+  .category-card-visual {
+    display: flex;
+    align-self: stretch;
+    justify-content: center;
+    align-items: center;
+    min-height: 220px;
+    margin: -32px 0 -28px 32px;
+    overflow: hidden;
+    background: rgb(255 253 249 / 0.4);
+    border-left: 1px solid var(--tone-border);
+  }
+  /* The scene's stage leaves margin; let it fill the panel. */
+  .category-card-visual .category-art {
+    flex: none;
+    width: 112%;
+    max-width: 300px;
+    transition: transform 0.3s;
+  }
+  .category-card:hover .category-card-visual .category-art {
+    transform: scale(1.03);
+  }
+}
+
+/* ---------- Hub: loading skeleton ---------- */
+.hub-skeleton {
+  margin-top: 48px;
+}
+.hub-skeleton-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #ebe8df;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 253 249 / 0.55),
+    transparent
+  );
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+.skeleton-chip {
+  width: 132px;
+  height: 44px;
+  border-radius: 999px;
+}
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 300px;
+  padding: 32px;
+  border-radius: 28px;
+  background: #f0ede5;
+}
+.skeleton-line {
+  display: block;
+  width: 70%;
+  height: 14px;
+  border-radius: 999px;
+  background: #e2ded3;
+}
+.skeleton-title {
+  width: 45%;
+  height: 22px;
+}
+.skeleton-short {
+  width: 40%;
+}
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------- Hub: quick answers ---------- */
+/* Deliberately quieter than the categories: plain rows, no card fill. */
+.quick-answers {
+  margin-top: 56px;
+  padding-top: 28px;
+  border-top: 1px solid var(--color-border);
+}
+.quick-answers ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 0 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.quick-answers a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 2px;
+  border-bottom: 1px solid rgb(218 221 210 / 0.8);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+.quick-answers a svg {
+  flex: none;
+  color: var(--color-muted);
+}
+.quick-answers a:hover {
+  color: var(--color-brand);
+}
+.quick-answers a:hover svg {
+  color: var(--color-brand);
+}
+
+/* ---------- Guide article ---------- */
+.guide-article {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+.guide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 40px 44px;
+  border-radius: 28px;
+  border: 1px solid var(--tone-border);
+  background: var(--tone-bg);
+  box-shadow: 0 12px 32px rgb(40 55 47 / 0.05);
+}
+.guide-header-text {
+  min-width: 0;
+}
+.guide-kicker {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--tone-ink);
+}
+.guide-header h1 {
+  font-size: clamp(1.75rem, 3.4vw, 2.375rem);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.3px;
+  margin-block: 10px 14px;
+  overflow-wrap: anywhere;
+}
+.guide-summary {
+  color: var(--color-muted);
+  line-height: 1.85;
+}
+.guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.guide-meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(255 253 249 / 0.8);
+  border: 1px solid var(--tone-border);
+  font-size: 13px;
+  color: var(--color-text);
+}
+.guide-meta svg {
+  color: var(--tone-ink);
+}
+.guide-header-art {
+  flex: none;
+  width: 168px;
+  margin: -12px -16px 0 0;
+}
+.evidence-intro {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 20px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid #d5e2cf;
+  background: var(--color-verified-soft);
+  color: var(--color-verified);
+  font-size: var(--text-sm);
+  line-height: 1.8;
+}
+.evidence-intro svg {
+  flex: none;
+  margin-top: 4px;
+}
+
+.guide-body {
+  margin-top: 32px;
+  font-size: 1.0625rem;
+  line-height: 1.95;
+  overflow-wrap: anywhere;
+}
+.guide-body > * + * {
+  margin-top: 16px;
+}
+.guide-body h2 {
+  font-size: 1.4375rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin-top: 56px;
+}
+.guide-body h2::before {
+  content: "";
+  display: block;
+  width: 28px;
+  height: 4px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: var(--color-brand);
+  opacity: 0.55;
+}
+.guide-body h3 {
+  font-size: 1.1875rem;
+  font-weight: 700;
+  margin-top: 32px;
+}
+.guide-body h4 {
+  font-size: var(--text-base);
+  margin-top: 24px;
+}
+/* Markdown lists only; the evidence panel has its own list styling. */
+.guide-body ul:not([class]),
+.guide-body ol:not([class]) {
+  margin-bottom: 0;
+  padding-left: 1.4em;
+}
+.guide-body ul:not([class]) {
+  list-style: disc;
+}
+.guide-body ol:not([class]) {
+  list-style: decimal;
+}
+.guide-body :is(ul, ol):not([class]) > li + li {
+  margin-top: 8px;
+}
+.guide-body :is(ul, ol):not([class]) > li::marker {
+  color: var(--color-brand);
+}
+.guide-body blockquote {
+  margin: 0;
+  padding: 16px 20px;
+  border-left: 4px solid var(--color-brand);
+  border-radius: 0 16px 16px 0;
+  background: var(--color-verified-soft);
+  font-size: var(--text-base);
+}
+.guide-body blockquote > * + * {
+  margin-top: 10px;
+}
+.guide-body a {
+  color: var(--color-brand);
+}
+.guide-body code {
+  font-size: 0.9em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--color-verified-soft);
+}
+.guide-body hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin-block: 32px;
+}
+.external-link svg {
+  display: inline;
+  margin-left: 3px;
+  vertical-align: -1px;
+}
+
+/* "查看官方依据" disclosure */
+.evidence-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 1px 10px;
+  border: 1px solid #c9d8c3;
+  border-radius: 999px;
+  background: var(--color-verified-soft);
+  color: var(--color-verified);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.75;
+  vertical-align: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.evidence-toggle:hover {
+  border-color: var(--color-verified);
+}
+.evidence-toggle[aria-expanded="true"] {
+  border-color: var(--color-verified);
+  background: var(--color-verified);
+  color: #fffdf9;
+}
+.evidence-panel {
+  margin-top: 12px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-verified);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: var(--text-sm);
+  line-height: 1.75;
+}
+li > .evidence-panel {
+  margin-bottom: 4px;
+}
+.evidence-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-verified);
+  letter-spacing: 0.5px;
+}
+.evidence-statement {
+  margin-top: 4px;
+  font-weight: 600;
+}
+.evidence-supports {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.evidence-supports > li + li {
+  margin-top: 12px;
+}
+.evidence-support {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+.evidence-source-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+}
+.evidence-organisation {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.evidence-example-tag {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+.evidence-source-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--color-brand);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.evidence-details {
+  margin: 8px 0 0;
+}
+.evidence-details > div {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+.evidence-details dt {
+  color: var(--color-muted);
+}
+.evidence-details dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.evidence-details blockquote {
+  margin: 0;
+  padding: 0 0 0 10px;
+  border-left: 3px solid var(--color-border);
+  border-radius: 0;
+  background: none;
+}
+.evidence-missing {
+  color: var(--color-muted);
+}
+
+.related-guides {
+  margin-top: 56px;
+}
+.related-guides h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.related-guides ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.related-guides li {
+  display: flex;
+  min-width: 0;
+}
+.related-guides a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--tone-border);
+  background: var(--tone-bg);
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.related-guides a svg {
+  flex: none;
+  color: var(--tone-ink);
+}
+.related-guides a:hover {
+  border-color: var(--tone-ink);
+}
+.guide-back {
+  margin-top: 28px;
+}
+.guide-back a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-brand);
+  font-weight: 600;
+}
+
+/* ---------- Home-page entry ---------- */
+.health-entry {
+  margin-top: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px 32px;
+  padding: 28px 32px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+.health-entry > div {
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+.health-entry h2 {
+  margin-block: 8px 6px;
+}
+.health-entry p {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1000px) {
+  /* Tablet: give the copy more room; the art crops towards a square. */
+  .health-hero {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+  .health-hero-copy {
+    padding: 28px 28px 24px 32px;
+  }
+  /* Two balanced columns; the 7/5 rhythm needs desktop width. */
+  .category-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .category-cards > .is-wide,
+  .category-cards > .is-narrow {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .health-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Mobile: stacked, with a short landscape crop under the copy. */
+  .health-hero-media {
+    min-height: 0;
+    aspect-ratio: 16 / 7;
+  }
+}
+
+@media (max-width: 760px) {
+  .category-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .guide-header-art {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Product pages keep brand and navigation on one row. */
+  .site-header.site-header-product {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  .site-header-product .brand strong,
+  .site-header-product .site-nav > a {
+    white-space: nowrap;
+  }
+  .site-header-product .brand {
+    gap: 10px;
+  }
+  .health-page {
+    padding-inline: 20px;
+  }
+  .health-hero {
+    border-radius: 24px;
+  }
+  .health-hero-copy {
+    padding: 26px 20px 22px;
+  }
+  .health-hero h1 {
+    font-size: 2.125rem;
+  }
+  .health-hero-actions {
+    width: 100%;
+  }
+  .health-hero-action {
+    flex: 1 1 auto;
+  }
+  .health-hero-action > svg:last-child {
+    margin-left: auto;
+  }
+  .health-intents {
+    margin-top: 36px;
+  }
+  .health-section-heading {
+    display: block;
+  }
+  .health-section-heading p {
+    margin-top: 2px;
+  }
+  .intent-chips {
+    gap: 8px;
+  }
+  .intent-chip {
+    padding: 8px 14px;
+  }
+  .category-card {
+    border-radius: 22px;
+  }
+  .category-card-inner {
+    grid-template-columns: minmax(0, 1fr) 88px;
+    padding: 22px 18px 20px;
+  }
+  .category-card h3 {
+    font-size: 1.25rem;
+  }
+  .quick-answers {
+    margin-top: 44px;
+  }
+  .guide-header {
+    padding: 26px 20px;
+    border-radius: 22px;
+  }
+  .guide-header h1 {
+    font-size: 1.625rem;
+  }
+  .guide-body {
+    font-size: var(--text-base);
+    line-height: 1.9;
+  }
+  .health-status-card {
+    padding: 20px;
+  }
+  .health-entry {
+    padding: 24px;
+  }
+  .evidence-panel {
+    padding: 16px;
+  }
+  .evidence-details > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  /* Narrow phones: two tidy columns instead of a single ragged stack. */
+  .intent-chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .intent-chip {
+    width: 100%;
+    justify-content: center;
+    padding: 8px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .intent-chip svg {
+    display: none;
+  }
+}
+
+/* Motion is decoration only: honour the reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  .health-page *,
+  .health-page *::before,
+  .health-page *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .category-card:hover,
+  .category-card:hover .category-art,
+  .category-guides a:hover svg {
+    transform: none;
+  }
+}

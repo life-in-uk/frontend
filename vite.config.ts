@@ -19,6 +19,9 @@ export default defineConfig(({ mode }) => {
         "/api/places/search": {
           target: backendTarget,
         },
+        "/api/guides": {
+          target: backendTarget,
+        },
         "/api/bank-holidays": {
           target: backendTarget,
         },
