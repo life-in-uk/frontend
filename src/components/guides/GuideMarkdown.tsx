@@ -9,11 +9,14 @@ import {
   evidenceKeys,
   inlineText,
 } from "../../guides/markdown";
-import { GUIDE_TITLE_REFERENCES, healthGuidePath } from "../../guides/catalog";
+import type { GuideDomain } from "../../guides/domains";
+import { guidePath } from "../../guides/domains";
 import { Link } from "../Link";
 import { EvidencePanel } from "./EvidencePanel";
 
 type Props = {
+  /** The domain the article renders in; resolves its 《title》 references. */
+  domain: GuideDomain;
   blocks: Block[];
   evidence: Map<string, GuideEvidence>;
   sources: Map<string, GuideSource>;
@@ -27,6 +30,7 @@ type Props = {
  * list item that contains it.
  */
 export function GuideMarkdown({
+  domain,
   blocks,
   evidence,
   sources,
@@ -42,7 +46,9 @@ export function GuideMarkdown({
       switch (node.type) {
         case "text":
           return (
-            <Fragment key={index}>{linkTitleReferences(node.value)}</Fragment>
+            <Fragment key={index}>
+              {linkTitleReferences(node.value, domain)}
+            </Fragment>
           );
         case "code":
           return <code key={index}>{node.value}</code>;
@@ -112,6 +118,7 @@ export function GuideMarkdown({
             id={id}
             evidence={evidence.get(key)}
             sources={sources}
+            isExampleSource={domain.isExampleSource}
           />
         );
       });
@@ -171,18 +178,27 @@ export function GuideMarkdown({
   return <>{renderBlocks(blocks)}</>;
 }
 
-/** Turns 《title》 references to existing Guides into internal links; text is unchanged. */
-function linkTitleReferences(text: string): ReactNode {
+/**
+ * Turns 《title》 references to this domain's Guides into internal links under
+ * the same domain; text is unchanged. Titles from other domains stay text.
+ */
+function linkTitleReferences(text: string, domain: GuideDomain): ReactNode {
   const parts: ReactNode[] = [];
   const pattern = /《([^》]+)》/g;
   let last = 0;
   for (const match of text.matchAll(pattern)) {
-    const slug = GUIDE_TITLE_REFERENCES[match[1]];
+    const slug = Object.hasOwn(domain.titleReferences, match[1])
+      ? domain.titleReferences[match[1]]
+      : undefined;
     if (!slug) continue;
     const start = match.index ?? 0;
     parts.push(text.slice(last, start), "《");
     parts.push(
-      <Link key={start} to={healthGuidePath(slug)} className="guide-reference">
+      <Link
+        key={start}
+        to={guidePath(domain, slug)}
+        className="guide-reference"
+      >
         {match[1]}
       </Link>,
     );

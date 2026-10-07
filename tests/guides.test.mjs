@@ -9,7 +9,6 @@ import {
   isSafeExternalUrl,
 } from "../src/guides/api.ts";
 import {
-  formatUkDate,
   groupForSlug,
   groupHealthGuides,
   HEALTH_HUB_GROUPS,
@@ -17,8 +16,8 @@ import {
   HEALTH_QUICK_LINKS,
   isExampleSource,
   RELATED_GUIDES,
-  shortGuideTitle,
 } from "../src/guides/catalog.ts";
+import { formatUkDate, shortGuideTitle } from "../src/guides/format.ts";
 import { matchRoute } from "../src/router.ts";
 
 const meta = (slug, overrides = {}) => ({
@@ -276,10 +275,11 @@ test("labels clinic price sources as examples and formats dates in UK time", () 
 
 test("matches routes", () => {
   assert.deepEqual(matchRoute("/"), { name: "home" });
-  assert.deepEqual(matchRoute("/health"), { name: "health" });
-  assert.deepEqual(matchRoute("/health/"), { name: "health" });
+  assert.deepEqual(matchRoute("/health"), { name: "hub", domain: "health" });
+  assert.deepEqual(matchRoute("/health/"), { name: "hub", domain: "health" });
   assert.deepEqual(matchRoute("/health/nhs-dentist-england"), {
     name: "guide",
+    domain: "health",
     slug: "nhs-dentist-england",
   });
   assert.deepEqual(matchRoute("/health/a/b"), { name: "not-found" });
