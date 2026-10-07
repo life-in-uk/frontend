@@ -1,6 +1,7 @@
 // Editorial navigation for the Health & NHS section.
 // This holds only structure (groups, ordering, cross-links). Titles,
-// summaries and article content always come from the Guide API.
+// summaries and article content always come from the Guide API. Routes and
+// shared Guide behaviour live in `domains.ts`.
 
 import type { GuideMetadata, GuideSource } from "./api";
 
@@ -213,32 +214,6 @@ export const RELATED_GUIDES: Record<string, string[]> = {
 /** The editorial category a Guide belongs to, if any. */
 export function groupForSlug(slug: string): HubGroup | undefined {
   return HEALTH_HUB_GROUPS.find((group) => group.slugs.includes(slug));
-}
-
-/**
- * A shorter label for compact lists: the API title up to its first full-width
- * question mark, when more text follows it. The wording itself is unchanged.
- */
-export function shortGuideTitle(title: string): string {
-  const end = title.indexOf("？");
-  return end > 0 && end < title.length - 1 ? title.slice(0, end + 1) : title;
-}
-
-export function healthGuidePath(slug: string): string {
-  return `/health/${slug}`;
-}
-
-/** Calendar date in UK time, e.g. "2026 年 10 月 5 日". */
-export function formatUkDate(instant: string): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).formatToParts(new Date(instant));
-  const part = (type: string) =>
-    parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("year")} 年 ${Number(part("month"))} 月 ${Number(part("day"))} 日`;
 }
 
 /**

@@ -1,15 +1,26 @@
 import { ExternalLink } from "lucide-react";
 import type { GuideEvidence, GuideSource } from "../../guides/api";
-import { formatUkDate, isExampleSource } from "../../guides/catalog";
+import { formatUkDate, sourceTextLang } from "../../guides/format";
 
 type Props = {
   id: string;
   evidence: GuideEvidence | undefined;
   sources: Map<string, GuideSource>;
+  /** Domain rule for sources cited only as non-official examples. */
+  isExampleSource?: (source: GuideSource) => boolean;
 };
 
-/** The official basis behind one sentence, with its sources in API order. */
-export function EvidencePanel({ id, evidence, sources }: Props) {
+/**
+ * The basis behind one sentence, with its sources in API order. Source
+ * titles, locators and excerpts may be in any language (GOV.UK guidance,
+ * legislation, judgments…), so each gets a language hint from its own text.
+ */
+export function EvidencePanel({
+  id,
+  evidence,
+  sources,
+  isExampleSource,
+}: Props) {
   if (!evidence) {
     return (
       <div
@@ -34,7 +45,8 @@ export function EvidencePanel({ id, evidence, sources }: Props) {
         <ol className="evidence-supports">
           {evidence.supports.map((support, index) => {
             const source = sources.get(support.sourceKey);
-            const example = source ? isExampleSource(source) : false;
+            const example =
+              source && isExampleSource ? isExampleSource(source) : false;
             return (
               <li
                 key={`${support.sourceKey}-${index}`}
@@ -58,7 +70,9 @@ export function EvidencePanel({ id, evidence, sources }: Props) {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <span lang="en">{source.title}</span>
+                      <span lang={sourceTextLang(source.title)}>
+                        {source.title}
+                      </span>
                       <ExternalLink size={14} aria-hidden="true" />
                       <span className="sr-only">（在新窗口打开）</span>
                     </a>
@@ -70,14 +84,18 @@ export function EvidencePanel({ id, evidence, sources }: Props) {
                   {support.locator && (
                     <div>
                       <dt>原文位置</dt>
-                      <dd lang="en">{support.locator}</dd>
+                      <dd lang={sourceTextLang(support.locator)}>
+                        {support.locator}
+                      </dd>
                     </div>
                   )}
                   {support.excerpt && (
                     <div>
                       <dt>原文摘录</dt>
                       <dd>
-                        <blockquote lang="en">{support.excerpt}</blockquote>
+                        <blockquote lang={sourceTextLang(support.excerpt)}>
+                          {support.excerpt}
+                        </blockquote>
                       </dd>
                     </div>
                   )}

@@ -16,11 +16,11 @@ import { getGuides } from "../../guides/api";
 import type { GuideMetadata } from "../../guides/api";
 import {
   groupHealthGuides,
-  healthGuidePath,
   HEALTH_INTENTS,
   HEALTH_QUICK_LINKS,
-  shortGuideTitle,
 } from "../../guides/catalog";
+import { guidePath, HEALTH_GUIDE_DOMAIN } from "../../guides/domains";
+import { shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
 import { CategoryArt } from "./CategoryArt";
 import "./Health.css";
@@ -31,6 +31,8 @@ type State =
   | { status: "ready"; guides: GuideMetadata[] };
 
 const REQUEST_DEADLINE_MS = 10_000;
+
+const healthGuidePath = (slug: string) => guidePath(HEALTH_GUIDE_DOMAIN, slug);
 
 // Desktop rhythm for the category grid: wide/narrow, then narrow/wide.
 const CARD_SHAPES = ["is-wide", "is-narrow", "is-narrow", "is-wide"];

@@ -1,20 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2 } from "lucide-react";
 import { getGuide, getGuides, GuideNotFoundError } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { inlineText, parseMarkdown } from "../../guides/markdown";
 import type { Block } from "../../guides/markdown";
+import type { GuideDomain } from "../../guides/domains";
 import {
-  formatUkDate,
-  groupForSlug,
-  healthGuidePath,
-  RELATED_GUIDES,
-  shortGuideTitle,
-} from "../../guides/catalog";
+  belongsToDomain,
+  guidePath,
+  relatedGuidesFor,
+} from "../../guides/domains";
+import { formatUkDate, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
-import { CategoryArt } from "./CategoryArt";
 import { GuideMarkdown } from "./GuideMarkdown";
-import "./Health.css";
+import "./Guide.css";
+
+/** Optional section-specific look; the page works without any of it. */
+export type GuidePresentation = {
+  /** Extra class on <main>, before `guide-page`. */
+  pageClassName?: string;
+  /** Editorial sub-section shown after the domain label in the kicker. */
+  sectionTitle?: (slug: string) => string | undefined;
+  /** Tone class (e.g. "tone-blue") for the header and related Guide cards. */
+  tone?: (slug: string) => string;
+  /** Decorative header artwork; omitted when it returns nothing. */
+  headerArt?: (slug: string) => ReactNode;
+};
 
 type State =
   | { status: "loading" }
@@ -24,7 +36,15 @@ type State =
 
 const REQUEST_DEADLINE_MS = 10_000;
 
-export function GuidePage({ slug }: { slug: string }) {
+export function GuidePage({
+  domain,
+  slug,
+  presentation = {},
+}: {
+  domain: GuideDomain;
+  slug: string;
+  presentation?: GuidePresentation;
+}) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [related, setRelated] = useState<GuideMetadata[]>([]);
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -38,7 +58,14 @@ export function GuidePage({ slug }: { slug: string }) {
     );
     getGuide(slug, controller.signal)
       .then((guide) => {
-        if (active) setState({ status: "ready", guide });
+        if (!active) return;
+        // A Guide from another section is treated as not found here, so its
+        // content never appears under the wrong branded domain.
+        setState(
+          belongsToDomain(guide, domain)
+            ? { status: "ready", guide }
+            : { status: "not-found" },
+        );
       })
       .catch((error: unknown) => {
         if (!active) return;
@@ -50,13 +77,7 @@ export function GuidePage({ slug }: { slug: string }) {
     // Related-guide titles come from the list; if it fails the article still works.
     getGuides(controller.signal)
       .then((guides) => {
-        if (!active) return;
-        const wanted = RELATED_GUIDES[slug] ?? [];
-        setRelated(
-          wanted
-            .map((target) => guides.find((guide) => guide.slug === target))
-            .filter((guide): guide is GuideMetadata => guide !== undefined),
-        );
+        if (active) setRelated(relatedGuidesFor(domain, slug, guides));
       })
       .catch(() => {});
     return () => {
@@ -64,7 +85,7 @@ export function GuidePage({ slug }: { slug: string }) {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [slug]);
+  }, [domain, slug]);
 
   useEffect(() => {
     if (state.status === "ready")
@@ -98,7 +119,15 @@ export function GuidePage({ slug }: { slug: string }) {
     };
   }, [state]);
 
-  const group = groupForSlug(slug);
+  const sectionTitle = presentation.sectionTitle?.(slug);
+  const tone = (target: string) => presentation.tone?.(target) ?? "";
+  const headerArt = presentation.headerArt?.(slug);
+  const backLink = (
+    <Link to={domain.basePath} className="button button-secondary">
+      <ArrowLeft size={16} aria-hidden="true" />
+      {domain.backLabel}
+    </Link>
+  );
 
   function toggle(id: string) {
     setOpen((current) => {
@@ -109,14 +138,21 @@ export function GuidePage({ slug }: { slug: string }) {
   }
 
   return (
-    <main id="main" className="health-page guide-page">
+    <main
+      id="main"
+      className={
+        presentation.pageClassName
+          ? `${presentation.pageClassName} guide-page`
+          : "guide-page"
+      }
+    >
       <nav className="breadcrumb" aria-label="当前位置">
         <ol>
           <li>
             <Link to="/">首页</Link>
           </li>
           <li>
-            <Link to="/health">健康与 NHS</Link>
+            <Link to={domain.basePath}>{domain.label}</Link>
           </li>
           {state.status === "ready" && (
             <li aria-current="page">{state.guide.title}</li>
@@ -125,41 +161,35 @@ export function GuidePage({ slug }: { slug: string }) {
       </nav>
 
       {state.status === "loading" && (
-        <p className="health-status" role="status">
+        <p className="guide-status" role="status">
           正在加载指南…
         </p>
       )}
       {state.status === "not-found" && (
-        <div className="health-status-card" role="status">
+        <div className="guide-status-card" role="status">
           <h1>没有找到这篇指南</h1>
           <p>链接可能有误，或者这篇指南暂时不在了。</p>
-          <Link to="/health" className="button button-secondary">
-            <ArrowLeft size={16} aria-hidden="true" />
-            回到健康与 NHS
-          </Link>
+          {backLink}
         </div>
       )}
       {state.status === "error" && (
-        <div className="health-status-card" role="status">
+        <div className="guide-status-card" role="status">
           <h1>指南暂时无法加载</h1>
           <p>请稍后再试。</p>
-          <Link to="/health" className="button button-secondary">
-            <ArrowLeft size={16} aria-hidden="true" />
-            回到健康与 NHS
-          </Link>
+          {backLink}
         </div>
       )}
 
       {state.status === "ready" && parsed && (
         <article className="guide-article" lang="zh-CN">
-          <header className={`guide-header tone-${group?.tone ?? "neutral"}`}>
+          <header className={`guide-header ${tone(slug)}`.trim()}>
             <div className="guide-header-text">
               <p className="guide-kicker">
-                健康与 NHS
-                {group && (
+                {domain.label}
+                {sectionTitle && (
                   <>
                     <span aria-hidden="true"> · </span>
-                    {group.title}
+                    {sectionTitle}
                   </>
                 )}
               </p>
@@ -181,11 +211,7 @@ export function GuidePage({ slug }: { slug: string }) {
                 )}
               </ul>
             </div>
-            {group && (
-              <div className="guide-header-art">
-                <CategoryArt id={group.id} />
-              </div>
-            )}
+            {headerArt && <div className="guide-header-art">{headerArt}</div>}
           </header>
           <p className="evidence-intro">
             <FileCheck2 size={18} aria-hidden="true" />
@@ -196,6 +222,7 @@ export function GuidePage({ slug }: { slug: string }) {
           </p>
           <div className="guide-body">
             <GuideMarkdown
+              domain={domain}
               blocks={parsed.body}
               evidence={parsed.evidence}
               sources={parsed.sources}
@@ -210,9 +237,12 @@ export function GuidePage({ slug }: { slug: string }) {
                 {related.map((guide) => (
                   <li
                     key={guide.slug}
-                    className={`tone-${groupForSlug(guide.slug)?.tone ?? "neutral"}`}
+                    className={tone(guide.slug) || undefined}
                   >
-                    <Link to={healthGuidePath(guide.slug)} title={guide.title}>
+                    <Link
+                      to={guidePath(domain, guide.slug)}
+                      title={guide.title}
+                    >
                       <span>{shortGuideTitle(guide.title)}</span>
                       <ArrowRight size={16} aria-hidden="true" />
                     </Link>
@@ -222,9 +252,9 @@ export function GuidePage({ slug }: { slug: string }) {
             </aside>
           )}
           <p className="guide-back">
-            <Link to="/health">
+            <Link to={domain.basePath}>
               <ArrowLeft size={16} aria-hidden="true" />
-              回到健康与 NHS
+              {domain.backLabel}
             </Link>
           </p>
         </article>

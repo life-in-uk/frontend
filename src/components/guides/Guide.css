@@ -1,0 +1,441 @@
+/* Shared Guide pages (every Guide domain): layout, article, evidence and
+   related Guides. Sections supply tones via classes that set --tone-*. */
+
+.guide-page {
+  max-width: 1184px;
+  margin-inline: auto;
+  padding-inline: 32px;
+  padding-bottom: 64px;
+  min-width: 0;
+  /* Neutral defaults; a section's tone class on an element overrides them. */
+  --tone-bg: var(--color-surface);
+  --tone-strong: var(--color-verified-soft);
+  --tone-ink: var(--color-brand);
+  --tone-border: var(--color-border);
+}
+
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+.breadcrumb li {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.breadcrumb li + li::before {
+  content: "/";
+  margin-inline: 8px;
+  color: var(--color-border);
+}
+.breadcrumb a {
+  color: var(--color-brand);
+}
+
+.guide-status {
+  margin-block: 32px;
+  color: var(--color-muted);
+}
+.guide-status-card {
+  margin-block: 24px;
+  padding: 32px;
+  border-radius: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+.guide-status-card h1 {
+  font-size: var(--text-xl);
+  margin-bottom: 8px;
+}
+.guide-status-card p {
+  color: var(--color-muted);
+  margin-bottom: 20px;
+}
+
+/* ---------- Guide article ---------- */
+.guide-article {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+.guide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 40px 44px;
+  border-radius: 28px;
+  border: 1px solid var(--tone-border);
+  background: var(--tone-bg);
+  box-shadow: 0 12px 32px rgb(40 55 47 / 0.05);
+}
+.guide-header-text {
+  min-width: 0;
+}
+.guide-kicker {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--tone-ink);
+}
+.guide-header h1 {
+  font-size: clamp(1.75rem, 3.4vw, 2.375rem);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.3px;
+  margin-block: 10px 14px;
+  overflow-wrap: anywhere;
+}
+.guide-summary {
+  color: var(--color-muted);
+  line-height: 1.85;
+}
+.guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.guide-meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(255 253 249 / 0.8);
+  border: 1px solid var(--tone-border);
+  font-size: 13px;
+  color: var(--color-text);
+}
+.guide-meta svg {
+  color: var(--tone-ink);
+}
+.guide-header-art {
+  flex: none;
+  width: 168px;
+  margin: -12px -16px 0 0;
+}
+.evidence-intro {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 20px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid #d5e2cf;
+  background: var(--color-verified-soft);
+  color: var(--color-verified);
+  font-size: var(--text-sm);
+  line-height: 1.8;
+}
+.evidence-intro svg {
+  flex: none;
+  margin-top: 4px;
+}
+
+.guide-body {
+  margin-top: 32px;
+  font-size: 1.0625rem;
+  line-height: 1.95;
+  overflow-wrap: anywhere;
+}
+.guide-body > * + * {
+  margin-top: 16px;
+}
+.guide-body h2 {
+  font-size: 1.4375rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin-top: 56px;
+}
+.guide-body h2::before {
+  content: "";
+  display: block;
+  width: 28px;
+  height: 4px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: var(--color-brand);
+  opacity: 0.55;
+}
+.guide-body h3 {
+  font-size: 1.1875rem;
+  font-weight: 700;
+  margin-top: 32px;
+}
+.guide-body h4 {
+  font-size: var(--text-base);
+  margin-top: 24px;
+}
+/* Markdown lists only; the evidence panel has its own list styling. */
+.guide-body ul:not([class]),
+.guide-body ol:not([class]) {
+  margin-bottom: 0;
+  padding-left: 1.4em;
+}
+.guide-body ul:not([class]) {
+  list-style: disc;
+}
+.guide-body ol:not([class]) {
+  list-style: decimal;
+}
+.guide-body :is(ul, ol):not([class]) > li + li {
+  margin-top: 8px;
+}
+.guide-body :is(ul, ol):not([class]) > li::marker {
+  color: var(--color-brand);
+}
+.guide-body blockquote {
+  margin: 0;
+  padding: 16px 20px;
+  border-left: 4px solid var(--color-brand);
+  border-radius: 0 16px 16px 0;
+  background: var(--color-verified-soft);
+  font-size: var(--text-base);
+}
+.guide-body blockquote > * + * {
+  margin-top: 10px;
+}
+.guide-body a {
+  color: var(--color-brand);
+}
+.guide-body code {
+  font-size: 0.9em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--color-verified-soft);
+}
+.guide-body hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin-block: 32px;
+}
+.external-link svg {
+  display: inline;
+  margin-left: 3px;
+  vertical-align: -1px;
+}
+
+/* "查看官方依据" disclosure */
+.evidence-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 1px 10px;
+  border: 1px solid #c9d8c3;
+  border-radius: 999px;
+  background: var(--color-verified-soft);
+  color: var(--color-verified);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.75;
+  vertical-align: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.evidence-toggle:hover {
+  border-color: var(--color-verified);
+}
+.evidence-toggle[aria-expanded="true"] {
+  border-color: var(--color-verified);
+  background: var(--color-verified);
+  color: #fffdf9;
+}
+.evidence-panel {
+  margin-top: 12px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-verified);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: var(--text-sm);
+  line-height: 1.75;
+}
+li > .evidence-panel {
+  margin-bottom: 4px;
+}
+.evidence-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-verified);
+  letter-spacing: 0.5px;
+}
+.evidence-statement {
+  margin-top: 4px;
+  font-weight: 600;
+}
+.evidence-supports {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.evidence-supports > li + li {
+  margin-top: 12px;
+}
+.evidence-support {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+.evidence-source-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+}
+.evidence-organisation {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.evidence-example-tag {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+.evidence-source-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--color-brand);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.evidence-details {
+  margin: 8px 0 0;
+}
+.evidence-details > div {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+.evidence-details dt {
+  color: var(--color-muted);
+}
+.evidence-details dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.evidence-details blockquote {
+  margin: 0;
+  padding: 0 0 0 10px;
+  border-left: 3px solid var(--color-border);
+  border-radius: 0;
+  background: none;
+}
+.evidence-missing {
+  color: var(--color-muted);
+}
+
+.related-guides {
+  margin-top: 56px;
+}
+.related-guides h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.related-guides ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.related-guides li {
+  display: flex;
+  min-width: 0;
+}
+.related-guides a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--tone-border);
+  background: var(--tone-bg);
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.related-guides a svg {
+  flex: none;
+  color: var(--tone-ink);
+}
+.related-guides a:hover {
+  border-color: var(--tone-ink);
+}
+.guide-back {
+  margin-top: 28px;
+}
+.guide-back a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-brand);
+  font-weight: 600;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 560px) {
+  .guide-header-art {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .guide-page {
+    padding-inline: 20px;
+  }
+  .guide-header {
+    padding: 26px 20px;
+    border-radius: 22px;
+  }
+  .guide-header h1 {
+    font-size: 1.625rem;
+  }
+  .guide-body {
+    font-size: var(--text-base);
+    line-height: 1.9;
+  }
+  .guide-status-card {
+    padding: 20px;
+  }
+  .evidence-panel {
+    padding: 16px;
+  }
+  .evidence-details > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* Motion is decoration only: honour the reduced-motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  .guide-page *,
+  .guide-page *::before,
+  .guide-page *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
