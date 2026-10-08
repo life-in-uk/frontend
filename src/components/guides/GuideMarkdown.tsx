@@ -1,9 +1,9 @@
 import { Fragment } from "react";
 import type { ReactNode } from "react";
-import { ExternalLink, FileCheck2 } from "lucide-react";
+import { Check, ExternalLink, FileCheck2 } from "lucide-react";
 import type { GuideEvidence, GuideSource } from "../../guides/api";
 import { isSafeExternalUrl } from "../../guides/api";
-import type { Block, Inline } from "../../guides/markdown";
+import type { Block, Inline, ListBlock } from "../../guides/markdown";
 import {
   EVIDENCE_PREFIX,
   evidenceKeys,
@@ -25,9 +25,9 @@ type Props = {
 };
 
 /**
- * Renders parsed Guide Markdown as React elements. Each "查看官方依据" link
- * becomes a disclosure button; its panel opens right after the paragraph or
- * list item that contains it.
+ * Renders parsed Guide Markdown as React elements. Each evidence link (its
+ * label comes from the content) becomes a disclosure button; its panel opens
+ * right after the paragraph or list item that contains it.
  */
 export function GuideMarkdown({
   domain,
@@ -73,7 +73,7 @@ export function GuideMarkdown({
                 onClick={() => onToggle(id)}
               >
                 <FileCheck2 size={14} aria-hidden="true" />
-                {inlineText(node.children) || "查看官方依据"}
+                {inlineText(node.children) || "查看依据"}
               </button>
             );
           }
@@ -125,6 +125,48 @@ export function GuideMarkdown({
     return { ids, panels };
   }
 
+  /**
+   * Lists, with one nested level. Task items are a read-only checklist: a
+   * drawn marker, never a form control, since nothing is saved.
+   */
+  function renderList(block: ListBlock, key: number): ReactNode {
+    const items = block.items.map((item, itemIndex) => {
+      const { ids, panels } = idsFor(item.children);
+      return (
+        <li
+          key={itemIndex}
+          className={item.task ? `task-item task-${item.task}` : undefined}
+        >
+          {item.task && (
+            <span className="task-marker" aria-hidden="true">
+              {item.task === "done" && <Check size={12} strokeWidth={3} />}
+            </span>
+          )}
+          {item.task === "done" && <span className="sr-only">（已勾选）</span>}
+          {renderInline(item.children, ids)}
+          {panels}
+          {item.sublist && renderList(item.sublist, 0)}
+        </li>
+      );
+    });
+    const className = block.items.every((item) => item.task)
+      ? "task-list"
+      : undefined;
+    return block.ordered ? (
+      <ol
+        key={key}
+        className={className}
+        start={block.start === 1 ? undefined : block.start}
+      >
+        {items}
+      </ol>
+    ) : (
+      <ul key={key} className={className}>
+        {items}
+      </ul>
+    );
+  }
+
   function renderBlocks(list: Block[]): ReactNode[] {
     return list.map((block, index) => {
       switch (block.type) {
@@ -147,24 +189,8 @@ export function GuideMarkdown({
             </Fragment>
           );
         }
-        case "list": {
-          const items = block.items.map((item, itemIndex) => {
-            const { ids, panels } = idsFor(item);
-            return (
-              <li key={itemIndex}>
-                {renderInline(item, ids)}
-                {panels}
-              </li>
-            );
-          });
-          return block.ordered ? (
-            <ol key={index} start={block.start === 1 ? undefined : block.start}>
-              {items}
-            </ol>
-          ) : (
-            <ul key={index}>{items}</ul>
-          );
-        }
+        case "list":
+          return renderList(block, index);
         case "blockquote":
           return (
             <blockquote key={index}>{renderBlocks(block.children)}</blockquote>

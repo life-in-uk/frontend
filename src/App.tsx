@@ -7,6 +7,8 @@ import { HealthGuidePage } from "./components/health/HealthGuidePage";
 import { NotFoundPage } from "./components/health/NotFoundPage";
 import { FamilyVisaHub } from "./components/family-visa/FamilyVisaHub";
 import { FamilyVisaGuidePage } from "./components/family-visa/FamilyVisaGuidePage";
+import { MoneyHub } from "./components/money/MoneyHub";
+import { MoneyGuidePage } from "./components/money/MoneyGuidePage";
 import { currentPath, matchRoute, subscribeToLocation } from "./router";
 import "./App.css";
 
@@ -22,6 +24,7 @@ function App() {
     if (route.name === "home")
       document.title = "Life in UK · 在英国，把日子过明白。";
     else if (hubDomain === "health") document.title = "健康与 NHS · Life in UK";
+    else if (hubDomain === "money") document.title = "金钱与财务 · Life in UK";
     else if (hubDomain === "family-visa")
       document.title = "家庭与签证 · Life in UK";
     else if (route.name === "not-found")
@@ -54,11 +57,15 @@ function App() {
       {route.name === "home" && <HomePage />}
       {hubDomain === "health" && <HealthHub />}
       {hubDomain === "family-visa" && <FamilyVisaHub />}
+      {hubDomain === "money" && <MoneyHub />}
       {route.name === "guide" && route.domain === "health" && (
         <HealthGuidePage key={route.slug} slug={route.slug} />
       )}
       {route.name === "guide" && route.domain === "family-visa" && (
         <FamilyVisaGuidePage key={route.slug} slug={route.slug} />
+      )}
+      {route.name === "guide" && route.domain === "money" && (
+        <MoneyGuidePage key={route.slug} slug={route.slug} />
       )}
       {route.name === "not-found" && <NotFoundPage />}
       <footer className="showcase-footer product-footer">

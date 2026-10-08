@@ -321,9 +321,15 @@ try {
       await p.locator(".guide-kicker").textContent(),
       "健康与 NHS · 牙齿",
     );
+    // Shared, frontend-owned wording is neutral about the kind of source.
     assert.match(
       await p.locator(".guide-meta").textContent(),
-      /4 处标注了官方依据/,
+      /4 处标注了依据/,
+    );
+    assert.doesNotMatch(await p.locator(".guide-meta").textContent(), /官方/);
+    assert.equal(
+      await p.locator(".evidence-intro").textContent(),
+      "文中标着依据链接的地方，可以点开看这句话依据的是哪份资料、出自哪个机构。",
     );
     assert.equal(await p.locator(".internal-label").count(), 0);
     assert.equal(
@@ -405,12 +411,11 @@ try {
 
     // Missing evidence degrades gracefully.
     await toggles.nth(3).click();
-    assert.match(
-      await p
-        .locator(".evidence-panel", { hasText: "这条依据暂时无法显示" })
-        .textContent(),
-      /官方资料/,
-    );
+    const missing = p.locator(".evidence-panel", {
+      hasText: "这条依据暂时无法显示",
+    });
+    assert.match(await missing.textContent(), /文末列出了本文使用的全部来源/);
+    assert.equal(await missing.getAttribute("aria-label"), "这句话的依据");
     // No internal identifiers leak into the page.
     const text = await p.locator("main").textContent();
     assert.doesNotMatch(

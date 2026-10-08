@@ -7,6 +7,7 @@ import {
   GUIDE_DOMAINS,
   guidePath,
   HEALTH_GUIDE_DOMAIN,
+  MONEY_GUIDE_DOMAIN,
   relatedGuidesFor,
 } from "../src/guides/domains.ts";
 import { sourceTextLang } from "../src/guides/format.ts";
@@ -27,7 +28,19 @@ test("each domain owns one route base and one API category", () => {
   assert.equal(HEALTH_GUIDE_DOMAIN.category, "health-nhs");
   assert.equal(FAMILY_VISA_GUIDE_DOMAIN.basePath, "/family-visa");
   assert.equal(FAMILY_VISA_GUIDE_DOMAIN.category, "family-visa");
-  assert.deepEqual(Object.keys(GUIDE_DOMAINS), ["health", "family-visa"]);
+  assert.equal(MONEY_GUIDE_DOMAIN.basePath, "/money");
+  assert.equal(MONEY_GUIDE_DOMAIN.category, "money");
+  assert.equal(MONEY_GUIDE_DOMAIN.label, "金钱与财务");
+  assert.equal(MONEY_GUIDE_DOMAIN.backLabel, "回到金钱与财务");
+  assert.deepEqual(Object.keys(GUIDE_DOMAINS), [
+    "health",
+    "family-visa",
+    "money",
+  ]);
+  // Route bases and categories never overlap between domains.
+  const domains = Object.values(GUIDE_DOMAINS);
+  assert.equal(new Set(domains.map((d) => d.basePath)).size, domains.length);
+  assert.equal(new Set(domains.map((d) => d.category)).size, domains.length);
   for (const [id, domain] of Object.entries(GUIDE_DOMAINS))
     assert.equal(domain.id, id);
 });
@@ -134,4 +147,53 @@ test("source language hints follow the text, not an English assumption", () => {
   );
   assert.equal(sourceTextLang("第 1 节"), undefined);
   assert.equal(sourceTextLang("2026"), undefined);
+});
+
+test("matches Money hub and Guide routes; malformed Money paths fail safely", () => {
+  assert.deepEqual(matchRoute("/money"), { name: "hub", domain: "money" });
+  assert.deepEqual(matchRoute("/money/"), { name: "hub", domain: "money" });
+  assert.deepEqual(matchRoute("/money/open-uk-bank-account-new-arrival"), {
+    name: "guide",
+    domain: "money",
+    slug: "open-uk-bank-account-new-arrival",
+  });
+  for (const path of [
+    "/money/a/b",
+    "/money/%E0%A4%A",
+    "/moneys",
+    "/Money",
+    "/money-finance",
+  ])
+    assert.deepEqual(matchRoute(path), { name: "not-found" }, path);
+});
+
+test("Money Guides belong only to the Money domain", () => {
+  const money = meta("m", "money");
+  assert.equal(belongsToDomain(money, MONEY_GUIDE_DOMAIN), true);
+  assert.equal(belongsToDomain(money, HEALTH_GUIDE_DOMAIN), false);
+  assert.equal(belongsToDomain(money, FAMILY_VISA_GUIDE_DOMAIN), false);
+  assert.equal(
+    belongsToDomain(meta("h", "health-nhs"), MONEY_GUIDE_DOMAIN),
+    false,
+  );
+  assert.equal(
+    belongsToDomain(meta("f", "family-visa"), MONEY_GUIDE_DOMAIN),
+    false,
+  );
+  const list = [
+    meta("h", "health-nhs"),
+    money,
+    meta("m2", "money"),
+    meta("f", "family-visa"),
+  ];
+  assert.deepEqual(
+    domainGuides(list, MONEY_GUIDE_DOMAIN).map((g) => g.slug),
+    ["m", "m2"],
+  );
+  assert.deepEqual(MONEY_GUIDE_DOMAIN.titleReferences, {});
+  assert.deepEqual(MONEY_GUIDE_DOMAIN.relatedGuides, {});
+  // No source classification: Money has no example-source rule.
+  assert.equal(MONEY_GUIDE_DOMAIN.isExampleSource, undefined);
+  assert.deepEqual(relatedGuidesFor(MONEY_GUIDE_DOMAIN, "m", list), []);
+  assert.equal(guidePath(MONEY_GUIDE_DOMAIN, "m"), "/money/m");
 });

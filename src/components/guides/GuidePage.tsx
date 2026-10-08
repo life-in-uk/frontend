@@ -206,7 +206,7 @@ export function GuidePage({
                 {parsed.evidenceLinks > 0 && (
                   <li>
                     <FileCheck2 size={15} aria-hidden="true" />
-                    {parsed.evidenceLinks} 处标注了官方依据
+                    {parsed.evidenceLinks} 处标注了依据
                   </li>
                 )}
               </ul>
@@ -216,8 +216,8 @@ export function GuidePage({
           <p className="evidence-intro">
             <FileCheck2 size={18} aria-hidden="true" />
             <span>
-              文中标着<strong>“查看官方依据”</strong>
-              的地方，可以点开看这句话依据的是哪条英国官方资料。
+              文中标着<strong>依据链接</strong>
+              的地方，可以点开看这句话依据的是哪份资料、出自哪个机构。
             </span>
           </p>
           <div className="guide-body">
