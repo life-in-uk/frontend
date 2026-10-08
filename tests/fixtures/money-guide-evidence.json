@@ -1,0 +1,718 @@
+{
+  "slug": "open-uk-bank-account-new-arrival",
+  "category": "money",
+  "title": "刚到英国，怎么开第一个银行账户？",
+  "summary": "持中国护照、刚到英国的留学生和来工作、随家人或定居的人，开第一个英国银行账户前要准备什么、没有常见的英国地址证明怎么办、第一家开不了怎么办，以及怎么确认 FSCS 存款保障。",
+  "publishedAt": "2026-10-07T15:53:00Z",
+  "updatedAt": "2026-10-07T15:53:00Z",
+  "content": "# Fixture\n\n测试快照：只保留依据和来源，正文省略。",
+  "sources": [
+    {
+      "key": "mlr-2017-reg-28",
+      "organisation": "legislation.gov.uk",
+      "title": "The Money Laundering, Terrorist Financing and Transfer of Funds (Information on the Payer) Regulations 2017, regulation 28",
+      "url": "https://www.legislation.gov.uk/uksi/2017/692/regulation/28",
+      "accessedAt": "2026-10-07T12:11:35Z"
+    },
+    {
+      "key": "fca-fcg-3-2",
+      "organisation": "Financial Conduct Authority（FCA）",
+      "title": "FCG 3.2 Themes（Financial Crime Guide）",
+      "url": "https://handbook.fca.org.uk/handbook/fcg3/fcg3s2",
+      "accessedAt": "2026-10-07T09:39:12Z"
+    },
+    {
+      "key": "par-2015-reg-19",
+      "organisation": "legislation.gov.uk",
+      "title": "The Payment Accounts Regulations 2015, regulation 19",
+      "url": "https://www.legislation.gov.uk/uksi/2015/2038/regulation/19",
+      "accessedAt": "2026-10-07T09:38:12Z"
+    },
+    {
+      "key": "par-2015-reg-20",
+      "organisation": "legislation.gov.uk",
+      "title": "The Payment Accounts Regulations 2015, regulation 20",
+      "url": "https://www.legislation.gov.uk/uksi/2015/2038/regulation/20",
+      "accessedAt": "2026-10-07T09:38:12Z"
+    },
+    {
+      "key": "par-2015-reg-22",
+      "organisation": "legislation.gov.uk",
+      "title": "The Payment Accounts Regulations 2015, regulation 22",
+      "url": "https://www.legislation.gov.uk/uksi/2015/2038/regulation/22",
+      "accessedAt": "2026-10-07T12:10:48Z"
+    },
+    {
+      "key": "par-2015-reg-23",
+      "organisation": "legislation.gov.uk",
+      "title": "The Payment Accounts Regulations 2015, regulation 23",
+      "url": "https://www.legislation.gov.uk/uksi/2015/2038/regulation/23",
+      "accessedAt": "2026-10-07T12:10:49Z"
+    },
+    {
+      "key": "par-2015-reg-25",
+      "organisation": "legislation.gov.uk",
+      "title": "The Payment Accounts Regulations 2015, regulation 25",
+      "url": "https://www.legislation.gov.uk/uksi/2015/2038/regulation/25",
+      "accessedAt": "2026-10-07T12:10:49Z"
+    },
+    {
+      "key": "immigration-act-2014-s40",
+      "organisation": "legislation.gov.uk",
+      "title": "Immigration Act 2014, section 40",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/22/section/40",
+      "accessedAt": "2026-10-07T12:11:36Z"
+    },
+    {
+      "key": "hmt-basic-bank-accounts-2024",
+      "organisation": "HM Treasury（GOV.UK）",
+      "title": "Basic bank accounts: July 2023 to June 2024",
+      "url": "https://www.gov.uk/government/publications/basic-bank-accounts-july-2023-to-june-2024/basic-bank-accounts-july-2023-to-june-2024",
+      "accessedAt": "2026-10-07T12:11:04Z"
+    },
+    {
+      "key": "govuk-evisa-what",
+      "organisation": "GOV.UK",
+      "title": "eVisas: access and use your online immigration status — What an eVisa is",
+      "url": "https://www.gov.uk/evisa/what-an-evisa-is",
+      "accessedAt": "2026-10-07T09:38:00Z"
+    },
+    {
+      "key": "govuk-evisa-share-code",
+      "organisation": "GOV.UK",
+      "title": "eVisas: access and use your online immigration status — View your eVisa and get a share code to prove your immigration status",
+      "url": "https://www.gov.uk/evisa/view-evisa-get-share-code-prove-immigration-status",
+      "accessedAt": "2026-10-07T09:38:00Z"
+    },
+    {
+      "key": "govuk-apply-ni-number",
+      "organisation": "GOV.UK",
+      "title": "Apply for a National Insurance number",
+      "url": "https://www.gov.uk/apply-national-insurance-number",
+      "accessedAt": "2026-10-07T09:43:52Z"
+    },
+    {
+      "key": "home-office-money-mule-guidance",
+      "organisation": "Home Office（GOV.UK）",
+      "title": "Money laundering-linked financial exploitation: guidance for frontline professionals",
+      "url": "https://www.gov.uk/government/publications/money-mule-action-plan/money-laundering-linked-financial-exploitation-guidance-for-frontline-professionals-accessible",
+      "accessedAt": "2026-10-07T09:39:34Z"
+    },
+    {
+      "key": "fscs-banks",
+      "organisation": "Financial Services Compensation Scheme（FSCS）",
+      "title": "Banks, building societies and credit unions",
+      "url": "https://www.fscs.org.uk/what-we-cover/banks-building-societies-credit-unions/",
+      "accessedAt": "2026-10-07T12:12:29Z"
+    },
+    {
+      "key": "fscs-protection-checker",
+      "organisation": "Financial Services Compensation Scheme（FSCS）",
+      "title": "Bank & savings protection checker",
+      "url": "https://www.fscs.org.uk/check/check-your-money-is-protected/",
+      "accessedAt": "2026-10-07T09:39:19Z"
+    },
+    {
+      "key": "boe-pra-fscs-120k",
+      "organisation": "Bank of England（PRA）",
+      "title": "PRA confirms FSCS deposit limit to be increased to £120,000 from 1 December",
+      "url": "https://www.bankofengland.co.uk/news/2025/november/pra-confirms-fscs-deposit-limit-to-be-increased-to-120000-from-1-december",
+      "accessedAt": "2026-10-07T12:12:46Z"
+    },
+    {
+      "key": "boe-pra-banks-list-2026-09",
+      "organisation": "Bank of England（PRA）",
+      "title": "List of PRA-regulated Banks - September 2026（as at 1 September 2026）",
+      "url": "https://www.bankofengland.co.uk/-/media/boe/files/prudential-regulation/authorisations/which-firms-does-the-pra-regulate/2026/banks-list-2609.csv",
+      "accessedAt": "2026-10-07T12:14:10Z"
+    },
+    {
+      "key": "barclays-student-account",
+      "organisation": "Barclays",
+      "title": "Student Additions Account",
+      "url": "https://www.barclays.co.uk/current-accounts/student-account/",
+      "accessedAt": "2026-10-07T12:12:54Z"
+    },
+    {
+      "key": "barclays-bank-account",
+      "organisation": "Barclays",
+      "title": "Barclays Bank Account",
+      "url": "https://www.barclays.co.uk/current-accounts/bank-account/",
+      "accessedAt": "2026-10-07T12:12:55Z"
+    },
+    {
+      "key": "barclays-branch-id",
+      "organisation": "Barclays",
+      "title": "What ID documents do I need to take to a branch?",
+      "url": "https://www.barclays.co.uk/help/accounts/opening/what-id/",
+      "accessedAt": "2026-10-07T09:40:20Z"
+    },
+    {
+      "key": "lloyds-student-account",
+      "organisation": "Lloyds Bank",
+      "title": "Student bank accounts",
+      "url": "https://www.lloydsbank.com/current-accounts/all-accounts/student-account.html",
+      "accessedAt": "2026-10-07T12:12:54Z"
+    },
+    {
+      "key": "lloyds-new-to-uk",
+      "organisation": "Lloyds Bank",
+      "title": "New to the United Kingdom",
+      "url": "https://www.lloydsbank.com/current-accounts/help-and-guidance/new-to-uk.html",
+      "accessedAt": "2026-10-07T09:40:25Z"
+    },
+    {
+      "key": "lloyds-international-student",
+      "organisation": "Lloyds Bank",
+      "title": "International Student",
+      "url": "https://www.lloydsbank.com/current-accounts/international-student.html",
+      "accessedAt": "2026-10-07T09:40:25Z"
+    },
+    {
+      "key": "lloyds-proving-identity",
+      "organisation": "Lloyds Bank",
+      "title": "Proving your identity",
+      "url": "https://www.lloydsbank.com/help-guidance/legal-information/privacy/proof-of-identity.html",
+      "accessedAt": "2026-10-07T09:40:25Z"
+    },
+    {
+      "key": "natwest-student-account",
+      "organisation": "NatWest",
+      "title": "Student Bank Account",
+      "url": "https://www.natwest.com/current-accounts/student_account.html",
+      "accessedAt": "2026-10-07T12:12:55Z"
+    },
+    {
+      "key": "natwest-what-you-need",
+      "organisation": "NatWest",
+      "title": "What you need to open a bank account",
+      "url": "https://www.natwest.com/current-accounts/what-do-you-need-to-open-a-current-account.html",
+      "accessedAt": "2026-10-07T09:40:26Z"
+    },
+    {
+      "key": "hsbc-id-documents",
+      "organisation": "HSBC UK",
+      "title": "Documents you need for an ID check",
+      "url": "https://www.hsbc.co.uk/help/banking-made-easy/help-us-identify-you/",
+      "accessedAt": "2026-10-07T09:40:23Z"
+    },
+    {
+      "key": "hsbc-bank-account",
+      "organisation": "HSBC UK",
+      "title": "Bank Account",
+      "url": "https://www.hsbc.co.uk/current-accounts/products/bank-account/",
+      "accessedAt": "2026-10-07T12:13:53Z"
+    },
+    {
+      "key": "santander-basic-account",
+      "organisation": "Santander UK",
+      "title": "Basic Current Account",
+      "url": "https://www.santander.co.uk/personal/current-accounts/basic-current-account",
+      "accessedAt": "2026-10-07T12:23:36Z"
+    },
+    {
+      "key": "santander-international-students",
+      "organisation": "Santander UK",
+      "title": "Bank account for international students",
+      "url": "https://www.santander.co.uk/personal/current-accounts/santander-edge-student-current-account/international-student",
+      "accessedAt": "2026-10-07T12:23:31Z"
+    },
+    {
+      "key": "nationwide-proving-identity",
+      "organisation": "Nationwide Building Society",
+      "title": "Proving your identity",
+      "url": "https://www.nationwide.co.uk/help/your-details/proving-your-identity",
+      "accessedAt": "2026-10-07T09:40:28Z"
+    },
+    {
+      "key": "monzo-how-to-open",
+      "organisation": "Monzo",
+      "title": "How to open a Monzo Personal Account",
+      "url": "https://monzo.com/help/opening-an-account/how-to-open-a-Monzo-Personal-Account",
+      "accessedAt": "2026-10-07T09:40:27Z"
+    },
+    {
+      "key": "starling-general-terms",
+      "organisation": "Starling Bank",
+      "title": "Personal Account General Terms",
+      "url": "https://www.starlingbank.com/docs/legal/terms/starling-personal-account-general-terms-may-2026.pdf",
+      "accessedAt": "2026-10-07T12:14:50Z"
+    }
+  ],
+  "evidence": [
+    {
+      "key": "mlr-identity-verification",
+      "statement": "英国反洗钱法规要求银行识别并核实客户身份，并按自己的风险评估决定做法，不同情况下可以不同。",
+      "supports": [
+        {
+          "sourceKey": "mlr-2017-reg-28",
+          "locator": "regulation 28(2), (12)",
+          "excerpt": null,
+          "note": "\"identify the customer\"；\"verify the customer's identity\"；措施必须反映风险评估，\"may differ from case to case\"。"
+        }
+      ]
+    },
+    {
+      "key": "mlr-electronic-identification",
+      "statement": "法规允许用可靠、独立的来源核实身份，符合条件的电子身份核验方式可以作为这样的来源。",
+      "supports": [
+        {
+          "sourceKey": "mlr-2017-reg-28",
+          "locator": "regulation 28(18), (19)",
+          "excerpt": null,
+          "note": "\"obtained from a reliable source which is independent\"；可通过 \"electronic identification process\"，前提是安全并能提供足够保证。"
+        },
+        {
+          "sourceKey": "fca-fcg-3-2",
+          "locator": "FCG 3.2.4（Customer due diligence）",
+          "excerpt": null,
+          "note": "\"an electronic identification process may be regarded as a reliable source for the purposes of CDD verification\"。自拍、视频比对是银行实际流程的举例。"
+        }
+      ]
+    },
+    {
+      "key": "mlr-risk-based-cdd",
+      "statement": "法规没有给所有银行规定统一的开户文件清单；具体要哪些文件由各家银行按自己的风险流程决定。",
+      "supports": [
+        {
+          "sourceKey": "mlr-2017-reg-28",
+          "locator": "regulation 28(12), (18)",
+          "excerpt": null,
+          "note": "条文要求核实身份并按风险评估决定措施（\"may differ from case to case\"），只规定核实依据须为可靠、独立来源的 \"documents or information\"，没有列出具体文件或地址证明。行业指引（JMLSG）未审阅，故表述限于「法规没有统一清单」。"
+        }
+      ]
+    },
+    {
+      "key": "providers-ask-for-address",
+      "statement": "大多数银行会要求或可能要求地址证明，接受哪些文件、在哪个渠道接受各家不同。",
+      "supports": [
+        {
+          "sourceKey": "barclays-branch-id",
+          "locator": "Proof of address",
+          "excerpt": null,
+          "note": "网点开户需 \"two valid, original documents – one to prove your identity and one to verify your address\"。"
+        },
+        {
+          "sourceKey": "natwest-what-you-need",
+          "locator": "How can you prove your identity online?",
+          "excerpt": null,
+          "note": "\"We might also need to see a proof of address\"。"
+        },
+        {
+          "sourceKey": "monzo-how-to-open",
+          "locator": "Step 4: Tell us about you",
+          "excerpt": null,
+          "note": "\"We might ask you to verify that you live at the address you chose\"。研究覆盖的 8 家银行中多数列出地址证明，措辞强弱不同。"
+        }
+      ]
+    },
+    {
+      "key": "evisa-replaced-physical-documents",
+      "statement": "eVisa 已经取代了实体移民文件。",
+      "supports": [
+        {
+          "sourceKey": "govuk-evisa-what",
+          "locator": "What an eVisa is",
+          "excerpt": null,
+          "note": "\"eVisas have replaced physical immigration documents.\""
+        }
+      ]
+    },
+    {
+      "key": "evisa-share-code-90-days",
+      "statement": "可以生成 share code 让别人核验移民身份；share code 有效 90 天，可以随时再生成。",
+      "supports": [
+        {
+          "sourceKey": "govuk-evisa-share-code",
+          "locator": "View your eVisa and get a share code to prove your immigration status",
+          "excerpt": null,
+          "note": "\"A share code lasts for 90 days\"；\"get a new share code whenever you need one\"。"
+        }
+      ]
+    },
+    {
+      "key": "brp-still-listed-by-some-providers",
+      "statement": "截至 2026 年 10 月 7 日，有些银行的文件清单里仍列有 BRP。",
+      "supports": [
+        {
+          "sourceKey": "nationwide-proving-identity",
+          "locator": "Proof of name（表格）",
+          "excerpt": null,
+          "note": "证明姓名的文件中列有 \"UK Home Office Biometric Residence Permit\"（仅限网点）。仅作为「仍有银行列出 BRP」的例子，不代表其他银行做法。"
+        }
+      ]
+    },
+    {
+      "key": "student-accounts-three-year-residence",
+      "statement": "截至 2026 年 10 月 7 日，Barclays Student Additions Account、Lloyds Student Current Account 和 NatWest 学生账户的申请条件要求在英国居住约三年；这些银行提示不符合的人可以看其他账户。",
+      "supports": [
+        {
+          "sourceKey": "barclays-student-account",
+          "locator": "How to apply；FAQ",
+          "excerpt": null,
+          "note": "\"You can only apply for a student account if you've lived in the UK for more than three years\"；FAQ 另写 \"You must have been living in the UK for at least 3 years to open a student account\"（两种写法并存）；\"If you haven't, you can apply for a Barclays Bank Account in the app\"。"
+        },
+        {
+          "sourceKey": "lloyds-student-account",
+          "locator": "Who can apply?；Are you an international student?",
+          "excerpt": null,
+          "note": "\"have been a UK resident for at least 3 years\"；\"But you could apply for another account with us\"。"
+        },
+        {
+          "sourceKey": "natwest-student-account",
+          "locator": "You can apply if；Can an international student get a bank account in the UK?",
+          "excerpt": null,
+          "note": "\"have been living in the UK for at least 3 years\"；\"We have plenty of other current account options\"。"
+        }
+      ]
+    },
+    {
+      "key": "barclays-bank-account-requirements",
+      "statement": "截至 2026 年 10 月 7 日，Barclays Bank Account 要求英国居民、英国手机号和身份证明；没有英国手机号可网上申请；用 eVisa 需预约网点。",
+      "supports": [
+        {
+          "sourceKey": "barclays-bank-account",
+          "locator": "To open a Barclays Bank Account；FAQ",
+          "excerpt": null,
+          "note": "\"Be a UK resident\"；\"Have a UK mobile number\"；\"If you don't have a UK mobile number, you can apply online instead\"；\"If you are looking to use an eVisa then an appointment will need to be made in Branch\"。同页的 \"three years of address history\" 未用于公开文本（含义未解决）。"
+        }
+      ]
+    },
+    {
+      "key": "credit-checks-vary",
+      "statement": "有些账户开户时会做信用查询，有的银行在开户后也会定期做身份、反欺诈和信用检查；各家、各账户不同。",
+      "supports": [
+        {
+          "sourceKey": "barclays-student-account",
+          "locator": "FAQ：I've just moved to the country",
+          "excerpt": null,
+          "note": "Barclays Bank Account \"subject to a successful credit check\"。"
+        },
+        {
+          "sourceKey": "hsbc-bank-account",
+          "locator": "Who can apply?",
+          "excerpt": null,
+          "note": "\"Are happy for us to do a credit check against your name (if you're applying for a joint account and live in the UK)\"，说明并非所有情况都查。"
+        },
+        {
+          "sourceKey": "starling-general-terms",
+          "locator": "Personal Account General Terms（2026 年 5 月版）",
+          "excerpt": null,
+          "note": "\"we carry out certain identity fraud and credit checks regularly\"（为提供和维持账户）。PDF 文本抽取有少量缺字，本句完整。"
+        }
+      ]
+    },
+    {
+      "key": "lloyds-non-uk-passport-app-only",
+      "statement": "截至 2026 年 10 月 7 日，Lloyds 写明非英国护照只能在手机 app 里用来证明身份。",
+      "supports": [
+        {
+          "sourceKey": "lloyds-new-to-uk",
+          "locator": "1. Account opening essentials：Identification we accept",
+          "excerpt": null,
+          "note": "\"Non-UK passport (mobile banking app only).\""
+        }
+      ]
+    },
+    {
+      "key": "natwest-passport-with-visa-or-share-code",
+      "statement": "截至 2026 年 10 月 7 日，NatWest 写明非英国 / 非欧盟护照需要配合有效签证或 eVisa share code。",
+      "supports": [
+        {
+          "sourceKey": "natwest-what-you-need",
+          "locator": "Non-UK/EU：Proof of ID",
+          "excerpt": null,
+          "note": "\"Your passport must be supported by a valid Visa or an eVisa Share Code.\""
+        }
+      ]
+    },
+    {
+      "key": "monzo-onboarding-may-ask-address",
+      "statement": "Monzo 开户要拍证件照片和自拍视频，并可能要求证明住在所填地址。",
+      "supports": [
+        {
+          "sourceKey": "monzo-how-to-open",
+          "locator": "Step 4；Step 5",
+          "excerpt": null,
+          "note": "\"We might ask you to verify that you live at the address you chose\"；\"take a picture of your ID and then take a selfie video\"。不表示比其他银行容易。"
+        }
+      ]
+    },
+    {
+      "key": "hsbc-university-and-employer-letters",
+      "statement": "截至 2026 年 10 月 7 日，HSBC 的文件说明列有大学确认合格课程录取的信（网上和网点），并在网点列有已知雇主确认住址和在职的信。",
+      "supports": [
+        {
+          "sourceKey": "hsbc-id-documents",
+          "locator": "Proof of address documents you can upload online；Proof of address documents you can bring into a branch",
+          "excerpt": null,
+          "note": "\"Letter from a UK Border Agency accredited college or university, confirming your acceptance onto a qualifying course\"（网上上传清单；网点清单另有同类表述）；网点：\"Letter from employer, confirming your address and that you currently work for them (it must be a known employer)\"。HSBC 原文用的是已撤销机构名称。"
+        }
+      ]
+    },
+    {
+      "key": "natwest-new-to-uk-alternatives",
+      "statement": "截至 2026 年 10 月 7 日，NatWest 建议新来英国的人可以用 HMRC 的国民保险号或税码通知信，或寄到英国新地址的原有银行对账单（不一定是英国银行）。",
+      "supports": [
+        {
+          "sourceKey": "natwest-what-you-need",
+          "locator": "Are you new to the UK?：Working in the UK；International student",
+          "excerpt": null,
+          "note": "\"HMRC notification of National Insurance number\"；\"HMRC notification of tax coding\"；\"Bank statement from an existing bank which is now addressed to your new UK address (this does not need to be from a UK bank)\"。未核实中国的银行能否这样寄、个案是否接受。"
+        }
+      ]
+    },
+    {
+      "key": "santander-basic-for-new-uk-students",
+      "statement": "截至 2026 年 10 月 7 日，Santander 写明其 Basic Current Account 面向 16 岁以上、住在英国、没有英国银行账户或其他账户被拒的人，适合刚来英国的人；面向国际学生时提到 share code / 签证和 university banking letter。",
+      "supports": [
+        {
+          "sourceKey": "santander-international-students",
+          "locator": "Can I apply for a Basic account ? Yes if",
+          "excerpt": null,
+          "note": "\"Our Basic Current Account might be suitable if you are a student new to the UK\"；\"you can provide your share code/visa\"；\"such as your university banking letter\"。"
+        },
+        {
+          "sourceKey": "santander-basic-account",
+          "locator": "Basic Current Account（开头）；Can I apply for a Basic account ? Yes if",
+          "excerpt": null,
+          "note": "\"This account is usually for people who don't have a UK bank account or can't get one of our other current accounts\"；\"if you're new to the UK\"；\"You're 16+ and live in the UK\"。文件清单（PDF）未能读取，不列出。"
+        }
+      ]
+    },
+    {
+      "key": "lloyds-classic-for-international-students",
+      "statement": "截至 2026 年 10 月 7 日，Lloyds 写明年满 18 岁、已住在英国、有有效护照可以申请 Classic Account。",
+      "supports": [
+        {
+          "sourceKey": "lloyds-international-student",
+          "locator": "Welcome to student life in the UK",
+          "excerpt": null,
+          "note": "\"If you're aged 18 or over, living in the UK and have a valid passport, you can apply for a Lloyds Classic Account\"。"
+        }
+      ]
+    },
+    {
+      "key": "tenancy-agreement-varies",
+      "statement": "租房合同是否被接受因银行而异：签发方、渠道都有限制；私人房东直接签的合同在多数清单里没有看到明确接受。",
+      "supports": [
+        {
+          "sourceKey": "barclays-branch-id",
+          "locator": "And one proof of UK address document",
+          "excerpt": null,
+          "note": "\"Tenancy agreement from last 12 months from local council or housing association\"。"
+        },
+        {
+          "sourceKey": "lloyds-proving-identity",
+          "locator": "Accepted documents（表格）",
+          "excerpt": null,
+          "note": "\"Tenancy agreement issued by a solicitor, housing association, local council or reputable letting agency\"；表格中该行 \"Accepted online\" 标为 No。"
+        },
+        {
+          "sourceKey": "hsbc-id-documents",
+          "locator": "Proof of address documents you can bring into a branch",
+          "excerpt": null,
+          "note": "\"Tenancy agreement (must be from a local council or reputable lending agency)\"。「多数清单没有看到」是对研究覆盖清单的归纳。"
+        }
+      ]
+    },
+    {
+      "key": "ni-number-eligibility-and-timing",
+      "statement": "住在英国、有工作权、正在工作 / 找工作 / 有工作 offer 的人可以申请国民保险号；有些人的号码已显示在 eVisa 里；可能要最多 4 周。",
+      "supports": [
+        {
+          "sourceKey": "govuk-apply-ni-number",
+          "locator": "Who can apply；If you have a biometric residence permit (BRP) or eVisa；If you've already applied",
+          "excerpt": null,
+          "note": "\"have the right to work in the UK\"；\"are working, looking for work or have an offer to start work\"；\"you might have a National Insurance number already\"；\"It can take up to 4 weeks to get your National Insurance number.\""
+        }
+      ]
+    },
+    {
+      "key": "santander-branch-help-without-listed-documents",
+      "statement": "截至 2026 年 10 月 7 日，Santander 写明没有清单上的身份文件或固定英国地址时，可以去网点沟通。",
+      "supports": [
+        {
+          "sourceKey": "santander-basic-account",
+          "locator": "Facing homelessness or housing difficulties / 文件说明",
+          "excerpt": null,
+          "note": "\"If you don't have a listed proof of ID or permanent UK address, we may still be able to help. Please come and talk to us in branch\"。"
+        }
+      ]
+    },
+    {
+      "key": "immigration-act-s40-disqualified-person",
+      "statement": "法律禁止银行给在英国、需要居留许可但没有、并被政府认定不应开户的人开活期账户。",
+      "supports": [
+        {
+          "sourceKey": "immigration-act-2014-s40",
+          "locator": "section 40(1)–(3)",
+          "excerpt": null,
+          "note": "\"must not open a current account for a person (P) who is within subsection (2)\"；\"requires leave to enter or remain in the United Kingdom but does not have it\"；\"for whom the Secretary of State considers that a current account should not be opened\"。现行操作流程未核实，不作描述。"
+        }
+      ]
+    },
+    {
+      "key": "basic-account-features",
+      "statement": "基本账户是英镑账户，可存钱、取现、用借记卡、设 direct debit 和转账，标准英镑操作免费，没有透支。",
+      "supports": [
+        {
+          "sourceKey": "par-2015-reg-19",
+          "locator": "regulation 19(1)",
+          "excerpt": null,
+          "note": "包括 \"direct debits\"、\"payment transactions through a payment card\"、\"credit transfers\"。"
+        },
+        {
+          "sourceKey": "par-2015-reg-20",
+          "locator": "regulation 20(1)",
+          "excerpt": null,
+          "note": "\"must not charge any fee\"（相关英镑服务）。"
+        },
+        {
+          "sourceKey": "hmt-basic-bank-accounts-2024",
+          "locator": "Introduction",
+          "excerpt": null,
+          "note": "\"must be fee-free for standard operations (when provided in sterling) and not have an overdraft facility\"。"
+        }
+      ]
+    },
+    {
+      "key": "basic-account-designated-institutions",
+      "statement": "英国法规要求政府指定的一些银行向符合条件的人提供基本账户，不是每家银行都有这项义务。",
+      "supports": [
+        {
+          "sourceKey": "par-2015-reg-22",
+          "locator": "regulation 22(1)",
+          "excerpt": null,
+          "note": "\"A designated credit institution must offer a payment account with basic features\"（对符合 reg 23 条件的人）。"
+        },
+        {
+          "sourceKey": "hmt-basic-bank-accounts-2024",
+          "locator": "Introduction",
+          "excerpt": null,
+          "note": "\"HM Treasury has designated the nine largest personal current account (PCA) providers\"（名单见报告，数据期至 2024 年 6 月，2025 年 11 月发布；公开文本不列名单）。"
+        }
+      ]
+    },
+    {
+      "key": "basic-account-eligibility",
+      "statement": "条件大致是：合法居住在英国，并且没有其他具备基本功能的英国银行账户，或者不符合这家银行其他所有账户的条件。",
+      "supports": [
+        {
+          "sourceKey": "par-2015-reg-23",
+          "locator": "regulation 23(1)",
+          "excerpt": null,
+          "note": "\"legally resident\"；\"not hold a payment account with any United Kingdom credit institution\"；\"be ineligible for all payment accounts offered by B that are not payment accounts with basic features\"。「合法居住」未在条文中完整定义。"
+        }
+      ]
+    },
+    {
+      "key": "basic-account-refusal-grounds",
+      "statement": "银行仍要做身份核查；开户会违法时银行必须拒绝。",
+      "supports": [
+        {
+          "sourceKey": "par-2015-reg-25",
+          "locator": "regulation 25(1)",
+          "excerpt": null,
+          "note": "\"must refuse to open a payment account with basic features for a consumer where it would be unlawful for it to do so, including\" 违反反洗钱法规等情形。「无法完成身份核查」是据此的举例。"
+        }
+      ]
+    },
+    {
+      "key": "basic-account-refusal-reasons-complaints",
+      "statement": "被拒时，银行一般应书面说明理由并告知投诉途径，包括金融申诉专员（FOS）。",
+      "supports": [
+        {
+          "sourceKey": "par-2015-reg-25",
+          "locator": "regulation 25(3)–(5)（2026 年 4 月 28 日起的版本）",
+          "excerpt": null,
+          "note": "\"inform the consumer in writing and free of charge of the reason for the refusal if it may lawfully do so\"；须告知 \"the right to make a complaint to the Financial Ombudsman Service\"。"
+        }
+      ]
+    },
+    {
+      "key": "fscs-120k-limit",
+      "statement": "英国授权的银行、住房互助会或信用合作社倒闭时，FSCS 一般对每位符合条件的存款人、每家授权机构赔付最多 £120,000，适用于 2025 年 11 月 30 日之后倒闭的机构。",
+      "supports": [
+        {
+          "sourceKey": "fscs-banks",
+          "locator": "If the firm failed after 30 November 2025",
+          "excerpt": null,
+          "note": "\"up to £120,000 per eligible person, per bank, building society or credit union\"；\"On 1 December 2025 the deposit limit rose to £120,000.\""
+        },
+        {
+          "sourceKey": "boe-pra-fscs-120k",
+          "locator": "News release（2025 年 11 月 18 日）",
+          "excerpt": null,
+          "note": "\"will protect up to £120,000 of a depositor\"（PRA 确认的新上限）。"
+        }
+      ]
+    },
+    {
+      "key": "fscs-shared-licence",
+      "statement": "共用一张银行牌照的不同品牌按同一家计算。",
+      "supports": [
+        {
+          "sourceKey": "fscs-banks",
+          "locator": "Shared banking licences",
+          "excerpt": null,
+          "note": "\"share a banking licence) we have to treat them as one bank\"。"
+        }
+      ]
+    },
+    {
+      "key": "fscs-emoney-not-covered",
+      "statement": "电子货币机构和支付机构的资金不受 FSCS 存款保障。",
+      "supports": [
+        {
+          "sourceKey": "fscs-protection-checker",
+          "locator": "Can't find your firm?",
+          "excerpt": null,
+          "note": "\"FSCS can't protect e-money or payment services firms.\""
+        }
+      ]
+    },
+    {
+      "key": "fscs-how-to-check",
+      "statement": "可以用 FSCS 的保障查询工具，或在 FCA 金融服务登记册上查机构是否获得授权、是否共用牌照。",
+      "supports": [
+        {
+          "sourceKey": "fscs-banks",
+          "locator": "Banks, building societies and credit unions（开头）；Shared banking licences",
+          "excerpt": null,
+          "note": "\"you can check this on the Financial Services Register\"；\"bank & savings protection checker\"；可在登记册上查 \"which banks share a licence\"。"
+        }
+      ]
+    },
+    {
+      "key": "pra-list-monzo-starling",
+      "statement": "截至 2026 年 9 月 1 日的 PRA 名单上，Monzo Bank Limited 和 Starling Bank Limited 列为英国注册、获准吸收存款的银行；名单说明以金融服务登记册为准。",
+      "supports": [
+        {
+          "sourceKey": "boe-pra-banks-list-2026-09",
+          "locator": "Banks incorporated in the UK authorised to accept deposits",
+          "excerpt": null,
+          "note": "\"MONZO BANK LIMITED\",\"730427\"；\"Starling Bank Limited\",\"730166\"；\"it does not supersede the Financial Service Register\"。仅为举例，不是推荐。"
+        }
+      ]
+    },
+    {
+      "key": "money-mule-warning",
+      "statement": "犯罪团伙会利用别人的账户转移犯罪所得（money mule），洗钱最高可判 14 年监禁；也有银行提醒骗子会盯上刚到英国的学生。",
+      "supports": [
+        {
+          "sourceKey": "home-office-money-mule-guidance",
+          "locator": "What is ‘money muling’?；What is money laundering?",
+          "excerpt": null,
+          "note": "\"Money mules can also give control of their account to criminals\"；\"up to 14 years in prison\"。"
+        },
+        {
+          "sourceKey": "santander-international-students",
+          "locator": "Stay safe from scams",
+          "excerpt": null,
+          "note": "\"Some criminals target students who are new to the country.\""
+        }
+      ]
+    }
+  ]
+}

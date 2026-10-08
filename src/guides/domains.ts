@@ -10,7 +10,7 @@ import {
   RELATED_GUIDES,
 } from "./catalog.ts";
 
-export type GuideDomainId = "health" | "family-visa";
+export type GuideDomainId = "health" | "family-visa" | "money";
 
 export type GuideDomain = {
   id: GuideDomainId;
@@ -54,9 +54,23 @@ export const FAMILY_VISA_GUIDE_DOMAIN: GuideDomain = {
   relatedGuides: {},
 };
 
+export const MONEY_CATEGORY = "money";
+
+/** Money & Finance: no editorial cross-links until more Guides exist. */
+export const MONEY_GUIDE_DOMAIN: GuideDomain = {
+  id: "money",
+  basePath: "/money",
+  category: MONEY_CATEGORY,
+  label: "金钱与财务",
+  backLabel: "回到金钱与财务",
+  titleReferences: {},
+  relatedGuides: {},
+};
+
 export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   health: HEALTH_GUIDE_DOMAIN,
   "family-visa": FAMILY_VISA_GUIDE_DOMAIN,
+  money: MONEY_GUIDE_DOMAIN,
 };
 
 export function guidePath(domain: GuideDomain, slug: string): string {

@@ -12,15 +12,33 @@ export type Inline =
 export type Block =
   | { type: "heading"; level: number; children: Inline[] }
   | { type: "paragraph"; children: Inline[] }
-  | { type: "list"; ordered: boolean; start: number; items: Inline[][] }
+  | ListBlock
   | { type: "blockquote"; children: Block[] }
   | { type: "rule" };
+
+export type ListBlock = {
+  type: "list";
+  ordered: boolean;
+  start: number;
+  items: ListItem[];
+};
+
+export type ListItem = {
+  children: Inline[];
+  /** A Markdown task item ("[ ]" / "[x]"); presented read-only. */
+  task?: "open" | "done";
+  /** One level of nested unordered items. */
+  sublist?: ListBlock;
+};
 
 const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
 const UNORDERED = /^\s{0,3}[-*+]\s+(.*)$/;
 const ORDERED = /^\s{0,3}(\d{1,9})[.)]\s+(.*)$/;
 const QUOTE = /^\s{0,3}>\s?(.*)$/;
 const RULE = /^\s{0,3}(?:-\s*){3,}$|^\s{0,3}(?:\*\s*){3,}$/;
+// Any list marker at any indent: indent, marker, spacing, text.
+const MARKER = /^(\s*)([-*+]|\d{1,9}[.)])(\s+)(.*)$/;
+const TASK = /^\[([ xX])\]\s+(.*)$/;
 
 export function parseMarkdown(source: string): Block[] {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
@@ -60,35 +78,10 @@ function parseBlocks(lines: string[]): Block[] {
       blocks.push({ type: "blockquote", children: parseBlocks(quoted) });
       continue;
     }
-    const unordered = UNORDERED.exec(line);
-    const ordered = ORDERED.exec(line);
-    if (unordered || ordered) {
-      const isOrdered = !unordered;
-      const pattern = isOrdered ? ORDERED : UNORDERED;
-      const items: string[] = [];
-      const start = ordered ? Number(ordered[1]) : 1;
-      while (index < lines.length) {
-        const current = lines[index];
-        const match = pattern.exec(current);
-        if (match) {
-          items.push(isOrdered ? match[2] : match[1]);
-          index++;
-        } else if (
-          items.length > 0 &&
-          current.trim() !== "" &&
-          /^\s{2,}\S/.test(current)
-        ) {
-          // Indented continuation of the previous item.
-          items[items.length - 1] += " " + current.trim();
-          index++;
-        } else break;
-      }
-      blocks.push({
-        type: "list",
-        ordered: isOrdered,
-        start,
-        items: items.map((item) => parseInline(item)),
-      });
+    if (UNORDERED.test(line) || ORDERED.test(line)) {
+      const parsed = parseList(lines, index);
+      blocks.push(parsed.list);
+      index = parsed.next;
       continue;
     }
     const paragraph: string[] = [];
@@ -110,6 +103,78 @@ function parseBlocks(lines: string[]): Block[] {
     });
   }
   return blocks;
+}
+
+type RawItem = { text: string; nested: string[] };
+
+/**
+ * A list starting at `start`. Items share the first item's marker type.
+ * Unordered markers indented to the current item's text become one nested
+ * level (deeper markers stay at that level); other indented lines continue
+ * the previous item. A blank line or unindented text ends the list.
+ */
+function parseList(
+  lines: string[],
+  start: number,
+): { list: ListBlock; next: number } {
+  const first = MARKER.exec(lines[start])!;
+  const ordered = /\d/.test(first[2]);
+  const items: RawItem[] = [];
+  // Column where the current item's text starts; nested markers reach it.
+  let contentColumn = Infinity;
+  let index = start;
+  while (index < lines.length) {
+    const current = lines[index];
+    const marker = MARKER.exec(current);
+    const indent = marker ? marker[1].length : 0;
+    const markerOrdered = marker ? /\d/.test(marker[2]) : false;
+    if (marker && indent <= 3 && indent < contentColumn) {
+      if (markerOrdered !== ordered) break;
+      items.push({ text: marker[4], nested: [] });
+      contentColumn = indent + marker[2].length + marker[3].length;
+    } else if (marker && !markerOrdered && indent >= contentColumn) {
+      items[items.length - 1].nested.push(marker[4]);
+    } else if (
+      items.length > 0 &&
+      current.trim() !== "" &&
+      /^\s{2,}\S/.test(current)
+    ) {
+      // Indented continuation of the previous item (or nested item).
+      const item = items[items.length - 1];
+      if (item.nested.length > 0)
+        item.nested[item.nested.length - 1] += " " + current.trim();
+      else item.text += " " + current.trim();
+    } else break;
+    index++;
+  }
+  return {
+    list: {
+      type: "list",
+      ordered,
+      start: ordered ? Number(first[2].slice(0, -1)) : 1,
+      items: items.map((item) => ({
+        ...listItem(item.text),
+        ...(item.nested.length > 0 && {
+          sublist: {
+            type: "list" as const,
+            ordered: false,
+            start: 1,
+            items: item.nested.map(listItem),
+          },
+        }),
+      })),
+    },
+    next: index,
+  };
+}
+
+function listItem(text: string): ListItem {
+  const task = TASK.exec(text);
+  if (!task) return { children: parseInline(text) };
+  return {
+    children: parseInline(task[2]),
+    task: task[1] === " " ? "open" : "done",
+  };
 }
 
 // Bare URLs end before whitespace, CJK punctuation or a closing bracket.

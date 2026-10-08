@@ -191,6 +191,41 @@
 .guide-body :is(ul, ol):not([class]) > li::marker {
   color: var(--color-brand);
 }
+/* One nested level: a lighter marker and a little air above. */
+.guide-body li > ul:not([class]) {
+  margin-top: 8px;
+  list-style: circle;
+}
+/* Read-only checklist: a drawn box, not a form control. */
+.guide-body .task-list {
+  margin-bottom: 0;
+  padding-left: 0;
+  list-style: none;
+}
+.guide-body .task-list > li + li {
+  margin-top: 10px;
+}
+.guide-body .task-item {
+  position: relative;
+  padding-left: 1.9em;
+  list-style: none;
+}
+.task-marker {
+  position: absolute;
+  left: 0;
+  top: 0.42em;
+  display: grid;
+  place-items: center;
+  width: 1.1em;
+  height: 1.1em;
+  border: 1.5px solid var(--color-brand);
+  border-radius: 5px;
+  background: var(--color-surface);
+  color: var(--color-surface);
+}
+.task-done .task-marker {
+  background: var(--color-brand);
+}
 .guide-body blockquote {
   margin: 0;
   padding: 16px 20px;
@@ -222,7 +257,7 @@
   vertical-align: -1px;
 }
 
-/* "查看官方依据" disclosure */
+/* Evidence-link disclosure (label text comes from the content) */
 .evidence-toggle {
   display: inline-flex;
   align-items: center;

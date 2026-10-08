@@ -27,16 +27,21 @@ export function EvidencePanel({
         className="evidence-panel"
         id={id}
         role="region"
-        aria-label="官方依据"
+        aria-label="这句话的依据"
       >
         <p className="evidence-missing">
-          这条依据暂时无法显示。文末的“官方资料”列出了本文使用的全部来源。
+          这条依据暂时无法显示。文末列出了本文使用的全部来源。
         </p>
       </div>
     );
   }
   return (
-    <div className="evidence-panel" id={id} role="region" aria-label="官方依据">
+    <div
+      className="evidence-panel"
+      id={id}
+      role="region"
+      aria-label="这句话的依据"
+    >
       <p className="evidence-label">这句话的依据</p>
       <p className="evidence-statement">{evidence.statement}</p>
       {evidence.supports.length === 0 ? (

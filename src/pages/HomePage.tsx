@@ -11,6 +11,7 @@ import { RoadsCard } from "../components/RoadsCard";
 import { BankHolidaysCard } from "../components/BankHolidaysCard";
 import { Neighbourhood } from "../components/Neighbourhood";
 import { HealthEntry } from "../components/health/HealthEntry";
+import { MoneyEntry } from "../components/money/MoneyEntry";
 
 const officialSource = {
   name: "GOV.UK",
@@ -126,6 +127,7 @@ export function HomePage() {
       <UndergroundCard />
       <RoadsCard />
       <HealthEntry />
+      <MoneyEntry />
       <section
         className="foundation-section"
         aria-labelledby="foundation-title"

@@ -4,6 +4,8 @@
 //   /health/:slug       Health Guide detail
 //   /family-visa        Family & Visa hub (review surface, not linked yet)
 //   /family-visa/:slug  Family & Visa Guide detail
+//   /money              Money & Finance hub
+//   /money/:slug        Money & Finance Guide detail
 
 import type { GuideDomainId } from "./guides/domains";
 
@@ -17,6 +19,7 @@ export type Route =
 const DOMAIN_BASES = new Map<string, GuideDomainId>([
   ["health", "health"],
   ["family-visa", "family-visa"],
+  ["money", "money"],
 ]);
 
 export function matchRoute(pathname: string): Route {
