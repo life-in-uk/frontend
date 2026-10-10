@@ -7,6 +7,7 @@ import { HealthGuidePage } from "./components/health/HealthGuidePage";
 import { NotFoundPage } from "./components/health/NotFoundPage";
 import { FamilyVisaHub } from "./components/family-visa/FamilyVisaHub";
 import { FamilyVisaGuidePage } from "./components/family-visa/FamilyVisaGuidePage";
+import { FamilyVisaTopicPage } from "./components/family-visa/topics/FamilyVisaTopicPage";
 import { MoneyHub } from "./components/money/MoneyHub";
 import { MoneyGuidePage } from "./components/money/MoneyGuidePage";
 import { currentPath, matchRoute, subscribeToLocation } from "./router";
@@ -63,6 +64,9 @@ function App() {
       )}
       {route.name === "guide" && route.domain === "family-visa" && (
         <FamilyVisaGuidePage key={route.slug} slug={route.slug} />
+      )}
+      {route.name === "topic" && (
+        <FamilyVisaTopicPage key={route.topic} topic={route.topic} />
       )}
       {route.name === "guide" && route.domain === "money" && (
         <MoneyGuidePage key={route.slug} slug={route.slug} />

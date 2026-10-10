@@ -143,6 +143,13 @@ const noOverflow = (p) =>
       document.documentElement.scrollWidth <=
       document.documentElement.clientWidth,
   );
+// "全部指南" is a secondary, collapsed section under the guided journey.
+async function openAllGuides(p) {
+  const toggle = p.getByRole("button", { name: "全部指南" });
+  assert.equal(await toggle.getAttribute("aria-expanded"), "false");
+  await toggle.click();
+  assert.equal(await toggle.getAttribute("aria-expanded"), "true");
+}
 const appErrors = (errors) =>
   errors.filter((e) => !/503|404|500|Failed to load resource/.test(e));
 
@@ -151,7 +158,9 @@ try {
   {
     const { p, context } = await page(1280, { list: "hang" });
     await p.goto(`${baseURL}/family-visa`);
-    await p.getByRole("heading", { level: 1, name: "家庭与签证" }).waitFor();
+    await p
+      .getByRole("heading", { level: 1, name: "一份清单，理清每一步。" })
+      .waitFor();
     await p.getByText("正在加载家庭与签证指南…").waitFor({ state: "attached" });
     assert.equal(await p.locator(".family-skeleton-card").count(), 3);
     assert.equal(await p.locator(".family-guide-card").count(), 0);
@@ -164,6 +173,7 @@ try {
   {
     const { p, context } = await page(1280, { list: 500 });
     await p.goto(`${baseURL}/family-visa`);
+    await openAllGuides(p);
     await p.locator(".family-error").waitFor();
     assert.match(
       await p.locator(".family-error").textContent(),
@@ -181,6 +191,7 @@ try {
   for (const width of [1280, 390, 320]) {
     const { p, context, errors } = await page(width, { list: healthOnlyList });
     await p.goto(`${baseURL}/family-visa`);
+    await openAllGuides(p);
     await p.locator(".family-empty").waitFor();
     assert.match(
       await p.locator(".family-empty").textContent(),
@@ -204,6 +215,7 @@ try {
   for (const width of [1280, 390]) {
     const { p, context, errors } = await page(width);
     await p.goto(`${baseURL}/family-visa`);
+    await openAllGuides(p);
     await p.locator(".family-guide-card").first().waitFor();
     assert.deepEqual(
       await p
@@ -228,10 +240,15 @@ try {
       await p.goto(`${baseURL}${path}`);
       await p.locator("main").waitFor();
       await p.waitForLoadState("networkidle");
-      assert.equal(
-        await p.locator("a[href^='/family-visa']").count(),
-        0,
-        `family-visa link on ${path}`,
+      // The hub itself links only to its own special-circumstances topic.
+      assert.deepEqual(
+        await p
+          .locator("a[href^='/family-visa']")
+          .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
+        path === "/family-visa"
+          ? ["/family-visa/topics/children-from-previous-relationship"]
+          : [],
+        `family-visa links on ${path}`,
       );
       assert.equal(
         await p

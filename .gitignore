@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Family & Visa: local-only DRAFT wording, research notes and wording tests.
+# The public repository holds application code and structure only.
+dev/familyVisaDraftContent.ts
+docs/family-visa/
+tests/local/
