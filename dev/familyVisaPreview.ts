@@ -222,7 +222,15 @@ export function familyVisaDraftContentGuard(): Plugin {
       env.command === "serve" && !env.isPreview && env.mode !== PREVIEW_MODE,
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (req.url && DRAFT_CONTENT_URL.test(decodeURIComponent(req.url))) {
+        let decoded: string;
+        try {
+          decoded = decodeURIComponent(req.url ?? "");
+        } catch {
+          res.statusCode = 400;
+          res.end("Bad request");
+          return;
+        }
+        if (DRAFT_CONTENT_URL.test(decoded)) {
           res.statusCode = 404;
           res.end("Not found");
           return;

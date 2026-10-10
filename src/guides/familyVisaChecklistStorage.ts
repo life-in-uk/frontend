@@ -118,12 +118,10 @@ export function loadSaved(
   if (raw === null) return { status: "none" };
   const record = parseRecord(raw);
   if (!record) {
-    deleteSaved(storage);
-    return { status: "invalid" };
+    return { status: deleteSaved(storage) ? "invalid" : "unavailable" };
   }
   if (Date.parse(record.expiresAt) <= now.getTime()) {
-    deleteSaved(storage);
-    return { status: "expired" };
+    return { status: deleteSaved(storage) ? "expired" : "unavailable" };
   }
   return { status: "ok", record };
 }

@@ -196,10 +196,20 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
     [writeHistory, updateProgress],
   );
 
-  // Back/forward: take the step from the entry, keep the latest answers.
+  // Record the first hub entry too, so back and reload can restore it.
+  useEffect(() => {
+    writeHistory(initial.nav, false, initial.saveChoice);
+  }, [initial, writeHistory]);
+
+  // Back/forward within this hub keeps the latest edited answers.
   useEffect(() => {
     function onPopState(event: PopStateEvent) {
+      // The router also receives popstate: never rewrite a destination on
+      // another route while this component is waiting to unmount.
+      if (window.location.pathname.replace(/\/+$/, "") !== "/family-visa")
+        return;
       const entry = readHistoryState(event.state);
+      if (!entry) return;
       const answers = answersRef.current;
       const step = resolveStep(entry?.step ?? "relationship", answers);
       moved.current = true;
@@ -251,7 +261,10 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
     persist(answersRef.current, progressRef.current);
   };
   const removeSaved = () => {
-    deleteSaved(readableStorage());
+    if (!deleteSaved(readableStorage())) {
+      setNotice("无法删除这台设备上保存的准备进度，请稍后再试。");
+      return;
+    }
     setRecord(null);
     saveRef.current = "none";
     writeHistory(nav, false, "none");
@@ -369,7 +382,10 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
               type="button"
               className="navigator-button navigator-button-link"
               onClick={() => {
-                deleteSaved(readableStorage());
+                if (!deleteSaved(readableStorage())) {
+                  setNotice("无法删除这台设备上保存的准备进度，请稍后再试。");
+                  return;
+                }
                 setOffer(null);
                 setNotice("已删除这台设备上保存的准备进度。");
               }}

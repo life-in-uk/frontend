@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  familyVisaDraftContentGuard,
   familyVisaDraftPreview,
   familyVisaPreviewBuildGuard,
   mergeGuideList,
@@ -194,3 +195,24 @@ test(
     );
   },
 );
+
+
+test("draft content guard rejects malformed encoding without throwing or continuing", () => {
+  let middleware;
+  familyVisaDraftContentGuard().configureServer({
+    middlewares: { use: (handler) => { middleware = handler; } },
+  });
+  for (const url of ["/%", "/%E0%A4%A", "/dev/familyVisaDraftContent.ts?x=%FF"]) {
+    let body;
+    const res = { statusCode: 0, end: (value) => { body = value; } };
+    assert.doesNotThrow(() => middleware({ url }, res, () => assert.fail("must not continue")));
+    assert.equal(res.statusCode, 400);
+    assert.equal(body, "Bad request");
+  }
+  const res = { statusCode: 0, end: () => {} };
+  middleware({ url: "/dev/%66amilyVisaDraftContent.ts" }, res, () => assert.fail("must block drafts"));
+  assert.equal(res.statusCode, 404);
+  let continued = false;
+  middleware({ url: "/src/App.tsx" }, res, () => { continued = true; });
+  assert.equal(continued, true);
+});

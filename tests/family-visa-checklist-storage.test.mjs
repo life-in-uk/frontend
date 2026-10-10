@@ -156,3 +156,18 @@ test("delete removes the saved record", () => {
   assert.equal(deleteSaved(storage), true);
   assert.deepEqual(loadSaved(storage, t0), { status: "none" });
 });
+
+
+test("failed removal never claims expired or invalid records were deleted", () => {
+  const storage = memory();
+  storage.removeItem = () => { throw new Error("blocked"); };
+  storage.map.set(STORAGE_KEY, "malformed");
+  assert.deepEqual(loadSaved(storage, t0), { status: "unavailable" });
+  assert.equal(storage.getItem(STORAGE_KEY), "malformed");
+  const saved = saveChecklist(memory(), data, t0);
+  const raw = JSON.stringify(saved);
+  storage.map.set(STORAGE_KEY, raw);
+  assert.deepEqual(loadSaved(storage, at(31)), { status: "unavailable" });
+  assert.equal(deleteSaved(storage), false);
+  assert.equal(storage.getItem(STORAGE_KEY), raw);
+});

@@ -199,6 +199,62 @@ const EXAMPLE = {
 };
 
 try {
+  // History must not contaminate unrelated routes, including the initial entry.
+  {
+    const { p, context } = await page(390);
+    await p.goto(`${baseURL}/health`);
+    await p.getByRole("heading", { level: 1 }).waitFor();
+    await p.evaluate(() => {
+      history.replaceState({ unrelated: "preserve" }, "");
+      history.pushState(null, "", "/family-visa");
+      dispatchEvent(new PopStateEvent("popstate", { state: null }));
+    });
+    await p.getByRole("heading", { name: "你们是什么关系？" }).waitFor();
+    await answer(p, "已婚，或已登记民事伴侣");
+    await next(p);
+    await p.goBack();
+    await p.getByRole("heading", { name: "你们是什么关系？" }).waitFor();
+    assert.equal(await p.getByRole("radio", { name: "已婚，或已登记民事伴侣", exact: true }).isChecked(), true);
+    await answer(p, /^未婚伴侣/);
+    await p.goForward();
+    await p.getByRole("heading", { name: "有孩子会和申请人一起申请吗？" }).waitFor();
+    await p.reload();
+    assert.equal(await p.evaluate(() => history.state.familyVisaNavigator.answers.relationship), "unmarried");
+    await p.goBack();
+    await p.getByRole("heading", { name: "你们是什么关系？" }).waitFor();
+    await p.goBack();
+    await p.waitForURL(`${baseURL}/health`);
+    assert.deepEqual(await p.evaluate(() => history.state), { unrelated: "preserve" });
+    await p.goForward();
+    await p.getByRole("heading", { name: "你们是什么关系？" }).waitFor();
+    assert.equal(await p.getByRole("radio", { name: /^未婚伴侣/ }).isChecked(), true);
+    console.log("PASS back/forward, edited answers, reload and unrelated history isolation");
+    await context.close();
+  }
+
+  // Both user deletion actions must retain the record on a storage failure.
+  for (const resumeOffer of [false, true]) {
+    const { p, context } = await page(390);
+    await p.goto(`${baseURL}/family-visa`);
+    await toChecklist(p, { relationship: "已婚，或已登记民事伴侣", children: "没有", location: "英国境外" }, { save: true });
+    const raw = await stored(p);
+    assert.ok(raw);
+    if (resumeOffer) {
+      await p.evaluate(() => history.replaceState(null, ""));
+      await p.reload();
+      await p.getByRole("region", { name: "继续上次的清单" }).waitFor();
+    }
+    await p.evaluate(() => { Storage.prototype.removeItem = () => { throw new Error("blocked"); }; });
+    await p.getByRole("button", { name: /删除.*进度/ }).click();
+    await p.getByText("无法删除这台设备上保存的准备进度，请稍后再试。").waitFor();
+    assert.equal(await stored(p), raw);
+    assert.equal(await p.getByText("已删除这台设备上保存的准备进度。", { exact: true }).count(), 0);
+    if (resumeOffer) assert.equal(await p.getByRole("region", { name: "继续上次的清单" }).count(), 1);
+    else assert.equal(await p.evaluate(() => history.state.familyVisaSaveChoice), "device");
+    await context.close();
+  }
+  console.log("PASS both delete actions report storage failure without claiming success");
+
   // Hub: slogan, journey first, special circumstances, 全部指南 collapsed.
   {
     const { p, context, errors } = await page(1280);
