@@ -4,6 +4,7 @@
 //   /health/:slug       Health Guide detail
 //   /family-visa        Family & Visa hub (review surface, not linked yet)
 //   /family-visa/:slug  Family & Visa Guide detail
+//   /family-visa/topics/:topic  Family & Visa special-circumstances topic
 //   /money              Money & Finance hub
 //   /money/:slug        Money & Finance Guide detail
 
@@ -13,7 +14,14 @@ export type Route =
   | { name: "home" }
   | { name: "hub"; domain: GuideDomainId }
   | { name: "guide"; domain: GuideDomainId; slug: string }
+  | { name: "topic"; domain: "family-visa"; topic: FamilyVisaTopicId }
   | { name: "not-found" };
+
+/** Family & Visa special-circumstances topic pages that exist. */
+export const FAMILY_VISA_TOPICS = [
+  "children-from-previous-relationship",
+] as const;
+export type FamilyVisaTopicId = (typeof FAMILY_VISA_TOPICS)[number];
 
 // First path segment → Guide domain. A Map, so "/constructor" stays unknown.
 const DOMAIN_BASES = new Map<string, GuideDomainId>([
@@ -25,6 +33,15 @@ const DOMAIN_BASES = new Map<string, GuideDomainId>([
 export function matchRoute(pathname: string): Route {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/") return { name: "home" };
+  const topic = /^\/family-visa\/topics\/([a-z0-9-]+)$/.exec(path);
+  if (topic)
+    return (FAMILY_VISA_TOPICS as readonly string[]).includes(topic[1])
+      ? {
+          name: "topic",
+          domain: "family-visa",
+          topic: topic[1] as FamilyVisaTopicId,
+        }
+      : { name: "not-found" };
   const match = /^\/([a-z-]+)(?:\/([^/]+))?$/.exec(path);
   const domain = match ? DOMAIN_BASES.get(match[1]) : undefined;
   if (!match || !domain) return { name: "not-found" };

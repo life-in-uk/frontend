@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:family-visa-preview": "vite --mode family-visa-preview --host 127.0.0.1 --port 5193 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -14,6 +15,9 @@
     "test:roads:browser": "node tests/roads.browser.mjs",
     "test:health:browser": "node tests/health.browser.mjs",
     "test:family-visa:browser": "node tests/family-visa.browser.mjs",
+    "test:family-visa-navigator:browser": "node tests/family-visa-navigator.browser.mjs",
+    "test:family-visa-preview:browser": "node tests/family-visa-preview.browser.mjs",
+    "test:family-visa-production:browser": "node tests/family-visa-production-isolation.browser.mjs",
     "test:money:browser": "node tests/money.browser.mjs"
   },
   "dependencies": {

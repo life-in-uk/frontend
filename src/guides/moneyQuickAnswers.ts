@@ -9,7 +9,8 @@
 // sources) is present; otherwise the reader is sent to the full Guide.
 // The shape mirrors what a backend-managed Quick Answer could later provide.
 
-import type { GuideDetail, GuideEvidence, GuideSource } from "./api";
+import type { GuideDetail, GuideEvidence } from "./api";
+import { evidenceFingerprint } from "./evidenceIntegrity.ts";
 
 export type QuickAnswer = {
   id: string;
@@ -191,40 +192,8 @@ export type ResolvedQuickAnswer = QuickAnswer & {
   evidence: GuideEvidence[] | null;
 };
 
-/**
- * A short, stable fingerprint of cited evidence: each item's key and
- * statement, and each support's location, excerpt, note and source identity.
- * FNV-1a (32-bit) is enough to notice editorial change; it is not security.
- */
-export function evidenceFingerprint(
-  evidence: readonly GuideEvidence[],
-  sources: ReadonlyMap<string, GuideSource>,
-): string {
-  const text = JSON.stringify(
-    evidence.map((item) => [
-      item.key,
-      item.statement,
-      item.supports.map((support) => {
-        const source = sources.get(support.sourceKey);
-        return [
-          support.sourceKey,
-          support.locator,
-          support.excerpt,
-          support.note,
-          source?.organisation ?? null,
-          source?.title ?? null,
-          source?.url ?? null,
-        ];
-      }),
-    ]),
-  );
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, "0");
-}
+// Shared with the Family & Visa navigator; re-exported for existing callers.
+export { evidenceFingerprint };
 
 /**
  * Pairs each answer with its evidence from the fetched Guide. An answer is

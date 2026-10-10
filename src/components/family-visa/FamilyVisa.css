@@ -347,3 +347,53 @@
     transform: none;
   }
 }
+
+/* ---------- Special circumstances (secondary to the checklist) ---------- */
+.family-special {
+  margin-top: 32px;
+  padding: 22px 26px;
+  border-radius: 22px;
+  border: 1px dashed #d9d2c4;
+  background: var(--color-surface);
+  scroll-margin-top: 16px;
+}
+.family-special h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.family-special-lead {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+.family-special-list {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.family-special-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--family-slate);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.family-special-item {
+  display: block;
+  font-weight: 700;
+}
+.family-special-meta {
+  display: block;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+@media (max-width: 720px) {
+  .family-special {
+    padding: 18px 16px;
+  }
+}
