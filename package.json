@@ -18,7 +18,8 @@
     "test:family-visa-navigator:browser": "node tests/family-visa-navigator.browser.mjs",
     "test:family-visa-preview:browser": "node tests/family-visa-preview.browser.mjs",
     "test:family-visa-production:browser": "node tests/family-visa-production-isolation.browser.mjs",
-    "test:money:browser": "node tests/money.browser.mjs"
+    "test:money:browser": "node tests/money.browser.mjs",
+    "test:rail:browser": "node tests/rail.browser.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

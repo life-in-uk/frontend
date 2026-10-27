@@ -116,3 +116,27 @@ Several candidates are listed compactly by their backend `label` and type, with 
 There is one active location at a time: choosing a place replaces a device location and vice versa. **Refresh** reuses the active location's in-memory coordinates. Queries, places and coordinates are held only in component memory; nothing is stored, logged or sent anywhere except these two backend endpoints.
 
 Superseded work cannot win: a new search cancels the previous one, any location choice cancels a pending search, and each Roads lookup cancels and supersedes the previous one, with generation checks ignoring late responses. Place-search and Roads loading/error states are independent. `npm run test:roads:browser` covers these flows with mocked geolocation and responses only.
+
+## Rail browser checks
+
+`npm run test:rail:browser` requires an existing external Playwright installation
+with its matching Chromium browser available. Set `PLAYWRIGHT_MODULE` to the
+absolute path of that installation's module file, following the browser-test
+setup above. No new project dependency is required.
+
+Start the frontend in one terminal:
+
+```sh
+npm run dev -- --host 127.0.0.1 --port 5179 --strictPort
+```
+
+Then run the checks in another terminal:
+
+```sh
+PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs FRONTEND_URL=http://127.0.0.1:5179 npm run test:rail:browser
+```
+
+The checks use authored Rail API response fixtures for station search, deferred
+requests, loading, empty and unavailable states, partial cancellations, Delay
+Repay links, arrivals/departures and English/Chinese rendering. They require no
+backend, RDM credentials or live provider requests.
