@@ -1,13 +1,52 @@
-.rail-card { padding: 28px; }
-.rail-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; margin: 18px 0; }
-.rail-controls label { display: grid; gap: 5px; font-weight: 600; }
-.rail-controls select, .rail-controls button { padding: 9px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); color: var(--color-text); }
-.rail-controls small { font-weight: 400; }
-.rail-list { list-style: none; padding: 0; }
-.rail-list li { border-top: 1px solid var(--color-border); padding: 14px 0; }
-.rail-list p { margin: 4px 0; }
-.rail-controls input { padding: 9px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); color: var(--color-text); }
-.rail-station-results { list-style: none; padding: 0; max-height: 15rem; overflow-y: auto; }
-.rail-station-results button { background: none; border: 0; padding: 8px; color: var(--color-brand); text-align: left; cursor: pointer; }
-
-.rail-disclaimer { font-size: 0.9rem; line-height: 1.6; overflow-wrap: anywhere; }
+.rail-section { max-width: 1100px; }
+.rail-card { padding: clamp(22px, 4vw, 42px); }
+.rail-header { display: flex; align-items: flex-start; gap: 17px; }
+.rail-header-icon { display: grid; place-items: center; width: 50px; height: 50px; flex: 0 0 50px; color: var(--color-brand); background: #e9f0e9; border-radius: 14px; }
+.rail-eyebrow, .rail-results-label { display: block; color: var(--color-brand); font-size: .75rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.rail-header h2 { margin: 4px 0; font-size: clamp(1.55rem, 3vw, 2rem); line-height: 1.2; }
+.rail-header p { margin: 0; color: var(--color-muted); }
+.rail-form { margin-top: 28px; }
+.rail-search-field { position: relative; }
+.rail-search-field > label, .rail-controls label { display: grid; gap: 7px; font-size: .9rem; font-weight: 700; }
+.rail-search-input { display: flex; align-items: center; gap: 10px; margin-top: 7px; padding: 0 14px; border: 1px solid #adb9ad; border-radius: 10px; background: #fff; color: var(--color-muted); }
+.rail-search-input:focus-within { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.rail-search-input input { width: 100%; min-width: 0; min-height: 48px; border: 0; outline: 0; background: transparent; color: var(--color-text); }
+.rail-search-field small { display: block; margin-top: 6px; color: var(--color-muted); font-size: .8rem; }
+.rail-controls { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 14px; margin-top: 18px; }
+.rail-controls select { min-width: 0; width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid #adb9ad; border-radius: 10px; background: #fff; color: var(--color-text); }
+.rail-check { display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 46px; padding: 0 20px; border: 0; border-radius: 10px; background: var(--color-brand); color: #fff; font-weight: 700; cursor: pointer; }
+.rail-check:disabled { background: #d5ddd5; color: #526357; cursor: not-allowed; }
+.rail-station-results { position: absolute; z-index: 3; left: 0; right: 0; top: 78px; list-style: none; padding: 6px; margin: 0; max-height: 15rem; overflow-y: auto; border: 1px solid var(--color-border); border-radius: 10px; background: #fff; box-shadow: 0 8px 22px #28372f1a; }
+.rail-station-results button { display: flex; width: 100%; justify-content: space-between; align-items: center; background: none; border: 0; border-radius: 6px; padding: 10px; color: var(--color-brand); text-align: left; cursor: pointer; }
+.rail-station-results button:hover, .rail-station-results button:focus-visible { background: #e9f0e9; }
+.rail-results:not(:empty) { margin-top: 28px; }
+.rail-results-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.rail-results-heading h3 { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-size: 1.35rem; }
+.rail-results-heading > p { margin: 0; color: var(--color-muted); font-size: .8rem; line-height: 1.5; text-align: right; }
+.rail-state { display: flex; align-items: flex-start; gap: 11px; padding: 16px; border-radius: 10px; line-height: 1.5; }
+.rail-state svg { flex: 0 0 auto; margin-top: 2px; }
+.rail-state p { margin: 0; }
+.rail-state-empty { background: #eaf3ec; color: #28543c; }
+.rail-state-error { background: #f9e9e5; color: #8b3426; }
+.rail-state-loading { background: #f1f3ee; color: var(--color-text); }
+.rail-unknown { color: var(--color-muted); font-size: .88rem; }
+.rail-list { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; }
+.rail-list li { padding: 18px; border: 1px solid var(--color-border); border-radius: 12px; background: #fff; overflow-wrap: anywhere; }
+.rail-list p { margin: 7px 0 0; font-size: .9rem; }
+.rail-item-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
+.rail-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 6px; background: #f9efdc; color: #71500d; font-size: .85rem; }
+.rail-status-cancelled, .rail-status-partially_cancelled { background: #f9e9e5; color: #8b3426; }
+.rail-platform { color: var(--color-muted); font-size: .8rem; font-weight: 700; }
+.rail-list .rail-destination { margin-top: 12px; color: var(--color-text); font-size: 1rem; font-weight: 700; }
+.rail-times, .rail-operator { color: var(--color-muted); }
+.rail-repay { padding-top: 8px; border-top: 1px solid var(--color-border); color: var(--color-muted); font-size: .8rem !important; }
+.rail-notes { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--color-border); color: var(--color-muted); font-size: .75rem; line-height: 1.55; overflow-wrap: anywhere; }
+.rail-notes p { margin: 0 0 8px; }
+.rail-notes a, .rail-repay a { color: var(--color-brand); text-decoration: underline; }
+@media (max-width: 600px) {
+  .rail-controls { grid-template-columns: 1fr 1fr; }
+  .rail-check { grid-column: 1 / -1; width: 100%; }
+  .rail-results-heading { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .rail-results-heading > p { text-align: left; }
+}
+.rail-notes .rail-disclaimer { font-size: .875rem; line-height: 1.5; }
