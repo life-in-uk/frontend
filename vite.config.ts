@@ -42,6 +42,9 @@ export default defineConfig(({ mode, command, isPreview }) => {
     ],
     server: {
       proxy: {
+        "/api/rail": {
+          target: backendTarget,
+        },
         "/api/travel/underground": {
           target: backendTarget,
         },

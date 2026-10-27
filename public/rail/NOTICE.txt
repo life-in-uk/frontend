@@ -1,0 +1,13 @@
+Station directory: uk-railway-stations
+
+The accompanying stations.csv is an unmodified copy of the CSV from
+https://github.com/davwheat/uk-railway-stations, commit
+67dff87f51bdb782ddfcce1d8b10a88f059bf380. The publisher credits davwheat,
+Trainline EU, and the Trainline sources: OpenStreetMap, SNCF OpenData,
+GeoNames, Digitraffic.fi, OpenTransportData.swiss, and admin.ch.
+Source details: https://github.com/trainline-eu/stations#licence
+
+The database is available under the Open Database License 1.0 (ODbL):
+https://opendatacommons.org/licenses/odbl/1-0/
+A copy of that licence accompanies the CSV as ODbL.txt.
+The directory covers Great Britain National Rail stations, not Northern Ireland.

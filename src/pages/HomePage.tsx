@@ -7,6 +7,7 @@ import {
   TrustBadge,
 } from "../components/InformationCard";
 import { UndergroundCard } from "../components/UndergroundCard";
+import { RailCard } from "../components/RailCard";
 import { RoadsCard } from "../components/RoadsCard";
 import { BankHolidaysCard } from "../components/BankHolidaysCard";
 import { Neighbourhood } from "../components/Neighbourhood";
@@ -124,6 +125,7 @@ export function HomePage() {
           </aside>
         </div>
       </section>
+      <RailCard />
       <UndergroundCard />
       <RoadsCard />
       <HealthEntry />
