@@ -29,6 +29,9 @@ try {
     await card.getByRole("button", {name: "Check disruptions"}).click();
     await card.getByText("No reported delays of 10 minutes or more or cancellations in the available station board.").waitFor();
     assert.equal(await card.locator(".rail-state-empty").count(), 1);
+    assert.equal(await card.locator(".rail-results > .rail-coverage").count(), 1);
+    assert.equal(await card.locator(".rail-notes .rail-coverage").count(), 0);
+    assert.ok(await card.locator(".rail-coverage").evaluate(el => parseFloat(getComputedStyle(el).fontSize)) >= 14);
     if (width === 390) await card.screenshot({path: `${folder}/rail-empty-390.png`});
     mode = "results";
     await card.getByRole("button", {name: "Refresh"}).click();

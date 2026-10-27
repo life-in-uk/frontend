@@ -61,6 +61,7 @@ export function RailCard() {
         {state.status === "ready" && <>
           <div className="rail-results-heading"><div><span className="rail-results-label">{direction === "arrivals" ? t.arr : t.dep}</span><h3><MapPin size={19} aria-hidden="true" />{state.board.stationName}</h3></div>
             <p>{t.updated}<br />{state.board.generatedAt ? <time dateTime={state.board.generatedAt}>{new Date(state.board.generatedAt).toLocaleString(language === "zh" ? "zh-CN" : "en-GB", { timeZone: "Europe/London" })}</time> : t.unknownTime}</p></div>
+          <p className="rail-coverage">{t.coverage}</p>
           {state.board.disruptions.length === 0 && <div className="rail-state rail-state-empty"><CheckCircle2 size={21} aria-hidden="true" /><p>{t.empty}</p></div>}
           {state.board.unknownTimingCount > 0 && <p className="rail-unknown">{t.unknown} {state.board.unknownTimingCount}</p>}
           {state.board.disruptions.length > 0 && <ul className="rail-list">{state.board.disruptions.map((item, i) => <li key={i}>
@@ -73,7 +74,7 @@ export function RailCard() {
           </li>)}</ul>}
         </>}
       </div>
-      <footer className="rail-notes"><p>{t.coverage}</p><p className="rail-disclaimer">{t.disclaimerBefore}<a href="https://www.nationalrail.co.uk/">National Rail</a>{t.disclaimerAfter}</p>
+      <footer className="rail-notes"><p className="rail-disclaimer">{t.disclaimerBefore}<a href="https://www.nationalrail.co.uk/">National Rail</a>{t.disclaimerAfter}</p>
         <p><a href="https://github.com/davwheat/uk-railway-stations">{t.directory}</a> <a href="https://github.com/trainline-eu/stations#licence">Sources</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL 1.0</a> · <a href="/rail/NOTICE.txt">Station data notice</a></p></footer>
     </article>
   </section>;
