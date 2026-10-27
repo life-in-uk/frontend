@@ -140,3 +140,16 @@ The checks use authored Rail API response fixtures for station search, deferred
 requests, loading, empty and unavailable states, partial cancellations, Delay
 Repay links, arrivals/departures and English/Chinese rendering. They require no
 backend, RDM credentials or live provider requests.
+
+The results area includes one linked National Rail attribution/disclaimer in the
+selected language. It retains the limited-board warning, provider timestamp and
+Delay Repay explanation. Browser checks also verify the exact disclaimer in both
+languages, wrapping at 390px/320px and no automatic Rail polling over two simulated
+minutes. Station-directory source and ODbL notices remain separate.
+
+Production must serve `/api/rail/` through the existing same-origin backend route;
+the Vite proxy above is development-only. API keys belong only in the backend
+process environment, never in browser variables or the bundle. The backend's
+Rail production-readiness document records the remaining deployment, usage-limit
+and missing RDM Schedule 2 policy checks. No public-release compliance guarantee
+is implied by local test success.
