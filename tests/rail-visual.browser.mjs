@@ -22,6 +22,8 @@ try {
     });
     await page.goto(process.env.FRONTEND_URL || "http://127.0.0.1:5199");
     const card = page.locator(".rail-card");
+    assert.equal(await card.getByLabel("Language / 语言").inputValue(), "zh");
+    await card.getByLabel("Language / 语言").selectOption("en");
     await card.getByRole("textbox", {name: "Search station"}).fill("SHF");
     await card.getByRole("button", {name: "Sheffield", exact: true}).click();
     await card.getByRole("button", {name: "Check disruptions"}).click();

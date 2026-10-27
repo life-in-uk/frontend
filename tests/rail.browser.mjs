@@ -30,6 +30,9 @@ await page.route("**/api/rail/**", async route => {
 try {
   await page.goto(process.env.FRONTEND_URL || "http://127.0.0.1:5179");
   const card = page.locator(".rail-card");
+  assert.equal(await card.getByLabel("Language / 语言").inputValue(), "zh");
+  await checkDisclaimer(card, "zh");
+  await card.getByLabel("Language / 语言").selectOption("en");
   await checkDisclaimer(card, "en");
   assert.equal(requests, 0);
   assert.equal(await card.getByLabel("Board").inputValue(), "arrivals");

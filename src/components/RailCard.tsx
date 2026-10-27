@@ -12,7 +12,7 @@ const copy = {
   zh: { title: "铁路延误与取消", subtitle: "查询车站的列车延误与取消信息。", station: "搜索车站", stationHint: "请从搜索结果中选择车站。", stationError: "车站目录暂不可用，请重试。", direction: "车次方向", dep: "出发", arr: "到达", check: "查询延误", refresh: "刷新", loading: "正在加载铁路信息…", error: "铁路信息暂不可用，请稍后重试。", empty: "当前车站看板中没有报告延误 10 分钟或以上的列车或取消的列车。", coverage: "结果仅涵盖车站看板返回的车次，不包括所有列车或全天车次。", unknown: "以下数量的列车时间尚未确认，未列入此列表：", scheduled: "计划时间", estimated: "预计时间", platform: "站台", destination: "目的地", origin: "出发地", cancelled: "已取消", partial: "部分停站取消", stops: "受影响车站", stopsUnknown: "暂无受影响车站信息。", delayed: "延误", minutes: "分钟", updated: "数据更新时间", unknownTime: "暂无", repay: "查询延误赔偿", repayInfo: "赔偿资格因运营商而异，通常取决于您到达最终目的地的实际延误；预计延误不代表一定有赔偿。", disclaimerBefore: "铁路信息来源：", disclaimerAfter: "。实时信息可能发生变化或存在遗漏。出行前请通过 National Rail 或列车运营商确认最新情况。", directory: "车站数据：davwheat、Trainline EU 及其来源（ODbL）。仅涵盖大不列颠 National Rail 车站，不包括北爱尔兰铁路。" },
 };
 export function RailCard() {
-  const [language, setLanguage] = useState<"en" | "zh">("en");
+  const [language, setLanguage] = useState<"en" | "zh">("zh");
   const [query, setQuery] = useState("");
   const [stations, setStations] = useState<Station[] | null>(null);
   const [directoryError, setDirectoryError] = useState(false);
