@@ -153,3 +153,18 @@ process environment, never in browser variables or the bundle. The backend's
 Rail production-readiness document records the remaining deployment, usage-limit
 and missing RDM Schedule 2 policy checks. No public-release compliance guarantee
 is implied by local test success.
+
+## Homepage (design V1)
+
+`/` implements the approved reference `docs/design/homepage-reference-v1.png`, replacing the internal design showcase. Shared chrome lives in `src/components/site/` (`SiteHeader`, `SiteFooter`); homepage sections in `src/components/home/`; pure selection/search logic in `src/home/`.
+
+- Content comes from `GET /api/guides` (one request) and `GET /api/bank-holidays`. Only launched sections (`launchedTopics()` in `src/home/topics.ts`: Health & NHS, Money & Finance) are linked, counted or searched; other topics show `即将推出` without navigation. Family & Visa is never linked.
+- Featured Guides use `FEATURED_GUIDE_SLUGS` when published and fill remaining places with the most recently updated Guides.
+- Search is client-side and deterministic over published Guide titles/summaries and reviewed Money Quick Answer questions (`src/home/search.ts`). No external service.
+- The transport panel shows no service data: stored Underground/Roads snapshots are stale and Rail awaits provider approval. Each mode links to the operator's official page. The Underground, Roads, Rail and full Bank Holidays cards are no longer mounted; their browser suites target the retired showcase.
+
+```sh
+node --test tests/home.test.mjs
+PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs FRONTEND_URL=http://127.0.0.1:5176 npm run test:home:browser
+# REAL_BACKEND=1 for the read-only check against the running backend
+```

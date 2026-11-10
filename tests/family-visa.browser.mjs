@@ -250,12 +250,13 @@ try {
           : [],
         `family-visa links on ${path}`,
       );
-      assert.equal(
+      // Header navigation links only the launched sections.
+      assert.deepEqual(
         await p
           .getByRole("navigation", { name: "主导航" })
           .getByRole("link")
-          .count(),
-        1,
+          .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
+        ["/", "/health", "/money"],
       );
     }
     console.log(
