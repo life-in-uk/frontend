@@ -74,10 +74,10 @@ export function classifyStatus(status: {
 /** Plain-text meaning of each LED, for assistive technology and tooltips. */
 export const PRESENTATION_LABELS: Readonly<Record<StatusPresentation, string>> =
   {
-    normal: "normal service",
-    disruption: "disruption",
-    severe: "severe disruption or closure",
-    unknown: "status not classified",
+    normal: "正常运行",
+    disruption: "有延误或部分中断",
+    severe: "严重中断或停运",
+    unknown: "状态未能分类",
   };
 
 /** Counts lines with at least one disruption/severe status, and lines left unclassified. */

@@ -1,12 +1,14 @@
 // Uses an externally available Playwright installation; no project test dependency.
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
+// The homepage shows the next England & Wales holiday in its compact
+// Bank Holidays summary (.holiday-panel), with a Chinese date.
 import {
-  formatHolidayDate,
   isBankHolidaysResponse,
   londonCalendarDate,
   nextEnglandAndWalesHoliday,
 } from "../src/bank-holidays/api.ts";
+import { formatHolidayDateZh } from "../src/home/featured.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -63,7 +65,11 @@ async function newPage(width, timezoneId = "Europe/London", fixedClock = true) {
     viewport: { width, height: 1000 },
     timezoneId,
   });
-  // Keep the Bank Holidays regression suite independent of Underground availability.
+  // Keep the Bank Holidays regression suite independent of other homepage data.
+  if (fixedClock)
+    await context.route("**/api/guides", (route) =>
+      route.fulfill({ json: [] }),
+    );
   await context.route("**/api/travel/underground", (route) => route.fulfill({
     json: { observedAt: "2026-10-03T15:47:08Z", lines: [] },
   }));
@@ -82,12 +88,13 @@ async function newPage(width, timezoneId = "Europe/London", fixedClock = true) {
 }
 
 async function assertHomepage(page, requests, runtimeErrors, width) {
-  assert.equal(
+  assert.equal(await page.locator("h1").count(), 1);
+  assert.match(
     await page.locator("h1").innerText(),
-    "把英国日常，\n讲得亲切、清楚。",
+    /在英国生活、工作、\s*学习的实用指南/,
   );
-  assert.equal(await page.locator(".foundation-card").count(), 2);
-  assert.equal(await page.locator(".neighbourhood").count(), 1);
+  assert.equal(await page.locator(".topic-card").count(), 6);
+  assert.equal(await page.locator(".home-practical .holiday-panel").count(), 1);
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth),
     width,
@@ -117,12 +124,10 @@ try {
       await route.fulfill({ json: fixture });
     });
     await page.goto(baseURL);
-    const card = page.locator(".information-grid .information-card");
-    await page.getByRole("status").filter({ hasText: "正在加载" }).waitFor();
+    const card = page.locator(".holiday-panel");
+    await card.getByRole("status").filter({ hasText: "正在加载" }).waitFor();
     assert.equal(await card.getAttribute("aria-busy"), "true");
     assert(!(await card.innerText()).includes("England and Wales API fixture"));
-    await page.getByRole("link", { name: "看看信息如何呈现" }).click();
-    assert.equal(await page.evaluate(() => location.hash), "#information");
     await assertHomepage(page, requests, runtimeErrors, width);
     await page.screenshot({
       path: `${screenshots}/loading-${width}.png`,
@@ -135,7 +140,7 @@ try {
     assert.equal(await card.getAttribute("aria-busy"), "false");
     assert.equal(
       await card.locator('time[datetime="2026-12-25"]').innerText(),
-      "25 December 2026",
+      formatHolidayDateZh("2026-12-25"),
     );
     assert((await card.innerText()).includes("England & Wales"));
     assert(!(await card.innerText()).includes("Scottish fixture"));
@@ -188,10 +193,11 @@ try {
     await page.route("**/api/bank-holidays", handler);
     await page.goto(baseURL);
     await page
+      .locator(".holiday-panel")
       .getByRole("status")
       .filter({ hasText: "银行假日信息暂时无法加载" })
       .waitFor();
-    const text = await page.locator(".information-grid .information-card").innerText();
+    const text = await page.locator(".holiday-panel").innerText();
     for (const excluded of [
       "Christmas Day",
       "25 December",
@@ -202,7 +208,7 @@ try {
       "本地展示样例",
     ])
       assert(!text.includes(excluded));
-    assert.equal(await page.locator(".information-grid .information-card time").count(), 0);
+    assert.equal(await page.locator(".holiday-panel time").count(), 0);
     await assertHomepage(page, requests, runtimeErrors, 390);
     await page.screenshot({
       path: `${screenshots}/failure-${name.replaceAll(" ", "-")}.png`,
@@ -224,11 +230,12 @@ try {
     );
     await page.goto(baseURL);
     await page
+      .locator(".holiday-panel")
       .getByRole("status")
       .filter({ hasText: "没有今天或之后" })
       .waitFor();
     assert(
-      !(await page.locator(".information-grid .information-card").innerText()).includes(
+      !(await page.locator(".holiday-panel").innerText()).includes(
         "Past fixture",
       ),
     );
@@ -245,9 +252,10 @@ try {
       await route.fulfill({ json: fixture });
     });
     await page.goto(baseURL);
-    await page.getByRole("status").filter({ hasText: "正在加载" }).waitFor();
+    const panel = page.locator(".holiday-panel");
+    await panel.getByRole("status").filter({ hasText: "正在加载" }).waitFor();
     await page.clock.runFor(10_001);
-    await page
+    await panel
       .getByRole("status")
       .filter({ hasText: "暂时无法加载" })
       .waitFor();
@@ -275,13 +283,13 @@ try {
         holiday,
         "Existing backend evidence must contain an upcoming event",
       );
-      const card = page.locator(".information-grid .information-card");
+      const card = page.locator(".holiday-panel");
       await card
         .getByRole("heading", { name: holiday.title, exact: true })
         .waitFor();
       assert.equal(
         await card.locator(`time[datetime="${holiday.date}"]`).innerText(),
-        formatHolidayDate(holiday.date),
+        formatHolidayDateZh(holiday.date),
       );
       assert.equal(
         await card
@@ -298,7 +306,7 @@ try {
         fullPage: true,
       });
       console.log(
-        `PASS real backend ${width}px: HTTP ${response.status()}, england-and-wales, ${holiday.title}, ${holiday.date} (${formatHolidayDate(holiday.date)}), observation ${data.evidence.observedAt}, no console/runtime errors`,
+        `PASS real backend ${width}px: HTTP ${response.status()}, england-and-wales, ${holiday.title}, ${holiday.date} (${formatHolidayDateZh(holiday.date)}), observation ${data.evidence.observedAt}, no console/runtime errors`,
       );
       await context.close();
     }

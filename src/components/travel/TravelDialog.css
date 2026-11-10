@@ -1,0 +1,188 @@
+/* Travel tools dialog. Desktop ~1040px; near-fullscreen on phones. */
+html.travel-dialog-open {
+  overflow: hidden;
+}
+.travel-dialog {
+  width: min(1040px, 100vw - 48px);
+  max-width: none;
+  max-height: min(880px, 100dvh - 48px);
+  /* Tailwind preflight zeroes margins; restore native modal centring. */
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: var(--color-page);
+  color: var(--color-text);
+  box-shadow: 0 24px 64px rgb(20 35 28 / 28%);
+  overflow: hidden;
+}
+.travel-dialog::backdrop {
+  background: rgb(20 35 28 / 45%);
+}
+.travel-dialog-frame {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+.travel-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px 0 28px;
+}
+.travel-dialog-head h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.travel-dialog-close {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.travel-dialog-close:hover {
+  background: #edf3ec;
+}
+.travel-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 24px 0;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+.travel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.travel-tab[aria-selected="true"] {
+  color: var(--color-brand);
+  border-bottom-color: var(--color-brand);
+}
+.travel-tab:hover {
+  color: var(--color-text);
+}
+.travel-tab:focus-visible,
+.travel-dialog-close:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: -3px;
+}
+.travel-tab-badge {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f4efe2;
+  color: #6b5a2d;
+  border: 1px solid #e9dcbc;
+  vertical-align: middle;
+}
+.travel-dialog-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 24px 24px;
+}
+.travel-loading {
+  color: var(--color-muted);
+  padding: 24px 4px;
+}
+/* The reused cards sit flush inside the dialog. */
+.travel-panel .information-section {
+  margin: 0;
+  max-width: none;
+}
+.travel-panel .information-card {
+  padding: 24px 28px;
+  box-shadow: none;
+}
+.travel-attribution {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+.travel-stale {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--color-warning-soft);
+  border: 1px solid #ead9b2;
+  color: var(--color-text);
+  line-height: 1.75;
+}
+.travel-stale > svg {
+  color: var(--color-warning);
+  margin-top: 4px;
+}
+.travel-stale p + p {
+  margin-top: 4px;
+}
+.travel-stale-title {
+  font-weight: 700;
+  color: var(--color-warning);
+}
+.travel-rail-unavailable {
+  gap: 12px;
+}
+.travel-rail-unavailable h2 {
+  font-size: var(--text-xl);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.travel-rail-unavailable a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--color-brand);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .travel-dialog {
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+  }
+  .travel-dialog-frame {
+    height: 100%;
+  }
+  .travel-dialog-head {
+    padding: 8px 8px 0 16px;
+  }
+  .travel-tabs {
+    padding: 4px 8px 0;
+  }
+  .travel-tab {
+    padding: 0 12px;
+    font-size: 15px;
+  }
+  .travel-dialog-body {
+    flex: 1;
+    padding: 16px 12px 24px;
+  }
+  .travel-panel .information-card {
+    padding: 20px 16px;
+  }
+}

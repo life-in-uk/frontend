@@ -1,8 +1,11 @@
 // Deterministic Roads browser checks: geolocation and every API response are
 // mocked, so no real location, backend or National Highways request is used.
+// Roads is a first-party tool inside the homepage travel dialog. The browser
+// clock is pinned shortly after the fixture snapshot so the fresh path runs;
+// stale paths use other times.
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
-import { formatRoadsTime } from "../src/roads/presentation.ts";
+import { formatUkDateTimeZh } from "../src/travel/format.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -90,6 +93,9 @@ const fixture = {
   ],
 };
 const empty = { ...fixture, disruptions: [] };
+// Five minutes after the snapshot: within the 30-minute limit.
+const FRESH_NOW = Date.parse(fixture.snapshotAt) + 5 * 60_000;
+const NH_ATTRIBUTION = "Powered by National Highways’ Transport Data Feeds";
 
 // Replaces browser geolocation and records every storage write.
 function installMocks({ mode, coords, delayMs }) {
@@ -153,13 +159,22 @@ function installMocks({ mode, coords, delayMs }) {
 
 async function newPage(
   width,
-  { mode = "success", coords = position, delayMs = 0, roads, places } = {},
+  {
+    mode = "success",
+    coords = position,
+    delayMs = 0,
+    roads,
+    places,
+    open = true,
+    now = FRESH_NOW,
+  } = {},
 ) {
   const context = await browser.newContext({
     viewport: { width, height: 1000 },
     timezoneId: "America/Los_Angeles",
   });
-  // Keep the other live cards independent of any backend.
+  // Keep the other homepage data independent of any backend.
+  await context.route("**/api/guides", (route) => route.fulfill({ json: [] }));
   await context.route("**/api/bank-holidays", (route) =>
     route.fulfill({ status: 404, json: {} }),
   );
@@ -181,13 +196,18 @@ async function newPage(
   });
   await context.addInitScript(installMocks, { mode, coords, delayMs });
   const page = await context.newPage();
+  if (now !== null) await page.clock.setFixedTime(now);
   const requests = [];
   const errors = [];
   page.on("request", (request) => requests.push(request.url()));
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(baseURL);
-  const card = page.locator(".roads-card");
-  await card.waitFor();
+  const card = page.locator(".travel-dialog .roads-card");
+  if (open) {
+    // Open the Roads tool from the homepage transport panel.
+    await page.locator('.transport-item[data-tool="roads"]').click();
+    await card.waitFor();
+  }
   const geo = () => page.evaluate(() => window.__roadsTest);
   return {
     context,
@@ -230,7 +250,12 @@ async function assertSafe({ page, card, requests, errors, geo }, width) {
   assert(
     (await card.getByRole("link", { name: /National Highways/ }).count()) === 1,
   );
-  assert(text.includes("National Highways · nearby current disruptions"));
+  assert(text.includes("National Highways · 附近当前道路异常"));
+  assert.equal(
+    await card.locator(".travel-attribution").innerText(),
+    NH_ATTRIBUTION,
+  );
+  assert.equal(await page.locator("dialog.travel-dialog[open]").count(), 1);
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth),
     width,
@@ -250,11 +275,11 @@ try {
     });
     const { page, card, requests, geo } = ctx;
     await page.waitForLoadState("networkidle");
-    await page.clock.install();
+    await page.clock.install({ time: FRESH_NOW });
     await page.clock.runFor(120_000);
     assert.equal(roadsCount(requests), 0);
     assert.equal((await geo()).calls, 0);
-    const action = card.getByRole("button", { name: "Use my location" });
+    const action = card.getByRole("button", { name: "使用我的位置" });
     assert(await action.isVisible());
     const text = await card.innerText();
     assert(!text.includes("M1") && !text.includes("Lane closures"));
@@ -283,11 +308,11 @@ try {
       },
     });
     const { page, card, roadsRequests, requests, geo } = ctx;
-    await card.getByRole("button", { name: "Use my location" }).focus();
+    await card.getByRole("button", { name: "使用我的位置" }).focus();
     await page.keyboard.press("Enter");
     await card
       .getByRole("status")
-      .filter({ hasText: "Checking nearby" })
+      .filter({ hasText: "正在查询附近" })
       .waitFor();
     assert.equal(await card.getAttribute("aria-busy"), "true");
     const state = await geo();
@@ -320,7 +345,7 @@ try {
     );
     assert.equal(
       await first.locator(".roads-distance").textContent(),
-      "Under 0.1 miles away",
+      "直线距离 不到 0.1 英里",
     );
     assert.equal(
       await first.locator(".roads-kind").textContent(),
@@ -335,10 +360,10 @@ try {
     );
     assert.equal(
       await first.locator("time").textContent(),
-      formatRoadsTime("2026-10-04T12:11:19.190Z"),
+      formatUkDateTimeZh("2026-10-04T12:11:19.190Z"),
     );
-    assert((await first.innerText()).includes("4 October 2026 at 13:11"));
-    assert((await first.innerText()).includes("Provider status: Active"));
+    assert((await first.innerText()).includes("2026年10月4日 13:11"));
+    assert((await first.innerText()).includes("来源状态：Active"));
     // Optional values absent: nothing invented.
     const second = items.nth(1);
     assert.equal(await second.locator("h3").innerText(), "A14");
@@ -348,21 +373,21 @@ try {
         .count(),
       0,
     );
-    assert(!(await second.innerText()).includes("Provider"));
+    assert(!/来源(状态|结束时间)/.test(await second.innerText()));
     assert.equal(
       await second.locator(".roads-distance").textContent(),
-      "0.8 miles away",
+      "直线距离 0.8 英里",
     );
     const third = items.nth(2);
     assert.equal(
       await third.locator(".roads-distance").textContent(),
-      "9.3 miles away",
+      "直线距离 9.3 英里",
     );
-    assert((await third.innerText()).includes("4 December 2026 at 09:30"));
+    assert((await third.innerText()).includes("2026年12月4日 09:30"));
     assert((await third.innerText()).includes("Southbound"));
     const summary = await card.locator(".roads-summary").innerText();
-    assert.equal(summary, "3 disruptions within 9.3 miles, nearest first.");
-    assert((await card.innerText()).includes("not driving distance"));
+    assert.equal(summary, "9.3 英里 范围内有 3 条道路异常，按距离由近到远排列。");
+    assert((await card.innerText()).includes("不是驾车距离"));
     assert.equal(
       await card.locator(".provenance time").getAttribute("datetime"),
       fixture.snapshotAt,
@@ -374,7 +399,7 @@ try {
     });
 
     // Refresh reuses the in-memory location: new request, no new geolocation.
-    await card.getByRole("button", { name: "Refresh" }).click();
+    await card.getByRole("button", { name: "重新查询" }).click();
     await card.locator(".roads-item").first().waitFor();
     assert.equal(roadsRequests.length, 2);
     assert.equal((await geo()).calls, 1);
@@ -383,11 +408,13 @@ try {
       new URL(roadsRequests[0]).search,
     );
     // No polling.
-    await page.clock.install();
+    await page.clock.install({ time: FRESH_NOW });
     await page.clock.runFor(30 * 60_000);
     assert.equal(roadsRequests.length, 2);
+    // Return to a fresh time so the next lookup shows results, not staleness.
+    await page.clock.setSystemTime(FRESH_NOW);
     // Re-locating is explicit and asks the browser once more.
-    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("button", { name: "使用我的位置" }).click();
     await page.clock.runFor(10);
     await card.locator(".roads-item").first().waitFor();
     assert.equal((await geo()).calls, 2);
@@ -406,17 +433,17 @@ try {
       roads: (route) => route.fulfill({ json: empty }),
     });
     const { card } = ctx;
-    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("button", { name: "使用我的位置" }).click();
     await card
       .getByRole("status")
       .filter({
-        hasText: "No current National Highways disruptions found nearby.",
+        hasText: "附近没有找到 National Highways 报告的当前道路异常。",
       })
       .waitFor();
     const text = await card.innerText();
-    assert(!/clear|unavailable|couldn’t/i.test(text));
+    assert(!/clear|unavailable|couldn’t|畅通|暂时无法|未能/i.test(text));
     assert.equal(await card.locator(".roads-item").count(), 0);
-    assert(await card.getByRole("button", { name: "Refresh" }).isVisible());
+    assert(await card.getByRole("button", { name: "重新查询" }).isVisible());
     await assertSafe(ctx, 390);
     await ctx.context.close();
     console.log("PASS empty: successful neutral message, no 'all clear' claim");
@@ -426,10 +453,10 @@ try {
   {
     const ctx = await newPage(390, { mode: "unsupported" });
     const { card, roadsRequests } = ctx;
-    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("button", { name: "使用我的位置" }).click();
     await card
       .getByRole("status")
-      .filter({ hasText: "can’t share your location" })
+      .filter({ hasText: "无法提供你的位置" })
       .waitFor();
     assert.equal(roadsRequests.length, 0);
     await assertSafe(ctx, 390);
@@ -439,18 +466,18 @@ try {
 
   // Denied, unavailable and timeout: no request, no automatic re-prompt, explicit retry.
   for (const [mode, message] of [
-    ["PERMISSION_DENIED", "Location access wasn’t allowed"],
-    ["POSITION_UNAVAILABLE", "Your location couldn’t be found."],
-    ["TIMEOUT", "Your location couldn’t be found."],
+    ["PERMISSION_DENIED", "未获得位置权限"],
+    ["POSITION_UNAVAILABLE", "无法获取你的位置。"],
+    ["TIMEOUT", "无法获取你的位置。"],
   ]) {
     const ctx = await newPage(390, {
       mode,
       roads: (route) => route.fulfill({ json: fixture }),
     });
     const { page, card, roadsRequests, geo } = ctx;
-    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("button", { name: "使用我的位置" }).click();
     await card.getByRole("status").filter({ hasText: message }).waitFor();
-    await page.clock.install();
+    await page.clock.install({ time: FRESH_NOW });
     await page.clock.runFor(120_000);
     assert.equal((await geo()).calls, 1, "no automatic re-prompt");
     assert.equal(roadsRequests.length, 0);
@@ -459,7 +486,7 @@ try {
     await page.evaluate(() => {
       window.__roadsTest.next = "success";
     });
-    await card.getByRole("button", { name: "Try again" }).click();
+    await card.getByRole("button", { name: "重试" }).click();
     await page.clock.runFor(10);
     await card.locator(".roads-item").first().waitFor();
     assert.equal((await geo()).calls, 2);
@@ -479,7 +506,7 @@ try {
           status: 404,
           json: { code: "ROADS_UNAVAILABLE", message: "private" },
         }),
-      "Road information is temporarily unavailable.",
+      "道路信息暂时无法获取。",
     ],
     [
       "500",
@@ -488,17 +515,17 @@ try {
           status: 500,
           json: { code: "ROADS_READ_FAILED", message: "private" },
         }),
-      "Road information couldn’t be loaded.",
+      "道路信息未能加载。",
     ],
     [
       "network",
       (route) => route.abort("failed"),
-      "Road information couldn’t be loaded.",
+      "道路信息未能加载。",
     ],
     [
       "invalid JSON",
       (route) => route.fulfill({ contentType: "application/json", body: "{" }),
-      "Road information couldn’t be loaded.",
+      "道路信息未能加载。",
     ],
     [
       "malformed DTO",
@@ -509,7 +536,7 @@ try {
             disruptions: [...fixture.disruptions, { situationId: "bad" }],
           },
         }),
-      "Road information couldn’t be loaded.",
+      "道路信息未能加载。",
     ],
   ]) {
     const ctx = await newPage(390, {
@@ -517,7 +544,7 @@ try {
         n === 1 ? handle(route) : route.fulfill({ json: fixture }),
     });
     const { card, roadsRequests, geo } = ctx;
-    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("button", { name: "使用我的位置" }).click();
     await card.getByRole("status").filter({ hasText: message }).waitFor();
     const text = await card.innerText();
     for (const banned of [
@@ -533,7 +560,7 @@ try {
       0,
     );
     await assertSafe(ctx, 390);
-    await card.getByRole("button", { name: "Try again" }).click();
+    await card.getByRole("button", { name: "重试" }).click();
     await card.locator(".roads-item").first().waitFor();
     assert.equal(roadsRequests.length, 2);
     assert.equal((await geo()).calls, 1, "retry reuses in-memory location");
@@ -549,17 +576,17 @@ try {
       roads: () => new Promise(() => {}),
     });
     const { page, card } = ctx;
-    await page.clock.install();
-    await card.getByRole("button", { name: "Use my location" }).click();
+    await page.clock.install({ time: FRESH_NOW });
+    await card.getByRole("button", { name: "使用我的位置" }).click();
     await page.clock.runFor(10);
     await card
       .getByRole("status")
-      .filter({ hasText: "Checking nearby" })
+      .filter({ hasText: "正在查询附近" })
       .waitFor();
     await page.clock.runFor(10_001);
     await card
       .getByRole("status")
-      .filter({ hasText: "couldn’t be loaded" })
+      .filter({ hasText: "未能加载" })
       .waitFor();
     await ctx.context.close();
     console.log(
@@ -574,6 +601,7 @@ try {
       release = resolve;
     });
     const ctx = await newPage(390, {
+      open: false,
       roads: async (route) => {
         await gate;
         await route.fulfill({ json: fixture }).catch(() => {});
@@ -599,10 +627,10 @@ try {
       globalThis.roadsTestRoot.render(React.createElement(RoadsCard));
     });
     const isolated = page.locator("#roads-unmount-test .roads-card");
-    await isolated.getByRole("button", { name: "Use my location" }).click();
+    await isolated.getByRole("button", { name: "使用我的位置" }).click();
     await isolated
       .getByRole("status")
-      .filter({ hasText: "Checking nearby" })
+      .filter({ hasText: "正在查询附近" })
       .waitFor();
     await page.evaluate(() => globalThis.roadsTestRoot.unmount());
     await page.waitForTimeout(50);
@@ -620,6 +648,7 @@ try {
   // A location answer arriving after the card unmounts is ignored.
   {
     const ctx = await newPage(390, {
+      open: false,
       delayMs: 200,
       roads: (route) => route.fulfill({ json: fixture }),
     });
@@ -639,7 +668,7 @@ try {
     });
     await page
       .locator("#roads-late-test .roads-card")
-      .getByRole("button", { name: "Use my location" })
+      .getByRole("button", { name: "使用我的位置" })
       .click();
     await page.evaluate(() => globalThis.roadsLateRoot.unmount());
     await page.waitForTimeout(400);
@@ -730,7 +759,7 @@ try {
         assert(!text.includes(banned), `card must not show ${banned}`);
   };
   const search = (card) =>
-    card.getByRole("searchbox", { name: "Search postcode, town or place" });
+    card.getByRole("searchbox", { name: "搜索邮编、城镇或地点" });
 
   // Explicit submit, candidates, selection, refresh and switching locations.
   for (const width of [1440, 390]) {
@@ -744,10 +773,10 @@ try {
     await page.waitForTimeout(100);
     assert.equal(placeRequests.length, 0, "typing must not search");
     // The Search button submits the trimmed query.
-    await card.getByRole("button", { name: "Search", exact: true }).click();
+    await card.getByRole("button", { name: "搜索", exact: true }).click();
     await card
       .getByRole("status")
-      .filter({ hasText: "2 places found" })
+      .filter({ hasText: "找到 2 个地点" })
       .waitFor();
     assert.equal(placeRequests.length, 1);
     assert.equal(new URL(placeRequests[0]).pathname, "/api/places/search");
@@ -756,8 +785,8 @@ try {
     assert.deepEqual(
       (await candidates.allInnerTexts()).map((t) => t.replace(/\s+/g, " ")),
       [
-        "Sheffield, Fixture Region City",
-        "Sheffield Park, Wealden, South East Hamlet",
+        "Sheffield, Fixture Region 城市",
+        "Sheffield Park, Wealden, South East 小村",
       ],
     );
     assert((await card.innerText()).includes(attribution));
@@ -794,7 +823,7 @@ try {
     });
 
     // Refresh reuses the selected place.
-    await card.getByRole("button", { name: "Refresh" }).click();
+    await card.getByRole("button", { name: "重新查询" }).click();
     await card.locator(".roads-item").first().waitFor();
     assert.equal(roadsRequests.length, 2);
     assert.deepEqual(roadsAt(roadsRequests[1]), roadsAt(roadsRequests[0]));
@@ -816,10 +845,10 @@ try {
     assert.equal(await card.locator(".roads-candidate").count(), 0);
 
     // Switching to browser geolocation replaces the searched place.
-    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("button", { name: "使用我的位置" }).click();
     await card
       .locator(".roads-active-label")
-      .filter({ hasText: "your current location" })
+      .filter({ hasText: "你的当前位置" })
       .waitFor();
     await card.locator(".roads-item").first().waitFor();
     assert.equal((await geo()).calls, 1);
@@ -830,7 +859,7 @@ try {
     assert(
       !(await card.locator(".provenance").innerText()).includes(attribution),
     );
-    await card.getByRole("button", { name: "Refresh" }).click();
+    await card.getByRole("button", { name: "重新查询" }).click();
     await card.locator(".roads-item").first().waitFor();
     assert.deepEqual(roadsAt(roadsRequests[4]), [
       position.latitude,
@@ -870,10 +899,10 @@ try {
   {
     const ctx = await newPage(390, { places: placesByQuery });
     const { card, placeRequests, roadsRequests, geo } = ctx;
-    await card.getByRole("button", { name: "Search", exact: true }).click();
+    await card.getByRole("button", { name: "搜索", exact: true }).click();
     await card
       .getByRole("status")
-      .filter({ hasText: "Enter a postcode, town or place." })
+      .filter({ hasText: "请输入邮编、城镇或地点。" })
       .waitFor();
     await search(card).fill("   ");
     await search(card).press("Enter");
@@ -882,7 +911,7 @@ try {
     await search(card).press("Enter");
     await card
       .getByRole("status")
-      .filter({ hasText: "No matching place found." })
+      .filter({ hasText: "没有找到匹配的地点。" })
       .waitFor();
     assert.equal(placeRequests.length, 1);
     assert.equal(roadsRequests.length, 0);
@@ -907,7 +936,7 @@ try {
           status: 400,
           json: { code: "PLACE_QUERY_INVALID", message: "private" },
         }),
-      "That search can’t be used.",
+      "无法使用这个搜索词",
     ],
     [
       "503 not configured",
@@ -916,7 +945,7 @@ try {
           status: 503,
           json: { code: "PLACES_NOT_CONFIGURED", message: "private" },
         }),
-      "Place search is temporarily unavailable.",
+      "地点搜索暂时不可用",
     ],
     [
       "502 unavailable",
@@ -925,7 +954,7 @@ try {
           status: 502,
           json: { code: "PLACES_UNAVAILABLE", message: "private" },
         }),
-      "Place search is temporarily unavailable.",
+      "地点搜索暂时不可用",
     ],
     [
       "500",
@@ -934,12 +963,12 @@ try {
           status: 500,
           json: { code: "PLACES_SEARCH_FAILED", message: "private" },
         }),
-      "Place search couldn’t be completed.",
+      "地点搜索未能完成。",
     ],
     [
       "network",
       (route) => route.abort("failed"),
-      "Place search couldn’t be completed.",
+      "地点搜索未能完成。",
     ],
     [
       "malformed",
@@ -951,7 +980,7 @@ try {
             attribution,
           },
         }),
-      "Place search couldn’t be completed.",
+      "地点搜索未能完成。",
     ],
   ]) {
     const ctx = await newPage(390, {
@@ -1000,7 +1029,7 @@ try {
     await search(card).press("Enter");
     await card
       .getByRole("status")
-      .filter({ hasText: "Searching for places" })
+      .filter({ hasText: "正在搜索地点" })
       .waitFor();
     await search(card).fill("Leeds");
     await search(card).press("Enter");
@@ -1039,7 +1068,7 @@ try {
     await card.locator(".roads-candidate").first().click();
     await card
       .getByRole("status")
-      .filter({ hasText: "Checking nearby" })
+      .filter({ hasText: "正在查询附近" })
       .waitFor();
     await search(card).fill("Leeds");
     await search(card).press("Enter");
@@ -1047,7 +1076,7 @@ try {
     await card
       .getByRole("status")
       .filter({
-        hasText: "No current National Highways disruptions found nearby.",
+        hasText: "附近没有找到 National Highways 报告的当前道路异常。",
       })
       .waitFor();
     releaseSheffield();
@@ -1084,10 +1113,10 @@ try {
     const { page, card, roadsRequests } = ctx;
     await search(card).fill("Barnsley");
     await search(card).press("Enter");
-    await card.getByRole("button", { name: "Use my location" }).click();
+    await card.getByRole("button", { name: "使用我的位置" }).click();
     await card
       .locator(".roads-active-label")
-      .filter({ hasText: "your current location" })
+      .filter({ hasText: "你的当前位置" })
       .waitFor();
     release();
     await page.waitForTimeout(200);
@@ -1098,11 +1127,73 @@ try {
     ]);
     assert.equal(
       await card.locator(".roads-active-label").innerText(),
-      "your current location",
+      "你的当前位置",
     );
     await ctx.context.close();
     console.log(
       "PASS later location choice wins over a pending single-match search",
+    );
+  }
+
+  // ---- Freshness: snapshots older than 30 minutes show no disruption claims ----
+  for (const [name, now, data] of [
+    [
+      "30 min 1 s old",
+      Date.parse(fixture.snapshotAt) + 30 * 60_000 + 1000,
+      fixture,
+    ],
+    ["five weeks old (real clock)", null, fixture],
+    ["stale empty snapshot", null, empty],
+  ]) {
+    const ctx = await newPage(390, {
+      now,
+      roads: (route) => route.fulfill({ json: data }),
+    });
+    const { card, roadsRequests } = ctx;
+    await card.getByRole("button", { name: "使用我的位置" }).click();
+    const stale = card.locator(".travel-stale");
+    await stale.waitFor();
+    assert.equal(roadsRequests.length, 1, "the lookup itself still runs");
+    assert.match(await stale.innerText(), /暂无最新的附近道路异常信息/);
+    assert.match(await stale.innerText(), /已超过 30 分钟/);
+    assert.equal(
+      await stale.locator("time").getAttribute("datetime"),
+      fixture.snapshotAt,
+    );
+    assert.equal(
+      await stale.locator("time").innerText(),
+      formatUkDateTimeZh(fixture.snapshotAt),
+    );
+    assert.equal(
+      await card
+        .locator(".roads-item, .roads-summary, .provenance time")
+        .count(),
+      0,
+    );
+    const text = await card.innerText();
+    for (const banned of [
+      "M1",
+      "A14",
+      "Lane closures",
+      "Fixture",
+      "范围内有",
+      "附近没有找到",
+    ])
+      assert(!text.includes(banned), `${name}: must not show ${banned}`);
+    // Location and re-check stay usable; the official source is the fallback.
+    assert.equal(
+      await card.locator(".roads-active-label").innerText(),
+      "你的当前位置",
+    );
+    assert(await card.getByRole("button", { name: "重新查询" }).isVisible());
+    assert.equal(
+      await card.locator(".source-label").getAttribute("href"),
+      "https://nationalhighways.co.uk/travel-updates/",
+    );
+    await assertSafe(ctx, 390);
+    await ctx.context.close();
+    console.log(
+      `PASS stale (${name}): no disruptions, counts or "none nearby"; snapshot time shown; official fallback and attribution`,
     );
   }
 } finally {

@@ -20,8 +20,11 @@ try {
       const direction = new URL(route.request().url()).searchParams.get("direction");
       return route.fulfill({json: { ...base, direction, disruptions: mode === "results" ? services : [] }});
     });
-    await page.goto(process.env.FRONTEND_URL || "http://127.0.0.1:5199");
-    const card = page.locator(".rail-card");
+    // Development-only Rail preview inside the homepage travel dialog.
+    await page.goto(`${process.env.FRONTEND_URL || "http://127.0.0.1:5199"}/?rail-preview`);
+    await page.locator('.transport-item[data-tool="rail"]').click();
+    const card = page.locator(".travel-dialog .rail-card");
+    await card.waitFor();
     assert.equal(await card.getByLabel("Language / 语言").inputValue(), "zh");
     await card.getByLabel("Language / 语言").selectOption("en");
     await card.getByRole("textbox", {name: "Search station"}).fill("SHF");
