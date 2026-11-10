@@ -2,10 +2,7 @@ import { useEffect, useId, useState } from "react";
 import type { CSSProperties } from "react";
 import { ChevronDown, TrainFront } from "lucide-react";
 import { Freshness, OfficialSource } from "./InformationCard";
-import {
-  getUnderground,
-  formatUndergroundObservation,
-} from "../underground/api";
+import { getUnderground } from "../underground/api";
 import type { UndergroundResponse } from "../underground/api";
 import {
   PRESENTATION_LABELS,
@@ -14,7 +11,14 @@ import {
   lineColour,
   summariseLines,
 } from "../underground/presentation";
+import { StaleNotice } from "./travel/StaleNotice";
+import { formatUkDateTimeZh } from "../travel/format";
+import { assessFreshness, UNDERGROUND_MAX_AGE_MS } from "../travel/freshness";
+import { useNow } from "../travel/useNow";
 import "./UndergroundCard.css";
+
+/** Required by the TfL Transport Data Service licence. */
+export const TFL_ATTRIBUTION = "Powered by TfL Open Data";
 
 type State =
   | { status: "loading" }
@@ -26,10 +30,10 @@ function summaryText(data: UndergroundResponse): string {
   const total = data.lines.length;
   const parts = [
     affected === 0
-      ? `No disruption reported for ${total} ${total === 1 ? "line" : "lines"}`
-      : `${affected} of ${total} ${total === 1 ? "line" : "lines"} reporting disruption`,
+      ? `${total} 条线路均未报告异常`
+      : `${total} 条线路中有 ${affected} 条报告异常`,
   ];
-  if (unclassified > 0) parts.push(`${unclassified} not classified`);
+  if (unclassified > 0) parts.push(`${unclassified} 条未能分类`);
   return parts.join(" · ");
 }
 
@@ -37,6 +41,7 @@ export function UndergroundCard() {
   const [state, setState] = useState<State>({ status: "loading" });
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const idPrefix = useId();
+  const now = useNow();
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -64,11 +69,20 @@ export function UndergroundCard() {
     });
   }
 
+  const freshness =
+    state.status === "ready"
+      ? assessFreshness(state.data.observedAt, UNDERGROUND_MAX_AGE_MS, now)
+      : null;
+  // Only a fresh snapshot may show line statuses, counts or summaries.
+  const facts =
+    state.status === "ready" && freshness?.state === "fresh"
+      ? state.data
+      : null;
+
   return (
     <section
       className="information-section underground-section"
       aria-labelledby="underground-heading"
-      lang="en"
     >
       <article
         className="information-card underground-card"
@@ -77,29 +91,36 @@ export function UndergroundCard() {
         <header className="underground-header">
           <span className="category">
             <TrainFront size={18} aria-hidden="true" />
-            Travel
+            出行
           </span>
-          <h2 id="underground-heading">London Underground</h2>
-          {state.status === "ready" && state.data.lines.length > 0 && (
-            <p className="underground-summary">{summaryText(state.data)}</p>
+          <h2 id="underground-heading">
+            伦敦地铁 <span lang="en">London Underground</span>
+          </h2>
+          {facts && facts.lines.length > 0 && (
+            <p className="underground-summary">{summaryText(facts)}</p>
           )}
         </header>
         <div className="underground-content" aria-live="polite">
           {state.status === "loading" && (
-            <p role="status">Loading Underground status…</p>
+            <p role="status">正在加载伦敦地铁运行状态…</p>
           )}
           {state.status === "unavailable" && (
-            <p role="status">Underground status is temporarily unavailable.</p>
+            <p role="status">伦敦地铁运行状态暂时无法获取。</p>
           )}
-          {state.status === "ready" &&
-            (state.data.lines.length === 0 ? (
-              <p role="status">
-                No Underground line status information was included in this
-                observation.
-              </p>
+          {freshness && freshness.state !== "fresh" && (
+            <StaleNotice
+              freshness={freshness}
+              subject="伦敦地铁线路运行状态"
+              limitMinutes={UNDERGROUND_MAX_AGE_MS / 60_000}
+              fallback="TfL 官方运行状态"
+            />
+          )}
+          {facts &&
+            (facts.lines.length === 0 ? (
+              <p role="status">这次来源观测中没有包含任何地铁线路的状态信息。</p>
             ) : (
               <ul className="underground-lines">
-                {state.data.lines.map((line, lineIndex, lines) => {
+                {facts.lines.map((line, lineIndex, lines) => {
                   const colour = lineColour(line.lineId);
                   // Desktop shows two column stacks: the second starts halfway through.
                   const columnStart = Math.ceil(lines.length / 2);
@@ -125,7 +146,7 @@ export function UndergroundCard() {
                           }
                           aria-hidden="true"
                         />
-                        <h3>{line.lineName}</h3>
+                        <h3 lang="en">{line.lineName}</h3>
                         <ul className="underground-statuses">
                           {line.statuses.map((status, statusIndex) => {
                             const key = `${lineIndex}-${statusIndex}`;
@@ -133,7 +154,10 @@ export function UndergroundCard() {
                             const reasonId = `${idPrefix}-reason-${key}`;
                             const isOpen = expanded.has(key);
                             const description = (
-                              <span className="underground-description">
+                              <span
+                                className="underground-description"
+                                lang="en"
+                              >
                                 {status.description}
                               </span>
                             );
@@ -159,7 +183,7 @@ export function UndergroundCard() {
                                   >
                                     {description}
                                     <span className="sr-only">
-                                      {`, details for ${line.lineName}`}
+                                      {`，查看 ${line.lineName} 的详情`}
                                     </span>
                                     <ChevronDown
                                       className="underground-chevron"
@@ -183,6 +207,7 @@ export function UndergroundCard() {
                               key={key}
                               id={`${idPrefix}-reason-${key}`}
                               className="underground-reason"
+                              lang="en"
                               hidden={!expanded.has(key)}
                             >
                               {status.reason}
@@ -197,10 +222,10 @@ export function UndergroundCard() {
             ))}
         </div>
         <div className="provenance">
-          {state.status === "ready" && (
+          {facts && (
             <Freshness
-              label={`Source observed: ${formatUndergroundObservation(state.data.observedAt)} UK time`}
-              dateTime={state.data.observedAt}
+              label={`来源观测于 ${formatUkDateTimeZh(facts.observedAt)}（英国时间）`}
+              dateTime={facts.observedAt}
             />
           )}
           <OfficialSource
@@ -209,6 +234,9 @@ export function UndergroundCard() {
               href: "https://tfl.gov.uk/tube-dlr-overground/status/",
             }}
           />
+          <p className="travel-attribution" lang="en">
+            {TFL_ATTRIBUTION}
+          </p>
         </div>
       </article>
     </section>

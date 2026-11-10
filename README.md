@@ -168,3 +168,28 @@ node --test tests/home.test.mjs
 PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs FRONTEND_URL=http://127.0.0.1:5176 npm run test:home:browser
 # REAL_BACKEND=1 for the read-only check against the running backend
 ```
+
+## Travel tools dialog
+
+The homepage transport panel opens one accessible dialog (`src/components/travel/TravelDialog.tsx`, native `<dialog>` with WAI-ARIA tabs) containing the existing first-party tools: **伦敦地铁** (`UndergroundCard`), **道路** (`RoadsCard`, with place search) and **铁路** (`RailCard`). The homepage itself makes no travel request; each tool's code and data load only when its tab is first shown, and closing the dialog unmounts the tools (aborting pending requests) and returns focus to the entry that opened it. Desktop width is 1040px; phones get a full-screen dialog.
+
+**Freshness (product rules, not provider guarantees)** — `src/travel/freshness.ts`: Underground snapshots older than **10 minutes** and Roads snapshots older than **30 minutes** are stale. Missing, invalid or implausibly future timestamps count as stale. A stale tool hides every current-status claim (line statuses, disruptions, counts, "none nearby") and instead shows the source observation time with the operator's official page as fallback. The check is re-evaluated while the dialog is open. The backend currently has no scheduled acquisition, so today's stored snapshots are always shown as stale.
+
+**Rail is not released.** Production builds contain no Rail tool code (`import.meta.env.DEV` gate; verified by `tests/travel-production-isolation.browser.mjs`); the Rail tab shows 暂未开放 with the National Rail link. In development, `/?rail-preview` enables the existing tool for review and for the Rail browser suites.
+
+**Attribution** (shown with each tool's results):
+
+- TfL: `Powered by TfL Open Data` — required by the TfL Transport Data Service licence (see the backend README review of 2026-10-03).
+- National Highways: `Powered by National Highways’ Transport Data Feeds` — required by paragraph 20(a) of the National Highways Developer Portal licence (https://developer.data.nationalhighways.co.uk/terms, read 2026-11-10; "based on version 2.0 of the Open Government Licence with specific amendments for NH"). The licence text delimits the statement with a straight opening quote and a curly closing quote and contains a curly apostrophe after "Highways"; the statement is reproduced exactly between those delimiters. Paragraph 20(b) also requires following NH branding guidelines; no NH logo is used.
+- Place search keeps the OS attribution returned by the backend; Rail keeps its existing National Rail, ODbL and station-data notices.
+
+Tests (development server; `PLAYWRIGHT_MODULE` and `FRONTEND_URL` as above):
+
+```sh
+npm run test:travel:browser              # dialog a11y, focus, lazy loading, Rail unavailable, responsive
+npm run test:travel-production:browser   # builds production; no Rail code; lazy tool chunks
+npm run test:underground:browser         # REAL_BACKEND=1 checks the stored snapshot (stale → no claims)
+npm run test:roads:browser
+npm run test:browser                     # Bank Holidays (homepage summary)
+npm run test:rail:browser                # via /?rail-preview
+```

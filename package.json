@@ -20,6 +20,8 @@
     "test:family-visa-production:browser": "node tests/family-visa-production-isolation.browser.mjs",
     "test:money:browser": "node tests/money.browser.mjs",
     "test:home:browser": "node tests/home.browser.mjs",
+    "test:travel:browser": "node tests/travel-dialog.browser.mjs",
+    "test:travel-production:browser": "node tests/travel-production-isolation.browser.mjs",
     "test:rail:browser": "node tests/rail.browser.mjs"
   },
   "dependencies": {

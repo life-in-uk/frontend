@@ -361,7 +361,7 @@ a.topic-card-body:hover {
   margin-top: 14px;
   flex: 1;
 }
-.holiday-name {
+.holiday-panel .holiday-name {
   font-size: 28px;
   font-weight: 600;
   line-height: 1.3;
@@ -416,6 +416,12 @@ a.topic-card-body:hover {
 }
 .transport-item {
   flex: 1;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -430,6 +436,10 @@ a.topic-card-body:hover {
 }
 .transport-item:hover {
   background: #f6f8f4;
+}
+.transport-item:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
 }
 .transport-icon {
   color: var(--color-brand);
@@ -886,7 +896,7 @@ a.topic-card-body:hover {
     flex-direction: column;
     align-items: start;
   }
-  .holiday-name {
+  .holiday-panel .holiday-name {
     font-size: 24px;
   }
   .home-panel {

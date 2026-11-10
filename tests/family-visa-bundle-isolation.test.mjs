@@ -27,6 +27,23 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { localContent } from "./fixtures/familyVisaContent.mjs";
+
+// The only code-split chunks allowed besides the single entry: the lazily
+// loaded homepage travel tools (and their shared helpers). Any other chunk,
+// such as one for the Family & Visa wording module, fails isolation.
+const ALLOWED_LAZY_CHUNK = /^(UndergroundCard|RoadsCard|useNow)-[\w-]+\.js$/;
+function assertOnlyAllowedChunks(jsFiles, message) {
+  const names = jsFiles.map((file) => path.basename(file));
+  const entries = names.filter((name) => /^index-[\w-]+\.js$/.test(name));
+  assert.equal(entries.length, 1, `${message}: one entry chunk (${names.join(", ")})`);
+  assert.deepEqual(
+    names.filter(
+      (name) => !entries.includes(name) && !ALLOWED_LAZY_CHUNK.test(name),
+    ),
+    [],
+    `${message}: only travel tool chunks may be split (${names.join(", ")})`,
+  );
+}
 import { CHECKLIST_SECTIONS } from "../src/guides/familyVisaChecklist.ts";
 import {
   JOURNEY_GUIDES,
@@ -117,9 +134,8 @@ test("canary: wording at the local-only path never reaches a production build", 
     assert.ok(bundle.length > 1000, "the canary build produced assets");
     assert.ok(!bundle.includes(CANARY), "canary wording was bundled");
     assert.ok(!bundle.includes("示例段落 alpha"));
-    assert.equal(
-      files(out).filter((f) => f.endsWith(".js")).length,
-      1,
+    assertOnlyAllowedChunks(
+      files(out).filter((f) => f.endsWith(".js")),
       "no separate chunk for the wording module",
     );
   } finally {
@@ -146,7 +162,7 @@ test("the real production build has no dev markers or extra chunks", () => {
   ])
     assert.ok(!bundle.includes(marker), marker);
   const chunks = files(outDir).filter((f) => f.endsWith(".js"));
-  assert.equal(chunks.length, 1, chunks.join(", "));
+  assertOnlyAllowedChunks(chunks, "real production build");
 });
 
 test("the real production build contains none of the local wording (when present)", async (t) => {

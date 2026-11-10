@@ -70,16 +70,16 @@ export function BankHolidaySummary() {
             </p>
           )}
           {data && !holiday && (
-            <p className="holiday-message">
+            <p className="holiday-message" role="status">
               当前来源数据中没有今天或之后的英格兰和威尔士银行假日，请查看 GOV.UK
               官方原文。
             </p>
           )}
           {holiday && (
             <>
-              <p className="holiday-name" lang="en">
+              <h3 className="holiday-name" lang="en">
                 {holiday.title}
-              </p>
+              </h3>
               <p className="holiday-date">
                 下一个银行假日：
                 <time dateTime={holiday.date}>

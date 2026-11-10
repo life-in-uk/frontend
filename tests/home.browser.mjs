@@ -161,13 +161,19 @@ try {
       await holiday.locator(".holiday-name").waitFor();
     }
     assert.match(await holiday.innerText(), /England & Wales/);
-    // Transport: no service data, no transport requests, no old cards.
+    // Transport: tool entries only (no service data or requests until a
+    // tool is opened in the travel dialog); Rail is not available.
     const transport = p.locator(".transport-panel");
-    assert.equal(
-      (await transport.innerText()).match(/实时状态暂未接入/g).length,
-      3,
+    assert.deepEqual(await transport.locator(".transport-status").allInnerTexts(), [
+      "线路运行状态",
+      "暂未开放",
+      "按地点查附近道路异常",
+    ]);
+    assert.equal(await transport.locator("button.transport-item").count(), 3);
+    assert.doesNotMatch(
+      await transport.innerText(),
+      /Good Service|Delay|延误|拥堵|畅通|正常运行/,
     );
-    assert.doesNotMatch(await transport.innerText(), /Good Service|Delay|延误|拥堵|异常/);
     assert.equal(await p.locator(".underground-card, .roads-card, .rail-card").count(), 0);
     assert.ok(requests.every((path) => path === "/api/guides" || path === "/api/bank-holidays"));
     // About and footer.
