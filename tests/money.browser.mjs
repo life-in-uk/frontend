@@ -690,24 +690,37 @@ async function mocked() {
     await context.close();
   }
 
-  // Homepage entry links to /money, after Health; the header nav is unchanged.
+  // Homepage (design V1): Money topic card after Health; header nav links
+  // both launched sections and nothing unlaunched.
   {
     const { p, context } = await page(1280);
     await p.goto(`${baseURL}/`);
-    const entry = p.getByRole("link", { name: "进入金钱与财务" });
+    const entry = p.locator(".topic-card a[href='/money']");
     await entry.waitFor();
-    assert.equal(await entry.getAttribute("href"), "/money");
-    assert.equal(await p.locator(".health-entry + .money-entry").count(), 1);
-    assert.doesNotMatch(await p.locator(".money-entry").textContent(), /官方/);
+    assert.deepEqual(
+      await p
+        .locator(".topic-card a")
+        .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
+      ["/health", "/money"],
+    );
+    assert.doesNotMatch(await entry.textContent(), /官方/);
     const nav = p.getByRole("navigation", { name: "主导航" });
-    assert.equal(await nav.getByRole("link").count(), 1);
-    assert.equal(await nav.locator("a[href^='/money']").count(), 0);
+    assert.deepEqual(
+      await nav
+        .getByRole("link")
+        .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
+      ["/", "/health", "/money"],
+    );
     await p.evaluate(() => (window.__noReload = true));
     await entry.click();
     await p.waitForURL(`${baseURL}/money`);
     await p.getByRole("heading", { level: 1, name: "金钱与财务" }).waitFor();
     assert.equal(await p.evaluate(() => window.__noReload), true);
-    console.log("PASS homepage entry: /money after Health, nav unchanged");
+    assert.equal(
+      await nav.getByRole("link", { name: "金钱与财务" }).getAttribute("aria-current"),
+      "page",
+    );
+    console.log("PASS homepage entry: Money topic card after Health; nav links");
     await context.close();
   }
 
