@@ -20,6 +20,15 @@ import "./UndergroundCard.css";
 /** Required by the TfL Transport Data Service licence. */
 export const TFL_ATTRIBUTION = "Powered by TfL Open Data";
 
+/**
+ * Also required by the TfL Transport Data Service licence ("Requirements"),
+ * reproduced verbatim as read on 2026-11-11 from
+ * https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service,
+ * including the licence's own years and brackets.
+ */
+export const TFL_OS_GEOMNI_ATTRIBUTION =
+  "Contains OS data © Crown copyright and database rights 2016 and Geomni UK Map data © and database rights [2019]";
+
 type State =
   | { status: "loading" }
   | { status: "unavailable" }
@@ -106,7 +115,11 @@ export function UndergroundCard({ active = true }: UndergroundCardProps) {
         .catch(() => {
           // A failed re-read keeps the last snapshot; the freshness rule
           // withdraws it once it is too old. Only a first load is unavailable.
-          if (mount !== null && mountToken.current === mount && !hasData.current)
+          if (
+            mount !== null &&
+            mountToken.current === mount &&
+            !hasData.current
+          )
             setState({ status: "unavailable" });
         })
         .finally(() => {
@@ -305,6 +318,9 @@ export function UndergroundCard({ active = true }: UndergroundCardProps) {
           />
           <p className="travel-attribution" lang="en">
             {TFL_ATTRIBUTION}
+          </p>
+          <p className="travel-attribution-os" lang="en">
+            {TFL_OS_GEOMNI_ATTRIBUTION}
           </p>
         </div>
       </article>

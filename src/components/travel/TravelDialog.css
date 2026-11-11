@@ -112,7 +112,8 @@ html.travel-dialog-open {
   padding: 24px 28px;
   box-shadow: none;
 }
-.travel-attribution {
+.travel-attribution,
+.travel-attribution-os {
   font-size: 13px;
   color: var(--color-muted);
 }
