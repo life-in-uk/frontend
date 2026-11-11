@@ -8,6 +8,8 @@ import {
 } from "../src/roads/api.ts";
 import {
   describeDisruption,
+  estimatedEndPassed,
+  ESTIMATED_END_PASSED_NOTICE,
   formatDistance,
   formatRoadsTime,
   humaniseCode,
@@ -249,6 +251,8 @@ test("selects the useful facts; nulls stay absent rather than invented", () => {
     comments: ["Recovery in progress"],
     status: "Active",
     endTime: "2026-10-04T12:11:19.190Z",
+    // No snapshot time supplied: the expired-estimate notice is never inferred.
+    estimatedEndPassed: false,
     distance: "Under 0.1 miles",
   });
   assert.deepEqual(describeDisruption(fixture().disruptions[1]), {
@@ -259,6 +263,7 @@ test("selects the useful facts; nulls stay absent rather than invented", () => {
     comments: [],
     status: null,
     endTime: null,
+    estimatedEndPassed: false,
     distance: "0.8 miles",
   });
   // Cause management type stands in only when the type is absent.
@@ -266,4 +271,139 @@ test("selects the useful facts; nulls stay absent rather than invented", () => {
     describeDisruption(disruption({ type: null })).kind,
     "Lane closures",
   );
+});
+
+test("active event whose estimated end is before the snapshot gets the notice", () => {
+  const snapshot = "2026-11-11T11:07:14.785422Z";
+  assert.equal(
+    estimatedEndPassed("active", "2026-11-11T10:03:00Z", snapshot),
+    true,
+  );
+  assert.equal(
+    estimatedEndPassed("active", "2026-11-11T11:07:14.784Z", snapshot),
+    true,
+  );
+  // Within the same millisecond (JavaScript resolution) is not "passed":
+  // the conservative outcome is no notice.
+  assert.equal(
+    estimatedEndPassed("active", "2026-11-11T11:07:14.785421Z", snapshot),
+    false,
+  );
+  const view = describeDisruption(
+    disruption({ status: "active", endTime: "2026-11-11T10:03:00Z" }),
+    snapshot,
+  );
+  assert.equal(view.estimatedEndPassed, true);
+  // The provider status is preserved unchanged.
+  assert.equal(view.status, "Active");
+  assert.equal(view.endTime, "2026-11-11T10:03:00Z");
+  assert.equal(
+    ESTIMATED_END_PASSED_NOTICE,
+    "原预计结束时间已过，来源仍显示为进行中（Active），尚未确认解除。",
+  );
+});
+
+test("active event whose estimated end is at or after the snapshot has no notice", () => {
+  const snapshot = "2026-11-11T11:07:14Z";
+  assert.equal(
+    estimatedEndPassed("active", "2026-11-11T11:07:14Z", snapshot),
+    false,
+  );
+  assert.equal(
+    estimatedEndPassed("active", "2026-11-11T12:00:00Z", snapshot),
+    false,
+  );
+  assert.equal(
+    describeDisruption(
+      disruption({ status: "active", endTime: "2026-12-04T09:30:00Z" }),
+      snapshot,
+    ).estimatedEndPassed,
+    false,
+  );
+});
+
+test("non-active statuses never get the notice, whatever the end time", () => {
+  const snapshot = "2026-11-11T11:07:14Z";
+  const past = "2026-11-11T10:03:00Z";
+  for (const status of [
+    "suspended",
+    "planned",
+    "definedByValidityTimeSpec",
+    "Active",
+    "ACTIVE",
+    " active",
+    "",
+    null,
+  ])
+    assert.equal(
+      estimatedEndPassed(status, past, snapshot),
+      false,
+      String(status),
+    );
+  assert.equal(
+    describeDisruption(
+      disruption({ status: "suspended", endTime: past }),
+      snapshot,
+    ).estimatedEndPassed,
+    false,
+  );
+});
+
+test("missing or invalid timestamps never produce the notice", () => {
+  const snapshot = "2026-11-11T11:07:14Z";
+  const past = "2026-11-11T10:03:00Z";
+  for (const endTime of [
+    null,
+    undefined,
+    "",
+    "tomorrow",
+    "2026-11-11T10:03:00",
+    "2026-11-11T10:03:00+00:00",
+    "2026-02-30T10:03:00Z",
+    "2026-11-11T25:03:00Z",
+  ])
+    assert.equal(
+      estimatedEndPassed("active", endTime, snapshot),
+      false,
+      String(endTime),
+    );
+  for (const snapshotAt of [null, undefined, "", "now", "2026-11-11T11:07:14"])
+    assert.equal(
+      estimatedEndPassed("active", past, snapshotAt),
+      false,
+      String(snapshotAt),
+    );
+});
+
+test("the comparison uses the snapshot time, not the viewer's clock", () => {
+  const realNow = Date.now;
+  try {
+    for (const clock of [
+      0,
+      Date.parse("2026-11-11T10:00:00Z"),
+      Date.parse("2099-01-01T00:00:00Z"),
+    ]) {
+      Date.now = () => clock;
+      // Past relative to the snapshot, whatever the viewer's clock says.
+      assert.equal(
+        estimatedEndPassed(
+          "active",
+          "2026-11-11T10:03:00Z",
+          "2026-11-11T11:07:14Z",
+        ),
+        true,
+      );
+      // Future relative to the snapshot, even if the viewer's clock is later.
+      assert.equal(
+        estimatedEndPassed(
+          "active",
+          "2026-11-11T12:00:00Z",
+          "2026-11-11T11:07:14Z",
+        ),
+        false,
+      );
+    }
+  } finally {
+    Date.now = realNow;
+  }
 });

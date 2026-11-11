@@ -5,7 +5,10 @@ import { Button } from "./Button";
 import { Freshness, OfficialSource } from "./InformationCard";
 import { getRoads, RoadsUnavailableError } from "../roads/api";
 import type { RoadsResponse } from "../roads/api";
-import { describeDisruption } from "../roads/presentation";
+import {
+  describeDisruption,
+  ESTIMATED_END_PASSED_NOTICE,
+} from "../roads/presentation";
 import {
   MAX_PLACE_QUERY_LENGTH,
   normalisePlaceQuery,
@@ -468,7 +471,10 @@ export function RoadsCard() {
               {facts && facts.disruptions.length > 0 && (
                 <ol className="roads-list">
                   {facts.disruptions.map((disruption, index) => {
-                    const view = describeDisruption(disruption);
+                    const view = describeDisruption(
+                      disruption,
+                      facts.snapshotAt,
+                    );
                     return (
                       <li
                         className="roads-item"
@@ -510,7 +516,9 @@ export function RoadsCard() {
                           )}
                           {view.endTime && (
                             <span>
-                              来源结束时间：
+                              {view.estimatedEndPassed
+                                ? "原预计结束时间："
+                                : "来源结束时间："}
                               <time dateTime={view.endTime}>
                                 {formatUkDateTimeZh(view.endTime)}
                               </time>
@@ -523,6 +531,11 @@ export function RoadsCard() {
                             </span>
                           )}
                         </p>
+                        {view.estimatedEndPassed && (
+                          <p className="roads-estimate-passed">
+                            {ESTIMATED_END_PASSED_NOTICE}
+                          </p>
+                        )}
                       </li>
                     );
                   })}
