@@ -71,6 +71,9 @@ const fixture = {
 const unavailable = "伦敦地铁运行状态暂时无法获取。";
 const emptyMessage = "这次来源观测中没有包含任何地铁线路的状态信息。";
 const TFL_ATTRIBUTION = "Powered by TfL Open Data";
+// Verbatim from the TfL Transport Data Service licence, read 2026-11-11.
+const TFL_OS_GEOMNI_ATTRIBUTION =
+  "Contains OS data © Crown copyright and database rights 2016 and Geomni UK Map data © and database rights [2019]";
 // Two minutes after the fixture observation: within the 10-minute limit.
 const FRESH_NOW = Date.parse(fixture.observedAt) + 2 * 60_000;
 const REAL = ["1", "unavailable"].includes(process.env.REAL_BACKEND);
@@ -158,6 +161,10 @@ async function assertPage(page, requests, errors, width) {
   assert.equal(
     await page.locator(".underground-card .travel-attribution").innerText(),
     TFL_ATTRIBUTION,
+  );
+  assert.equal(
+    await page.locator(".underground-card .travel-attribution-os").innerText(),
+    TFL_OS_GEOMNI_ATTRIBUTION,
   );
   await source.focus();
   assert.equal(
@@ -706,7 +713,8 @@ try {
       return { context, page, state, card: page.locator(".underground-card") };
     };
     const until = async (page, predicate, message) => {
-      for (let i = 0; i < 60 && !predicate(); i++) await page.waitForTimeout(50);
+      for (let i = 0; i < 60 && !predicate(); i++)
+        await page.waitForTimeout(50);
       assert(predicate(), message);
     };
     {
@@ -723,7 +731,11 @@ try {
       await page.waitForTimeout(200);
       assert.equal(reads(), 1, "no re-read before 2 minutes");
       await page.clock.runFor(15_000);
-      await until(page, () => reads() === 2, `re-read at 2 minutes (${reads()})`);
+      await until(
+        page,
+        () => reads() === 2,
+        `re-read at 2 minutes (${reads()})`,
+      );
       await page.locator(".travel-tab", { hasText: "道路" }).click();
       await page.locator(".travel-dialog .roads-card").waitFor();
       await page.clock.runFor(10 * 60_000);
@@ -731,7 +743,11 @@ try {
       assert.equal(reads(), 2, "no re-reads while another tab is active");
       // Returning after the interval has passed reads at once, then resumes.
       await page.locator(".travel-tab", { hasText: "伦敦地铁" }).click();
-      await until(page, () => reads() === 3, `overdue read on return (${reads()})`);
+      await until(
+        page,
+        () => reads() === 3,
+        `overdue read on return (${reads()})`,
+      );
       await page.clock.runFor(110_000);
       await page.waitForTimeout(200);
       assert.equal(reads(), 3);
@@ -750,7 +766,11 @@ try {
       assert.equal(reads(), 4, "no re-reads after the dialog closes");
       assert.equal(state.started, startedAtClose, "no requests after close");
       await page.locator('.transport-item[data-tool="underground"]').click();
-      await until(page, () => reads() === 5, `reopening reads at once (${reads()})`);
+      await until(
+        page,
+        () => reads() === 5,
+        `reopening reads at once (${reads()})`,
+      );
       await context.close();
       console.log(
         "PASS re-read cadence: read on open, every 2 min while active, paused on other tab, overdue read on return, none after close",
@@ -772,7 +792,11 @@ try {
       for (const name of ["道路", "伦敦地铁", "道路", "伦敦地铁"])
         await page.locator(".travel-tab", { hasText: name }).click();
       await page.waitForTimeout(300);
-      assert.equal(state.started, pending, "no second request while one is in flight");
+      assert.equal(
+        state.started,
+        pending,
+        "no second request while one is in flight",
+      );
       release();
       await card.locator(".underground-line").first().waitFor();
       assert.equal(state.completed, 1);
@@ -783,12 +807,22 @@ try {
       // A newer snapshot replaces the older one; an older response arriving
       // later never replaces newer facts.
       const lineSet = (name, description) => [
-        { lineId: name.toLowerCase(), lineName: name, statuses: [{ severity: 9, description, reason: null }] },
+        {
+          lineId: name.toLowerCase(),
+          lineName: name,
+          statuses: [{ severity: 9, description, reason: null }],
+        },
       ];
       const snapshots = [
         fixture,
-        { observedAt: new Date(FRESH_NOW + 60_000).toISOString(), lines: lineSet("Victoria", "Minor Delays") },
-        { observedAt: new Date(FRESH_NOW - 60 * 60_000).toISOString(), lines: lineSet("Bakerloo", "Older Snapshot") },
+        {
+          observedAt: new Date(FRESH_NOW + 60_000).toISOString(),
+          lines: lineSet("Victoria", "Minor Delays"),
+        },
+        {
+          observedAt: new Date(FRESH_NOW - 60 * 60_000).toISOString(),
+          lines: lineSet("Bakerloo", "Older Snapshot"),
+        },
       ];
       const { context, page, state, card } = await reader((route, s) =>
         route.fulfill({ json: snapshots[s.serve] }),
@@ -797,18 +831,29 @@ try {
       await card.locator(".underground-line").first().waitFor();
       state.serve = 1;
       await page.clock.runFor(125_000);
-      await card.locator(".underground-line", { hasText: "Victoria" }).waitFor();
+      await card
+        .locator(".underground-line", { hasText: "Victoria" })
+        .waitFor();
       assert.equal(await card.locator(".underground-line").count(), 1);
       state.serve = 2;
       const before = state.completed;
       await page.clock.runFor(120_000);
-      await until(page, () => state.completed === before + 1, "older snapshot read");
+      await until(
+        page,
+        () => state.completed === before + 1,
+        "older snapshot read",
+      );
       await page.waitForTimeout(300);
       const text = await card.innerText();
-      assert(text.includes("Victoria") && !text.includes("Older Snapshot"), "older snapshot ignored");
+      assert(
+        text.includes("Victoria") && !text.includes("Older Snapshot"),
+        "older snapshot ignored",
+      );
       assert.equal(await card.locator(".travel-stale").count(), 0);
       await context.close();
-      console.log("PASS newer snapshot replaces older; an older response never replaces newer facts");
+      console.log(
+        "PASS newer snapshot replaces older; an older response never replaces newer facts",
+      );
     }
     {
       // A failed re-read keeps the last snapshot (never "unavailable"); the
@@ -823,7 +868,11 @@ try {
       state.serve = 1;
       const before = state.completed;
       await page.clock.runFor(125_000);
-      await until(page, () => state.completed === before + 1, "failed re-read attempted");
+      await until(
+        page,
+        () => state.completed === before + 1,
+        "failed re-read attempted",
+      );
       await page.waitForTimeout(300);
       await card.locator(".underground-line").first().waitFor();
       assert(!(await card.innerText()).includes(unavailable));
@@ -832,7 +881,9 @@ try {
       assert.equal(await card.locator(".underground-line").count(), 0);
       assert(!(await card.innerText()).includes(unavailable));
       await context.close();
-      console.log("PASS failed re-read keeps last snapshot, then stale notice; never unavailable");
+      console.log(
+        "PASS failed re-read keeps last snapshot, then stale notice; never unavailable",
+      );
     }
   } else {
     for (const width of [1440, 390]) {
