@@ -16,6 +16,21 @@ const FUTURE_TOLERANCE_MS = 2 * 60_000;
 const INSTANT =
   /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?Z$/;
 
+/**
+ * Milliseconds for a strict UTC instant ("…Z", as the backend sends), or null
+ * for a missing, malformed or impossible value.
+ */
+export function parseInstant(value: unknown): number | null {
+  if (typeof value !== "string" || !INSTANT.test(value)) return null;
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return null;
+  // Reject impossible calendar dates (e.g. 30 February) that Date.parse
+  // would otherwise roll over into the next month.
+  return new Date(time).toISOString().slice(0, 10) === value.slice(0, 10)
+    ? time
+    : null;
+}
+
 export type Freshness =
   | { state: "fresh"; observedAt: string }
   | { state: "stale"; observedAt: string }

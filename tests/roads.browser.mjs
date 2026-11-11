@@ -364,6 +364,15 @@ try {
     );
     assert((await first.innerText()).includes("2026年10月4日 13:11"));
     assert((await first.innerText()).includes("来源状态：Active"));
+    // Active, estimated end 12:11 before the 12:37 snapshot: explained, with
+    // the provider status kept, compared with the snapshot (the browser clock
+    // is pinned five minutes later, not used).
+    assert.equal(
+      await first.locator(".roads-estimate-passed").innerText(),
+      "原预计结束时间已过，来源仍显示为进行中（Active），尚未确认解除。",
+    );
+    assert((await first.innerText()).includes("原预计结束时间："));
+    assert(!(await first.innerText()).includes("来源结束时间："));
     // Optional values absent: nothing invented.
     const second = items.nth(1);
     assert.equal(await second.locator("h3").innerText(), "A14");
@@ -374,6 +383,8 @@ try {
       0,
     );
     assert(!/来源(状态|结束时间)/.test(await second.innerText()));
+    // No status and no end time: no expired-estimate notice.
+    assert.equal(await second.locator(".roads-estimate-passed").count(), 0);
     assert.equal(
       await second.locator(".roads-distance").textContent(),
       "直线距离 0.8 英里",
@@ -385,6 +396,9 @@ try {
     );
     assert((await third.innerText()).includes("2026年12月4日 09:30"));
     assert((await third.innerText()).includes("Southbound"));
+    // Non-active ("suspended") with a future end: plain end time, no notice.
+    assert.equal(await third.locator(".roads-estimate-passed").count(), 0);
+    assert((await third.innerText()).includes("来源结束时间："));
     const summary = await card.locator(".roads-summary").innerText();
     assert.equal(summary, "9.3 英里 范围内有 3 条道路异常，按距离由近到远排列。");
     assert((await card.innerText()).includes("不是驾车距离"));
