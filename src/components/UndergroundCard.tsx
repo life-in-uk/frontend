@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { ChevronDown, TrainFront } from "lucide-react";
 import { Freshness, OfficialSource } from "./InformationCard";
@@ -37,29 +37,98 @@ function summaryText(data: UndergroundResponse): string {
   return parts.join(" · ");
 }
 
-export function UndergroundCard() {
+/**
+ * While the Underground tab is active in the open dialog, the stored snapshot
+ * is re-read every 2 minutes (the backend's default refresh interval).
+ */
+export const UNDERGROUND_REREAD_MS = 2 * 60_000;
+const REQUEST_DEADLINE_MS = 10_000;
+
+interface UndergroundCardProps {
+  /** False while another dialog tab is shown: no re-reads are scheduled. */
+  active?: boolean;
+}
+
+export function UndergroundCard({ active = true }: UndergroundCardProps) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const idPrefix = useId();
   const now = useNow();
+  // Request bookkeeping lives in refs so switching tabs never refetches early.
+  const mountToken = useRef<object | null>(null);
+  const inFlight = useRef<AbortController | null>(null);
+  const lastStarted = useRef<number | null>(null);
+  const hasData = useRef(false);
+  const shownObservedAt = useRef<number | null>(null);
+
+  // Unmounting (closing the dialog) aborts any request and forgets timing,
+  // and results that belong to an earlier mount are ignored.
   useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    const timeout = window.setTimeout(() => controller.abort(), 10_000);
-    getUnderground(controller.signal)
-      .then((data) => {
-        if (active) setState({ status: "ready", data });
-      })
-      .catch(() => {
-        if (active) setState({ status: "unavailable" });
-      })
-      .finally(() => window.clearTimeout(timeout));
+    mountToken.current = {};
     return () => {
-      active = false;
-      window.clearTimeout(timeout);
-      controller.abort();
+      mountToken.current = null;
+      inFlight.current?.abort();
+      inFlight.current = null;
+      lastStarted.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!active) return;
+    // One request at a time: a tick that finds one in flight is skipped.
+    function load() {
+      if (inFlight.current) return;
+      const mount = mountToken.current;
+      const controller = new AbortController();
+      inFlight.current = controller;
+      lastStarted.current = Date.now();
+      const deadline = window.setTimeout(
+        () => controller.abort(),
+        REQUEST_DEADLINE_MS,
+      );
+      getUnderground(controller.signal)
+        .then((data) => {
+          if (mount === null || mountToken.current !== mount) return;
+          const observed = Date.parse(data.observedAt);
+          // An older snapshot never replaces a newer one already shown.
+          if (
+            shownObservedAt.current !== null &&
+            Number.isFinite(observed) &&
+            observed < shownObservedAt.current
+          )
+            return;
+          shownObservedAt.current = Number.isFinite(observed)
+            ? observed
+            : shownObservedAt.current;
+          hasData.current = true;
+          setState({ status: "ready", data });
+        })
+        .catch(() => {
+          // A failed re-read keeps the last snapshot; the freshness rule
+          // withdraws it once it is too old. Only a first load is unavailable.
+          if (mount !== null && mountToken.current === mount && !hasData.current)
+            setState({ status: "unavailable" });
+        })
+        .finally(() => {
+          window.clearTimeout(deadline);
+          if (inFlight.current === controller) inFlight.current = null;
+        });
+    }
+    let timer = 0;
+    function tick() {
+      load();
+      timer = window.setTimeout(tick, UNDERGROUND_REREAD_MS);
+    }
+    // Opening reads at once; returning to the tab reads at once only if a
+    // re-read is already due, otherwise when it falls due.
+    const due =
+      lastStarted.current === null
+        ? 0
+        : Math.max(0, lastStarted.current + UNDERGROUND_REREAD_MS - Date.now());
+    if (due === 0) tick();
+    else timer = window.setTimeout(tick, due);
+    return () => window.clearTimeout(timer);
+  }, [active]);
 
   function toggle(key: string) {
     setExpanded((current) => {

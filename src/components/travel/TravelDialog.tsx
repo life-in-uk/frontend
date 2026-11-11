@@ -148,7 +148,7 @@ export function TravelDialog({ tool, onSelect, onClose }: TravelDialogProps) {
                       </p>
                     }
                   >
-                    {toolContent(item.id)}
+                    {toolContent(item.id, tool === item.id)}
                   </Suspense>
                 </div>
               ) : null,
@@ -160,8 +160,8 @@ export function TravelDialog({ tool, onSelect, onClose }: TravelDialogProps) {
   );
 }
 
-function toolContent(tool: TravelToolId): ReactNode {
-  if (tool === "underground") return <UndergroundCard />;
+function toolContent(tool: TravelToolId, active: boolean): ReactNode {
+  if (tool === "underground") return <UndergroundCard active={active} />;
   if (tool === "roads") return <RoadsCard />;
   if (RailCard && railPreviewEnabled()) return <RailCard />;
   return <RailUnavailable />;

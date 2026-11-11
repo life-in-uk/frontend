@@ -107,14 +107,16 @@ async function newPage(
   const page = await context.newPage();
   if (fresh) await page.clock.setFixedTime(FRESH_NOW);
   const requests = [];
+  const responses = [];
   const errors = [];
   const consoleErrors = [];
   page.on("request", (request) => requests.push(request.url()));
+  page.on("response", (response) => responses.push(response.url()));
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
-  return { context, page, requests, errors, consoleErrors };
+  return { context, page, requests, responses, errors, consoleErrors };
 }
 /** Opens the Underground tool from the homepage transport panel. */
 async function openUnderground(page) {
@@ -270,7 +272,7 @@ async function assertFacts(page, data) {
 try {
   if (!REAL) {
     for (const width of [1440, 390]) {
-      const { context, page, requests, errors, consoleErrors } =
+      const { context, page, requests, responses, errors, consoleErrors } =
         await newPage(width);
       let release;
       const gate = new Promise((resolve) => {
@@ -311,21 +313,17 @@ try {
         path: `${screenshots}/fixture-${width}.png`,
         fullPage: true,
       });
-      // The completed request is not repeated as time passes.
-      const requestCount = requests.filter(
-        (url) => new URL(url).pathname === "/api/travel/underground",
-      ).length;
-      await page.clock.install({ time: FRESH_NOW });
-      await page.clock.runFor(120_000);
+      // One completed backend read on open (re-read cadence: see below). In
+      // development, React StrictMode aborts a duplicate first request.
       assert.equal(
-        requests.filter(
+        responses.filter(
           (url) => new URL(url).pathname === "/api/travel/underground",
         ).length,
-        requestCount,
+        1,
       );
       await context.close();
       console.log(
-        `PASS ${width}px (dialog): local loading, all lines/statuses, A/B/A repeats, exact wording/reasons, UK observedAt, TfL attribution, long wrapping, keyboard focus, no TfL requests or polling`,
+        `PASS ${width}px (dialog): local loading, all lines/statuses, A/B/A repeats, exact wording/reasons, UK observedAt, TfL attribution, long wrapping, keyboard focus, no TfL requests, one read on open`,
       );
     }
     for (const reducedMotion of ["no-preference", "reduce"]) {
@@ -669,19 +667,172 @@ try {
     }
     {
       // A snapshot that turns stale while the dialog is open is withdrawn.
+      // Re-reads return the same old snapshot, which must not revive it.
       const { context, page } = await newPage(1440, "reduce", { fresh: false });
       await page.clock.install({ time: FRESH_NOW });
-      await page.route("**/api/travel/underground", (route) =>
-        route.fulfill({ json: fixture }),
-      );
+      let reads = 0;
+      await page.route("**/api/travel/underground", (route) => {
+        reads++;
+        return route.fulfill({ json: fixture });
+      });
       await openUnderground(page);
       const card = page.locator(".underground-card");
       await card.locator(".underground-line").first().waitFor();
       await page.clock.runFor(9 * 60_000);
       await card.locator(".travel-stale").waitFor();
       assert.equal(await card.locator(".underground-line").count(), 0);
+      assert(reads >= 4, `the unchanged snapshot was re-read (${reads})`);
       await context.close();
-      console.log("PASS fresh → stale while open: statuses withdrawn");
+      console.log(
+        "PASS fresh → stale while open: statuses withdrawn; re-reading the same snapshot does not revive it",
+      );
+    }
+    // Re-read cadence. The page clock is installed before navigation so every
+    // timer is controlled; margins absorb real time passing during the test.
+    // Counts use completed responses: in development React StrictMode aborts
+    // a duplicate first request, which never completes.
+    const reader = async (respond) => {
+      const { context, page } = await newPage(1440, "reduce", { fresh: false });
+      await page.clock.install({ time: FRESH_NOW });
+      const state = { started: 0, completed: 0, serve: 0 };
+      page.on("response", (response) => {
+        if (new URL(response.url()).pathname === "/api/travel/underground")
+          state.completed++;
+      });
+      await page.route("**/api/travel/underground", (route) => {
+        state.started++;
+        return respond(route, state);
+      });
+      return { context, page, state, card: page.locator(".underground-card") };
+    };
+    const until = async (page, predicate, message) => {
+      for (let i = 0; i < 60 && !predicate(); i++) await page.waitForTimeout(50);
+      assert(predicate(), message);
+    };
+    {
+      // Every 2 minutes only while the Underground tab is active and the
+      // dialog is open; nothing while another tab is shown or once closed.
+      const { context, page, state, card } = await reader((route) =>
+        route.fulfill({ json: fixture }),
+      );
+      const reads = () => state.completed;
+      await openUnderground(page);
+      await card.locator(".underground-line").first().waitFor();
+      await until(page, () => reads() === 1, `one read on open (${reads()})`);
+      await page.clock.runFor(110_000);
+      await page.waitForTimeout(200);
+      assert.equal(reads(), 1, "no re-read before 2 minutes");
+      await page.clock.runFor(15_000);
+      await until(page, () => reads() === 2, `re-read at 2 minutes (${reads()})`);
+      await page.locator(".travel-tab", { hasText: "道路" }).click();
+      await page.locator(".travel-dialog .roads-card").waitFor();
+      await page.clock.runFor(10 * 60_000);
+      await page.waitForTimeout(200);
+      assert.equal(reads(), 2, "no re-reads while another tab is active");
+      // Returning after the interval has passed reads at once, then resumes.
+      await page.locator(".travel-tab", { hasText: "伦敦地铁" }).click();
+      await until(page, () => reads() === 3, `overdue read on return (${reads()})`);
+      await page.clock.runFor(110_000);
+      await page.waitForTimeout(200);
+      assert.equal(reads(), 3);
+      await page.clock.runFor(15_000);
+      await until(page, () => reads() === 4, `cadence resumes (${reads()})`);
+      // Returning within the interval does not read early.
+      await page.locator(".travel-tab", { hasText: "道路" }).click();
+      await page.locator(".travel-tab", { hasText: "伦敦地铁" }).click();
+      await page.waitForTimeout(300);
+      assert.equal(reads(), 4, "no early read on a quick return");
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(() => !document.querySelector("dialog[open]"));
+      const startedAtClose = state.started;
+      await page.clock.runFor(10 * 60_000);
+      await page.waitForTimeout(200);
+      assert.equal(reads(), 4, "no re-reads after the dialog closes");
+      assert.equal(state.started, startedAtClose, "no requests after close");
+      await page.locator('.transport-item[data-tool="underground"]').click();
+      await until(page, () => reads() === 5, `reopening reads at once (${reads()})`);
+      await context.close();
+      console.log(
+        "PASS re-read cadence: read on open, every 2 min while active, paused on other tab, overdue read on return, none after close",
+      );
+    }
+    {
+      // No overlapping requests: switching tabs while a read is pending does
+      // not start another one.
+      let release;
+      const held = new Promise((resolve) => (release = resolve));
+      const { context, page, state, card } = await reader(async (route) => {
+        await held;
+        return route.fulfill({ json: fixture }).catch(() => {});
+      });
+      await openUnderground(page);
+      await until(page, () => state.started >= 1, "first read pending");
+      await page.waitForTimeout(300);
+      const pending = state.started;
+      for (const name of ["道路", "伦敦地铁", "道路", "伦敦地铁"])
+        await page.locator(".travel-tab", { hasText: name }).click();
+      await page.waitForTimeout(300);
+      assert.equal(state.started, pending, "no second request while one is in flight");
+      release();
+      await card.locator(".underground-line").first().waitFor();
+      assert.equal(state.completed, 1);
+      await context.close();
+      console.log("PASS no overlapping reads while one is pending");
+    }
+    {
+      // A newer snapshot replaces the older one; an older response arriving
+      // later never replaces newer facts.
+      const lineSet = (name, description) => [
+        { lineId: name.toLowerCase(), lineName: name, statuses: [{ severity: 9, description, reason: null }] },
+      ];
+      const snapshots = [
+        fixture,
+        { observedAt: new Date(FRESH_NOW + 60_000).toISOString(), lines: lineSet("Victoria", "Minor Delays") },
+        { observedAt: new Date(FRESH_NOW - 60 * 60_000).toISOString(), lines: lineSet("Bakerloo", "Older Snapshot") },
+      ];
+      const { context, page, state, card } = await reader((route, s) =>
+        route.fulfill({ json: snapshots[s.serve] }),
+      );
+      await openUnderground(page);
+      await card.locator(".underground-line").first().waitFor();
+      state.serve = 1;
+      await page.clock.runFor(125_000);
+      await card.locator(".underground-line", { hasText: "Victoria" }).waitFor();
+      assert.equal(await card.locator(".underground-line").count(), 1);
+      state.serve = 2;
+      const before = state.completed;
+      await page.clock.runFor(120_000);
+      await until(page, () => state.completed === before + 1, "older snapshot read");
+      await page.waitForTimeout(300);
+      const text = await card.innerText();
+      assert(text.includes("Victoria") && !text.includes("Older Snapshot"), "older snapshot ignored");
+      assert.equal(await card.locator(".travel-stale").count(), 0);
+      await context.close();
+      console.log("PASS newer snapshot replaces older; an older response never replaces newer facts");
+    }
+    {
+      // A failed re-read keeps the last snapshot (never "unavailable"); the
+      // freshness rule still withdraws it once it is too old.
+      const { context, page, state, card } = await reader((route, s) =>
+        s.serve === 0
+          ? route.fulfill({ json: fixture })
+          : route.fulfill({ status: 503, json: {} }),
+      );
+      await openUnderground(page);
+      await card.locator(".underground-line").first().waitFor();
+      state.serve = 1;
+      const before = state.completed;
+      await page.clock.runFor(125_000);
+      await until(page, () => state.completed === before + 1, "failed re-read attempted");
+      await page.waitForTimeout(300);
+      await card.locator(".underground-line").first().waitFor();
+      assert(!(await card.innerText()).includes(unavailable));
+      await page.clock.runFor(7 * 60_000);
+      await card.locator(".travel-stale").waitFor();
+      assert.equal(await card.locator(".underground-line").count(), 0);
+      assert(!(await card.innerText()).includes(unavailable));
+      await context.close();
+      console.log("PASS failed re-read keeps last snapshot, then stale notice; never unavailable");
     }
   } else {
     for (const width of [1440, 390]) {
