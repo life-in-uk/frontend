@@ -1,6 +1,7 @@
 // Deterministic presentation of backend Roads facts. Nothing here filters,
 // reorders or recalculates relevance: the backend owns all of that.
 import type { RoadsDisruption } from "./api";
+import { parseInstant } from "../travel/freshness.ts";
 
 const METRES_PER_MILE = 1609.344;
 
@@ -66,12 +67,39 @@ export type DisruptionView = {
   /** Provider validity status, humanised, or null. */
   status: string | null;
   endTime: string | null;
+  /**
+   * The provider still reports the event as "active" although its estimated
+   * end time is before the snapshot's observation time.
+   */
+  estimatedEndPassed: boolean;
   distance: string;
 };
+
+/** Shown beside an active event whose estimated end time has passed. */
+export const ESTIMATED_END_PASSED_NOTICE =
+  "原预计结束时间已过，来源仍显示为进行中（Active），尚未确认解除。";
+
+/**
+ * True only for the exact provider status "active" with a valid end time
+ * strictly before a valid snapshot time. The comparison uses the snapshot's
+ * observation time, never the viewer's clock; missing or invalid timestamps
+ * never produce the notice. The provider status itself is kept unchanged.
+ */
+export function estimatedEndPassed(
+  status: string | null,
+  endTime: string | null,
+  snapshotAt: string | null | undefined,
+): boolean {
+  if (status !== "active") return false;
+  const end = parseInstant(endTime);
+  const snapshot = parseInstant(snapshotAt);
+  return end !== null && snapshot !== null && end < snapshot;
+}
 
 /** Selects the useful human-facing facts; repeated identical text is shown once. */
 export function describeDisruption(
   disruption: RoadsDisruption,
+  snapshotAt?: string,
 ): DisruptionView {
   const roadSections = disruption.locations.flatMap(
     (location) => location.roads,
@@ -99,6 +127,11 @@ export function describeDisruption(
     ),
     status: disruption.status === null ? null : humaniseCode(disruption.status),
     endTime: disruption.endTime,
+    estimatedEndPassed: estimatedEndPassed(
+      disruption.status,
+      disruption.endTime,
+      snapshotAt,
+    ),
     distance: formatDistance(disruption.distanceMeters),
   };
 }

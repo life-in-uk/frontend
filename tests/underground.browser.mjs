@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
+// Underground is a first-party tool inside the homepage travel dialog. The
+// browser clock is pinned shortly after each fixture's observation so the
+// fresh path is exercised; stale paths use the real clock.
+import { isUndergroundResponse } from "../src/underground/api.ts";
+import { formatUkDateTimeZh } from "../src/travel/format.ts";
 import {
-  isUndergroundResponse,
-  formatUndergroundObservation,
-} from "../src/underground/api.ts";
+  assessFreshness,
+  UNDERGROUND_MAX_AGE_MS,
+} from "../src/travel/freshness.ts";
 import {
   PRESENTATION_LABELS,
   classifyStatus,
@@ -63,35 +68,83 @@ const fixture = {
     },
   ],
 };
-const unavailable = "Underground status is temporarily unavailable.";
-const emptyMessage =
-  "No Underground line status information was included in this observation.";
+const unavailable = "伦敦地铁运行状态暂时无法获取。";
+const emptyMessage = "这次来源观测中没有包含任何地铁线路的状态信息。";
+const TFL_ATTRIBUTION = "Powered by TfL Open Data";
+// Verbatim from the TfL Transport Data Service licence, read 2026-11-11.
+const TFL_OS_GEOMNI_ATTRIBUTION =
+  "Contains OS data © Crown copyright and database rights 2016 and Geomni UK Map data © and database rights [2019]";
+// Two minutes after the fixture observation: within the 10-minute limit.
+const FRESH_NOW = Date.parse(fixture.observedAt) + 2 * 60_000;
+const REAL = ["1", "unavailable"].includes(process.env.REAL_BACKEND);
 
-async function newPage(width, reducedMotion = "no-preference") {
+async function newPage(
+  width,
+  reducedMotion = "no-preference",
+  { fresh = true } = {},
+) {
   const context = await browser.newContext({
     viewport: { width, height: 1000 },
     timezoneId: "America/Los_Angeles",
     reducedMotion,
   });
+  if (!REAL) {
+    // Keep this suite independent of the other homepage data.
+    await context.route("**/api/guides", (route) =>
+      route.fulfill({ json: [] }),
+    );
+    await context.route("**/api/bank-holidays", (route) =>
+      route.fulfill({
+        json: {
+          evidence: {
+            artifactId: "12345678-1234-1234-1234-123456789abc",
+            observedAt: "2026-10-03T12:11:04Z",
+          },
+          divisions: ["england-and-wales", "scotland", "northern-ireland"].map(
+            (division) => ({ division, events: [] }),
+          ),
+        },
+      }),
+    );
+  }
   const page = await context.newPage();
+  if (fresh) await page.clock.setFixedTime(FRESH_NOW);
   const requests = [];
+  const responses = [];
   const errors = [];
   const consoleErrors = [];
   page.on("request", (request) => requests.push(request.url()));
+  page.on("response", (response) => responses.push(response.url()));
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
-  return { context, page, requests, errors, consoleErrors };
+  return { context, page, requests, responses, errors, consoleErrors };
+}
+/** Opens the Underground tool from the homepage transport panel. */
+async function openUnderground(page) {
+  await page.goto(baseURL);
+  await page.locator('.transport-item[data-tool="underground"]').click();
+  await page.locator(".travel-dialog .underground-card").waitFor();
 }
 async function assertPage(page, requests, errors, width) {
-  assert.equal(
+  // The homepage stays intact behind the open travel dialog.
+  assert.equal(await page.locator("h1").count(), 1);
+  assert.match(
     await page.locator("h1").innerText(),
-    "把英国日常，\n讲得亲切、清楚。",
+    /在英国生活、工作、\s*学习的实用指南/,
   );
-  assert.equal(await page.locator(".foundation-card").count(), 2);
+  assert.equal(await page.locator("dialog.travel-dialog[open]").count(), 1);
   assert.equal(
-    await page.locator(".information-grid .information-card").count(),
+    await page
+      .locator('.travel-tab[aria-selected="true"]')
+      .getAttribute("aria-controls"),
+    await page
+      .locator('.travel-panel[data-tool="underground"]')
+      .getAttribute("id"),
+  );
+  assert.equal(
+    await page.locator(".travel-dialog .underground-card").count(),
     1,
   );
   assert.equal(
@@ -105,6 +158,14 @@ async function assertPage(page, requests, errors, width) {
   assert.deepEqual(errors, []);
   const source = page.locator(".underground-card .source-label");
   assert((await source.innerText()).includes("Transport for London"));
+  assert.equal(
+    await page.locator(".underground-card .travel-attribution").innerText(),
+    TFL_ATTRIBUTION,
+  );
+  assert.equal(
+    await page.locator(".underground-card .travel-attribution-os").innerText(),
+    TFL_OS_GEOMNI_ATTRIBUTION,
+  );
   await source.focus();
   assert.equal(
     await source.evaluate((el) => getComputedStyle(el).outlineWidth),
@@ -191,10 +252,11 @@ async function assertFacts(page, data) {
   const { affected, unclassified } = summariseLines(data.lines);
   const summary = await card.locator(".underground-summary").innerText();
   assert(
-    summary.includes(`${affected} of ${data.lines.length}`) || affected === 0,
+    summary.includes(`${data.lines.length} 条线路中有 ${affected} 条报告异常`) ||
+      (affected === 0 &&
+        summary.includes(`${data.lines.length} 条线路均未报告异常`)),
   );
-  if (unclassified > 0)
-    assert(summary.includes(`${unclassified} not classified`));
+  if (unclassified > 0) assert(summary.includes(`${unclassified} 条未能分类`));
   assert.equal(
     await card.locator(".underground-reason:visible").count(),
     0,
@@ -206,16 +268,18 @@ async function assertFacts(page, data) {
   );
   assert.equal(
     await card.locator("time").innerText(),
-    `Source observed: ${formatUndergroundObservation(data.observedAt)} UK time`,
+    `来源观测于 ${formatUkDateTimeZh(data.observedAt)}（英国时间）`,
   );
   assert(!(await card.innerText()).includes("Live now"));
+  assert(!(await card.innerText()).includes("实时"));
+  assert.equal(await card.locator(".travel-stale").count(), 0);
   assert.equal(await card.locator(".trust-badge").count(), 0);
 }
 
 try {
-  if (!["1", "unavailable"].includes(process.env.REAL_BACKEND)) {
+  if (!REAL) {
     for (const width of [1440, 390]) {
-      const { context, page, requests, errors, consoleErrors } =
+      const { context, page, requests, responses, errors, consoleErrors } =
         await newPage(width);
       let release;
       const gate = new Promise((resolve) => {
@@ -225,16 +289,19 @@ try {
         await gate;
         await route.fulfill({ json: fixture });
       });
-      await page.goto(baseURL);
+      await openUnderground(page);
       const card = page.locator(".underground-card");
       await card
         .getByRole("status")
-        .filter({ hasText: "Loading Underground" })
+        .filter({ hasText: "正在加载伦敦地铁" })
         .waitFor();
       assert.equal(await card.getAttribute("aria-busy"), "true");
       assert.equal(await card.locator(".underground-line").count(), 0);
-      await page.getByRole("link", { name: "看看信息如何呈现" }).click();
-      assert.equal(await page.evaluate(() => location.hash), "#information");
+      // Opening the dialog moves keyboard focus to the selected tab.
+      assert.equal(
+        await page.evaluate(() => document.activeElement?.getAttribute("role")),
+        "tab",
+      );
       await assertPage(page, requests, errors, width);
       release();
       await assertFacts(page, fixture);
@@ -253,21 +320,17 @@ try {
         path: `${screenshots}/fixture-${width}.png`,
         fullPage: true,
       });
-      // The completed request is not repeated as time passes.
-      const requestCount = requests.filter(
-        (url) => new URL(url).pathname === "/api/travel/underground",
-      ).length;
-      await page.clock.install();
-      await page.clock.runFor(120_000);
+      // One completed backend read on open (re-read cadence: see below). In
+      // development, React StrictMode aborts a duplicate first request.
       assert.equal(
-        requests.filter(
+        responses.filter(
           (url) => new URL(url).pathname === "/api/travel/underground",
         ).length,
-        requestCount,
+        1,
       );
       await context.close();
       console.log(
-        `PASS ${width}px: local loading, all lines/statuses, A/B/A repeats, exact wording/reasons, UK observedAt, long wrapping, keyboard focus, no TfL requests or polling`,
+        `PASS ${width}px (dialog): local loading, all lines/statuses, A/B/A repeats, exact wording/reasons, UK observedAt, TfL attribution, long wrapping, keyboard focus, no TfL requests, one read on open`,
       );
     }
     for (const reducedMotion of ["no-preference", "reduce"]) {
@@ -275,7 +338,7 @@ try {
       await page.route("**/api/travel/underground", (route) =>
         route.fulfill({ json: fixture }),
       );
-      await page.goto(baseURL);
+      await openUnderground(page);
       const card = page.locator(".underground-card");
       await card.locator("time").waitFor();
       const animation = (state) =>
@@ -309,7 +372,7 @@ try {
       await page.route("**/api/travel/underground", (route) =>
         route.fulfill({ json: fixture }),
       );
-      await page.goto(baseURL);
+      await openUnderground(page);
       const card = page.locator(".underground-card");
       await card.locator("time").waitFor();
       const layout = () =>
@@ -422,7 +485,7 @@ try {
     for (const [name, handle] of cases) {
       const { context, page, requests, errors } = await newPage(390);
       await page.route("**/api/travel/underground", handle);
-      await page.goto(baseURL);
+      await openUnderground(page);
       const card = page.locator(".underground-card");
       await card.getByRole("status").filter({ hasText: unavailable }).waitFor();
       assert.equal(await card.locator(".underground-line,time").count(), 0);
@@ -447,7 +510,7 @@ try {
       await page.route("**/api/travel/underground", (route) =>
         route.fulfill({ json: data }),
       );
-      await page.goto(baseURL);
+      await openUnderground(page);
       const card = page.locator(".underground-card");
       await card
         .getByRole("status")
@@ -463,6 +526,7 @@ try {
         "Good Service",
         "No disruption",
         "running normally",
+        "均未报告异常",
       ])
         assert(!(await card.innerText()).includes(banned));
       await assertPage(page, requests, errors, 390);
@@ -473,16 +537,16 @@ try {
     }
     {
       const { context, page, requests, errors } = await newPage(390);
-      await page.clock.install();
+      await page.clock.install({ time: FRESH_NOW });
       await page.route("**/api/travel/underground", async (route) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
         await route.fulfill({ json: fixture });
       });
-      await page.goto(baseURL);
+      await openUnderground(page);
       await page
         .locator(".underground-card")
         .getByRole("status")
-        .filter({ hasText: "Loading" })
+        .filter({ hasText: "正在加载" })
         .waitFor();
       await page.clock.runFor(10_001);
       await page
@@ -509,11 +573,11 @@ try {
         await gate;
         await route.fulfill({ json: fixture });
       });
-      await page.goto(baseURL);
+      await openUnderground(page);
       await page
         .locator(".underground-card")
         .getByRole("status")
-        .filter({ hasText: "Loading" })
+        .filter({ hasText: "正在加载" })
         .waitFor();
       // Mount a separate instance and explicitly unmount it while its GET is pending.
       await page.evaluate(async () => {
@@ -534,7 +598,7 @@ try {
       await page
         .locator("#unmount-test .underground-card")
         .getByRole("status")
-        .filter({ hasText: "Loading" })
+        .filter({ hasText: "正在加载" })
         .waitFor();
       const previous = aborted.length;
       await page.evaluate(() => globalThis.undergroundTestRoot.unmount());
@@ -555,15 +619,284 @@ try {
         "PASS actual React unmount: pending request aborted; no stale rendering or runtime errors",
       );
     }
+    // Freshness: a snapshot older than 10 minutes never shows status claims.
+    for (const [name, now] of [
+      ["10 min 1 s old", Date.parse(fixture.observedAt) + 10 * 60_000 + 1000],
+      ["five weeks old (real clock)", null],
+    ]) {
+      const { context, page, requests, errors } = await newPage(390, "reduce", {
+        fresh: false,
+      });
+      if (now !== null) await page.clock.setFixedTime(now);
+      await page.route("**/api/travel/underground", (route) =>
+        route.fulfill({ json: fixture }),
+      );
+      await openUnderground(page);
+      const card = page.locator(".underground-card");
+      const stale = card.locator(".travel-stale");
+      await stale.waitFor();
+      assert.equal(await stale.getAttribute("role"), "status");
+      assert.match(await stale.innerText(), /暂无最新的伦敦地铁线路运行状态/);
+      assert.match(await stale.innerText(), /已超过 10 分钟/);
+      assert.equal(
+        await stale.locator("time").getAttribute("datetime"),
+        fixture.observedAt,
+      );
+      assert.equal(
+        await stale.locator("time").innerText(),
+        formatUkDateTimeZh(fixture.observedAt),
+      );
+      assert.equal(
+        await card.locator(".underground-line, .underground-summary").count(),
+        0,
+      );
+      const text = await card.innerText();
+      for (const banned of [
+        "Good Service",
+        "Minor Delays",
+        "Status A",
+        "Fixture delay",
+        "条线路",
+        unavailable,
+        emptyMessage,
+      ])
+        assert(!text.includes(banned), `stale card must not show ${banned}`);
+      // The official source remains as the fallback, with attribution.
+      assert.equal(
+        await card.locator(".source-label").getAttribute("href"),
+        "https://tfl.gov.uk/tube-dlr-overground/status/",
+      );
+      await assertPage(page, requests, errors, 390);
+      await context.close();
+      console.log(
+        `PASS stale (${name}): no statuses/summary/counts, observation time shown, TfL fallback and attribution`,
+      );
+    }
+    {
+      // A snapshot that turns stale while the dialog is open is withdrawn.
+      // Re-reads return the same old snapshot, which must not revive it.
+      const { context, page } = await newPage(1440, "reduce", { fresh: false });
+      await page.clock.install({ time: FRESH_NOW });
+      let reads = 0;
+      await page.route("**/api/travel/underground", (route) => {
+        reads++;
+        return route.fulfill({ json: fixture });
+      });
+      await openUnderground(page);
+      const card = page.locator(".underground-card");
+      await card.locator(".underground-line").first().waitFor();
+      await page.clock.runFor(9 * 60_000);
+      await card.locator(".travel-stale").waitFor();
+      assert.equal(await card.locator(".underground-line").count(), 0);
+      assert(reads >= 4, `the unchanged snapshot was re-read (${reads})`);
+      await context.close();
+      console.log(
+        "PASS fresh → stale while open: statuses withdrawn; re-reading the same snapshot does not revive it",
+      );
+    }
+    // Re-read cadence. The page clock is installed before navigation so every
+    // timer is controlled; margins absorb real time passing during the test.
+    // Counts use completed responses: in development React StrictMode aborts
+    // a duplicate first request, which never completes.
+    const reader = async (respond) => {
+      const { context, page } = await newPage(1440, "reduce", { fresh: false });
+      await page.clock.install({ time: FRESH_NOW });
+      const state = { started: 0, completed: 0, serve: 0 };
+      page.on("response", (response) => {
+        if (new URL(response.url()).pathname === "/api/travel/underground")
+          state.completed++;
+      });
+      await page.route("**/api/travel/underground", (route) => {
+        state.started++;
+        return respond(route, state);
+      });
+      return { context, page, state, card: page.locator(".underground-card") };
+    };
+    const until = async (page, predicate, message) => {
+      for (let i = 0; i < 60 && !predicate(); i++)
+        await page.waitForTimeout(50);
+      assert(predicate(), message);
+    };
+    {
+      // Every 2 minutes only while the Underground tab is active and the
+      // dialog is open; nothing while another tab is shown or once closed.
+      const { context, page, state, card } = await reader((route) =>
+        route.fulfill({ json: fixture }),
+      );
+      const reads = () => state.completed;
+      await openUnderground(page);
+      await card.locator(".underground-line").first().waitFor();
+      await until(page, () => reads() === 1, `one read on open (${reads()})`);
+      await page.clock.runFor(110_000);
+      await page.waitForTimeout(200);
+      assert.equal(reads(), 1, "no re-read before 2 minutes");
+      await page.clock.runFor(15_000);
+      await until(
+        page,
+        () => reads() === 2,
+        `re-read at 2 minutes (${reads()})`,
+      );
+      await page.locator(".travel-tab", { hasText: "道路" }).click();
+      await page.locator(".travel-dialog .roads-card").waitFor();
+      await page.clock.runFor(10 * 60_000);
+      await page.waitForTimeout(200);
+      assert.equal(reads(), 2, "no re-reads while another tab is active");
+      // Returning after the interval has passed reads at once, then resumes.
+      await page.locator(".travel-tab", { hasText: "伦敦地铁" }).click();
+      await until(
+        page,
+        () => reads() === 3,
+        `overdue read on return (${reads()})`,
+      );
+      await page.clock.runFor(110_000);
+      await page.waitForTimeout(200);
+      assert.equal(reads(), 3);
+      await page.clock.runFor(15_000);
+      await until(page, () => reads() === 4, `cadence resumes (${reads()})`);
+      // Returning within the interval does not read early.
+      await page.locator(".travel-tab", { hasText: "道路" }).click();
+      await page.locator(".travel-tab", { hasText: "伦敦地铁" }).click();
+      await page.waitForTimeout(300);
+      assert.equal(reads(), 4, "no early read on a quick return");
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(() => !document.querySelector("dialog[open]"));
+      const startedAtClose = state.started;
+      await page.clock.runFor(10 * 60_000);
+      await page.waitForTimeout(200);
+      assert.equal(reads(), 4, "no re-reads after the dialog closes");
+      assert.equal(state.started, startedAtClose, "no requests after close");
+      await page.locator('.transport-item[data-tool="underground"]').click();
+      await until(
+        page,
+        () => reads() === 5,
+        `reopening reads at once (${reads()})`,
+      );
+      await context.close();
+      console.log(
+        "PASS re-read cadence: read on open, every 2 min while active, paused on other tab, overdue read on return, none after close",
+      );
+    }
+    {
+      // No overlapping requests: switching tabs while a read is pending does
+      // not start another one.
+      let release;
+      const held = new Promise((resolve) => (release = resolve));
+      const { context, page, state, card } = await reader(async (route) => {
+        await held;
+        return route.fulfill({ json: fixture }).catch(() => {});
+      });
+      await openUnderground(page);
+      await until(page, () => state.started >= 1, "first read pending");
+      await page.waitForTimeout(300);
+      const pending = state.started;
+      for (const name of ["道路", "伦敦地铁", "道路", "伦敦地铁"])
+        await page.locator(".travel-tab", { hasText: name }).click();
+      await page.waitForTimeout(300);
+      assert.equal(
+        state.started,
+        pending,
+        "no second request while one is in flight",
+      );
+      release();
+      await card.locator(".underground-line").first().waitFor();
+      assert.equal(state.completed, 1);
+      await context.close();
+      console.log("PASS no overlapping reads while one is pending");
+    }
+    {
+      // A newer snapshot replaces the older one; an older response arriving
+      // later never replaces newer facts.
+      const lineSet = (name, description) => [
+        {
+          lineId: name.toLowerCase(),
+          lineName: name,
+          statuses: [{ severity: 9, description, reason: null }],
+        },
+      ];
+      const snapshots = [
+        fixture,
+        {
+          observedAt: new Date(FRESH_NOW + 60_000).toISOString(),
+          lines: lineSet("Victoria", "Minor Delays"),
+        },
+        {
+          observedAt: new Date(FRESH_NOW - 60 * 60_000).toISOString(),
+          lines: lineSet("Bakerloo", "Older Snapshot"),
+        },
+      ];
+      const { context, page, state, card } = await reader((route, s) =>
+        route.fulfill({ json: snapshots[s.serve] }),
+      );
+      await openUnderground(page);
+      await card.locator(".underground-line").first().waitFor();
+      state.serve = 1;
+      await page.clock.runFor(125_000);
+      await card
+        .locator(".underground-line", { hasText: "Victoria" })
+        .waitFor();
+      assert.equal(await card.locator(".underground-line").count(), 1);
+      state.serve = 2;
+      const before = state.completed;
+      await page.clock.runFor(120_000);
+      await until(
+        page,
+        () => state.completed === before + 1,
+        "older snapshot read",
+      );
+      await page.waitForTimeout(300);
+      const text = await card.innerText();
+      assert(
+        text.includes("Victoria") && !text.includes("Older Snapshot"),
+        "older snapshot ignored",
+      );
+      assert.equal(await card.locator(".travel-stale").count(), 0);
+      await context.close();
+      console.log(
+        "PASS newer snapshot replaces older; an older response never replaces newer facts",
+      );
+    }
+    {
+      // A failed re-read keeps the last snapshot (never "unavailable"); the
+      // freshness rule still withdraws it once it is too old.
+      const { context, page, state, card } = await reader((route, s) =>
+        s.serve === 0
+          ? route.fulfill({ json: fixture })
+          : route.fulfill({ status: 503, json: {} }),
+      );
+      await openUnderground(page);
+      await card.locator(".underground-line").first().waitFor();
+      state.serve = 1;
+      const before = state.completed;
+      await page.clock.runFor(125_000);
+      await until(
+        page,
+        () => state.completed === before + 1,
+        "failed re-read attempted",
+      );
+      await page.waitForTimeout(300);
+      await card.locator(".underground-line").first().waitFor();
+      assert(!(await card.innerText()).includes(unavailable));
+      await page.clock.runFor(7 * 60_000);
+      await card.locator(".travel-stale").waitFor();
+      assert.equal(await card.locator(".underground-line").count(), 0);
+      assert(!(await card.innerText()).includes(unavailable));
+      await context.close();
+      console.log(
+        "PASS failed re-read keeps last snapshot, then stale notice; never unavailable",
+      );
+    }
   } else {
     for (const width of [1440, 390]) {
-      const { context, page, requests, errors, consoleErrors } =
-        await newPage(width);
+      const { context, page, requests, errors, consoleErrors } = await newPage(
+        width,
+        "no-preference",
+        { fresh: false },
+      );
       const pending = page.waitForResponse(
         (response) =>
           new URL(response.url()).pathname === "/api/travel/underground",
       );
-      await page.goto(baseURL);
+      await openUnderground(page);
       const response = await pending;
       if (process.env.REAL_BACKEND === "unavailable") {
         assert.equal(response.status(), 404);
@@ -601,7 +934,24 @@ try {
           data.lines.length > 0,
           "Real line facts must be available for visible verification",
         );
-        await assertFacts(page, data);
+        const freshness = assessFreshness(
+          data.observedAt,
+          UNDERGROUND_MAX_AGE_MS,
+        );
+        if (freshness.state === "fresh") await assertFacts(page, data);
+        else {
+          // Real stored state is older than the product limit: no claims.
+          const card = page.locator(".underground-card");
+          await card.locator(".travel-stale").waitFor();
+          assert.equal(
+            await card.locator(".travel-stale time").getAttribute("datetime"),
+            data.observedAt,
+          );
+          assert.equal(await card.locator(".underground-line").count(), 0);
+          for (const line of data.lines)
+            for (const status of line.statuses)
+              assert(!(await card.innerText()).includes(status.description));
+        }
         await assertPage(page, requests, errors, width);
         assert.deepEqual(consoleErrors, []);
         await page.screenshot({
@@ -609,7 +959,7 @@ try {
           fullPage: true,
         });
         console.log(
-          `PASS real ${width}px: HTTP 200; observedAt ${data.observedAt}; ${JSON.stringify(data.lines.map((line) => ({ line: line.lineName, statuses: line.statuses.map((status) => status.description) })))}; zero TfL data requests, no overflow, no console/runtime errors`,
+          `PASS real ${width}px: HTTP 200; observedAt ${data.observedAt} (${freshness.state}); ${JSON.stringify(data.lines.map((line) => ({ line: line.lineName, statuses: line.statuses.map((status) => status.description) })))}; zero TfL data requests, no overflow, no console/runtime errors`,
         );
       }
       await context.close();

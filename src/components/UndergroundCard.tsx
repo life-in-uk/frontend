@@ -1,11 +1,8 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { ChevronDown, TrainFront } from "lucide-react";
 import { Freshness, OfficialSource } from "./InformationCard";
-import {
-  getUnderground,
-  formatUndergroundObservation,
-} from "../underground/api";
+import { getUnderground } from "../underground/api";
 import type { UndergroundResponse } from "../underground/api";
 import {
   PRESENTATION_LABELS,
@@ -14,7 +11,23 @@ import {
   lineColour,
   summariseLines,
 } from "../underground/presentation";
+import { StaleNotice } from "./travel/StaleNotice";
+import { formatUkDateTimeZh } from "../travel/format";
+import { assessFreshness, UNDERGROUND_MAX_AGE_MS } from "../travel/freshness";
+import { useNow } from "../travel/useNow";
 import "./UndergroundCard.css";
+
+/** Required by the TfL Transport Data Service licence. */
+export const TFL_ATTRIBUTION = "Powered by TfL Open Data";
+
+/**
+ * Also required by the TfL Transport Data Service licence ("Requirements"),
+ * reproduced verbatim as read on 2026-11-11 from
+ * https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service,
+ * including the licence's own years and brackets.
+ */
+export const TFL_OS_GEOMNI_ATTRIBUTION =
+  "Contains OS data © Crown copyright and database rights 2016 and Geomni UK Map data © and database rights [2019]";
 
 type State =
   | { status: "loading" }
@@ -26,35 +39,109 @@ function summaryText(data: UndergroundResponse): string {
   const total = data.lines.length;
   const parts = [
     affected === 0
-      ? `No disruption reported for ${total} ${total === 1 ? "line" : "lines"}`
-      : `${affected} of ${total} ${total === 1 ? "line" : "lines"} reporting disruption`,
+      ? `${total} 条线路均未报告异常`
+      : `${total} 条线路中有 ${affected} 条报告异常`,
   ];
-  if (unclassified > 0) parts.push(`${unclassified} not classified`);
+  if (unclassified > 0) parts.push(`${unclassified} 条未能分类`);
   return parts.join(" · ");
 }
 
-export function UndergroundCard() {
+/**
+ * While the Underground tab is active in the open dialog, the stored snapshot
+ * is re-read every 2 minutes (the backend's default refresh interval).
+ */
+export const UNDERGROUND_REREAD_MS = 2 * 60_000;
+const REQUEST_DEADLINE_MS = 10_000;
+
+interface UndergroundCardProps {
+  /** False while another dialog tab is shown: no re-reads are scheduled. */
+  active?: boolean;
+}
+
+export function UndergroundCard({ active = true }: UndergroundCardProps) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const idPrefix = useId();
+  const now = useNow();
+  // Request bookkeeping lives in refs so switching tabs never refetches early.
+  const mountToken = useRef<object | null>(null);
+  const inFlight = useRef<AbortController | null>(null);
+  const lastStarted = useRef<number | null>(null);
+  const hasData = useRef(false);
+  const shownObservedAt = useRef<number | null>(null);
+
+  // Unmounting (closing the dialog) aborts any request and forgets timing,
+  // and results that belong to an earlier mount are ignored.
   useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    const timeout = window.setTimeout(() => controller.abort(), 10_000);
-    getUnderground(controller.signal)
-      .then((data) => {
-        if (active) setState({ status: "ready", data });
-      })
-      .catch(() => {
-        if (active) setState({ status: "unavailable" });
-      })
-      .finally(() => window.clearTimeout(timeout));
+    mountToken.current = {};
     return () => {
-      active = false;
-      window.clearTimeout(timeout);
-      controller.abort();
+      mountToken.current = null;
+      inFlight.current?.abort();
+      inFlight.current = null;
+      lastStarted.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!active) return;
+    // One request at a time: a tick that finds one in flight is skipped.
+    function load() {
+      if (inFlight.current) return;
+      const mount = mountToken.current;
+      const controller = new AbortController();
+      inFlight.current = controller;
+      lastStarted.current = Date.now();
+      const deadline = window.setTimeout(
+        () => controller.abort(),
+        REQUEST_DEADLINE_MS,
+      );
+      getUnderground(controller.signal)
+        .then((data) => {
+          if (mount === null || mountToken.current !== mount) return;
+          const observed = Date.parse(data.observedAt);
+          // An older snapshot never replaces a newer one already shown.
+          if (
+            shownObservedAt.current !== null &&
+            Number.isFinite(observed) &&
+            observed < shownObservedAt.current
+          )
+            return;
+          shownObservedAt.current = Number.isFinite(observed)
+            ? observed
+            : shownObservedAt.current;
+          hasData.current = true;
+          setState({ status: "ready", data });
+        })
+        .catch(() => {
+          // A failed re-read keeps the last snapshot; the freshness rule
+          // withdraws it once it is too old. Only a first load is unavailable.
+          if (
+            mount !== null &&
+            mountToken.current === mount &&
+            !hasData.current
+          )
+            setState({ status: "unavailable" });
+        })
+        .finally(() => {
+          window.clearTimeout(deadline);
+          if (inFlight.current === controller) inFlight.current = null;
+        });
+    }
+    let timer = 0;
+    function tick() {
+      load();
+      timer = window.setTimeout(tick, UNDERGROUND_REREAD_MS);
+    }
+    // Opening reads at once; returning to the tab reads at once only if a
+    // re-read is already due, otherwise when it falls due.
+    const due =
+      lastStarted.current === null
+        ? 0
+        : Math.max(0, lastStarted.current + UNDERGROUND_REREAD_MS - Date.now());
+    if (due === 0) tick();
+    else timer = window.setTimeout(tick, due);
+    return () => window.clearTimeout(timer);
+  }, [active]);
 
   function toggle(key: string) {
     setExpanded((current) => {
@@ -64,11 +151,20 @@ export function UndergroundCard() {
     });
   }
 
+  const freshness =
+    state.status === "ready"
+      ? assessFreshness(state.data.observedAt, UNDERGROUND_MAX_AGE_MS, now)
+      : null;
+  // Only a fresh snapshot may show line statuses, counts or summaries.
+  const facts =
+    state.status === "ready" && freshness?.state === "fresh"
+      ? state.data
+      : null;
+
   return (
     <section
       className="information-section underground-section"
       aria-labelledby="underground-heading"
-      lang="en"
     >
       <article
         className="information-card underground-card"
@@ -77,29 +173,36 @@ export function UndergroundCard() {
         <header className="underground-header">
           <span className="category">
             <TrainFront size={18} aria-hidden="true" />
-            Travel
+            出行
           </span>
-          <h2 id="underground-heading">London Underground</h2>
-          {state.status === "ready" && state.data.lines.length > 0 && (
-            <p className="underground-summary">{summaryText(state.data)}</p>
+          <h2 id="underground-heading">
+            伦敦地铁 <span lang="en">London Underground</span>
+          </h2>
+          {facts && facts.lines.length > 0 && (
+            <p className="underground-summary">{summaryText(facts)}</p>
           )}
         </header>
         <div className="underground-content" aria-live="polite">
           {state.status === "loading" && (
-            <p role="status">Loading Underground status…</p>
+            <p role="status">正在加载伦敦地铁运行状态…</p>
           )}
           {state.status === "unavailable" && (
-            <p role="status">Underground status is temporarily unavailable.</p>
+            <p role="status">伦敦地铁运行状态暂时无法获取。</p>
           )}
-          {state.status === "ready" &&
-            (state.data.lines.length === 0 ? (
-              <p role="status">
-                No Underground line status information was included in this
-                observation.
-              </p>
+          {freshness && freshness.state !== "fresh" && (
+            <StaleNotice
+              freshness={freshness}
+              subject="伦敦地铁线路运行状态"
+              limitMinutes={UNDERGROUND_MAX_AGE_MS / 60_000}
+              fallback="TfL 官方运行状态"
+            />
+          )}
+          {facts &&
+            (facts.lines.length === 0 ? (
+              <p role="status">这次来源观测中没有包含任何地铁线路的状态信息。</p>
             ) : (
               <ul className="underground-lines">
-                {state.data.lines.map((line, lineIndex, lines) => {
+                {facts.lines.map((line, lineIndex, lines) => {
                   const colour = lineColour(line.lineId);
                   // Desktop shows two column stacks: the second starts halfway through.
                   const columnStart = Math.ceil(lines.length / 2);
@@ -125,7 +228,7 @@ export function UndergroundCard() {
                           }
                           aria-hidden="true"
                         />
-                        <h3>{line.lineName}</h3>
+                        <h3 lang="en">{line.lineName}</h3>
                         <ul className="underground-statuses">
                           {line.statuses.map((status, statusIndex) => {
                             const key = `${lineIndex}-${statusIndex}`;
@@ -133,7 +236,10 @@ export function UndergroundCard() {
                             const reasonId = `${idPrefix}-reason-${key}`;
                             const isOpen = expanded.has(key);
                             const description = (
-                              <span className="underground-description">
+                              <span
+                                className="underground-description"
+                                lang="en"
+                              >
                                 {status.description}
                               </span>
                             );
@@ -159,7 +265,7 @@ export function UndergroundCard() {
                                   >
                                     {description}
                                     <span className="sr-only">
-                                      {`, details for ${line.lineName}`}
+                                      {`，查看 ${line.lineName} 的详情`}
                                     </span>
                                     <ChevronDown
                                       className="underground-chevron"
@@ -183,6 +289,7 @@ export function UndergroundCard() {
                               key={key}
                               id={`${idPrefix}-reason-${key}`}
                               className="underground-reason"
+                              lang="en"
                               hidden={!expanded.has(key)}
                             >
                               {status.reason}
@@ -197,10 +304,10 @@ export function UndergroundCard() {
             ))}
         </div>
         <div className="provenance">
-          {state.status === "ready" && (
+          {facts && (
             <Freshness
-              label={`Source observed: ${formatUndergroundObservation(state.data.observedAt)} UK time`}
-              dateTime={state.data.observedAt}
+              label={`来源观测于 ${formatUkDateTimeZh(facts.observedAt)}（英国时间）`}
+              dateTime={facts.observedAt}
             />
           )}
           <OfficialSource
@@ -209,6 +316,12 @@ export function UndergroundCard() {
               href: "https://tfl.gov.uk/tube-dlr-overground/status/",
             }}
           />
+          <p className="travel-attribution" lang="en">
+            {TFL_ATTRIBUTION}
+          </p>
+          <p className="travel-attribution-os" lang="en">
+            {TFL_OS_GEOMNI_ATTRIBUTION}
+          </p>
         </div>
       </article>
     </section>

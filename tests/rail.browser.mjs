@@ -28,8 +28,12 @@ await page.route("**/api/rail/**", async route => {
   return route.fulfill({ json: { stationName: "Sheffield", crs: "SHF", generatedAt: "2026-10-27T13:45:27Z", direction, unknownTimingCount: 0, disruptions } });
 });
 try {
-  await page.goto(process.env.FRONTEND_URL || "http://127.0.0.1:5179");
-  const card = page.locator(".rail-card");
+  // Rail is not released: it is reachable only in development with
+  // ?rail-preview, as a tab of the homepage travel dialog.
+  await page.goto(`${process.env.FRONTEND_URL || "http://127.0.0.1:5179"}/?rail-preview`);
+  await page.locator('.transport-item[data-tool="rail"]').click();
+  const card = page.locator(".travel-dialog .rail-card");
+  await card.waitFor();
   assert.equal(await card.getByLabel("Language / 语言").inputValue(), "zh");
   await checkDisclaimer(card, "zh");
   await card.getByLabel("Language / 语言").selectOption("en");

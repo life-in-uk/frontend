@@ -226,6 +226,15 @@
   color: var(--color-text);
   font-weight: 600;
 }
+/* Provider still reports "active" after the estimated end: a note, not an alarm. */
+.roads-estimate-passed {
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+}
 .roads-card .provenance {
   flex-direction: row;
   flex-wrap: wrap;
