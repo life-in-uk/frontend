@@ -10,6 +10,9 @@ import { FamilyVisaGuidePage } from "./components/family-visa/FamilyVisaGuidePag
 import { FamilyVisaTopicPage } from "./components/family-visa/topics/FamilyVisaTopicPage";
 import { MoneyHub } from "./components/money/MoneyHub";
 import { MoneyGuidePage } from "./components/money/MoneyGuidePage";
+import { LocalizedGuideIndex } from "./components/guides/LocalizedGuideIndex";
+import { GuidePage } from "./components/guides/GuidePage";
+import { GUIDE_DOMAINS } from "./guides/domains";
 import { currentPath, matchRoute, subscribeToLocation } from "./router";
 import "./App.css";
 
@@ -19,11 +22,13 @@ function App() {
   const section =
     route.name === "home"
       ? "home"
-      : (route.name === "hub" || route.name === "guide") &&
+      : (route.name === "hub" || route.name === "guide" || route.name === "localized-hub" || route.name === "localized-guide") &&
           (route.domain === "health" || route.domain === "money")
         ? route.domain
         : undefined;
   const hubDomain = route.name === "hub" ? route.domain : undefined;
+  const activeLocale = route.name === "localized-index" || route.name === "localized-hub" || route.name === "localized-guide"
+    ? route.locale : "zh-CN";
 
   useEffect(() => {
     if (route.name === "home")
@@ -41,7 +46,7 @@ function App() {
       <a className="skip-link" href="#main">
         跳至主要内容
       </a>
-      <SiteHeader current={section} />
+      <SiteHeader current={section} locale={activeLocale} />
       {route.name === "home" && <HomePage />}
       {hubDomain === "health" && <HealthHub />}
       {hubDomain === "family-visa" && <FamilyVisaHub />}
@@ -57,6 +62,11 @@ function App() {
       )}
       {route.name === "guide" && route.domain === "money" && (
         <MoneyGuidePage key={route.slug} slug={route.slug} />
+      )}
+      {route.name === "localized-index" && <LocalizedGuideIndex locale={route.locale} />}
+      {route.name === "localized-hub" && <LocalizedGuideIndex locale={route.locale} domain={route.domain} />}
+      {route.name === "localized-guide" && (
+        <GuidePage key={`${route.locale}:${route.slug}`} domain={GUIDE_DOMAINS[route.domain]} slug={route.slug} locale={route.locale} />
       )}
       {route.name === "not-found" && <NotFoundPage />}
       <SiteFooter />

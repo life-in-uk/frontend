@@ -42,6 +42,8 @@ export default defineConfig(({ mode, command, isPreview }) => {
     ],
     server: {
       proxy: {
+        "/sitemap.xml": { target: backendTarget },
+        "/robots.txt": { target: backendTarget },
         "/api/rail": {
           target: backendTarget,
         },

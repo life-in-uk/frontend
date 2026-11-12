@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2 } from "lucide-react";
-import { getGuide, getGuides, GuideNotFoundError } from "../../guides/api";
+import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
+import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
+import { applyGuideSeo, guideAlternates } from "../../guides/seo";
 import { inlineText, parseMarkdown } from "../../guides/markdown";
 import type { Block } from "../../guides/markdown";
 import type { GuideDomain } from "../../guides/domains";
 import {
   belongsToDomain,
-  guidePath,
   relatedGuidesFor,
 } from "../../guides/domains";
 import { formatUkDate, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
+import { GuideLanguageSelect } from "./GuideLanguageSelect";
 import { GuideMarkdown } from "./GuideMarkdown";
 import "./Guide.css";
 
@@ -39,14 +41,18 @@ const REQUEST_DEADLINE_MS = 10_000;
 export function GuidePage({
   domain,
   slug,
+  locale = "zh-CN",
   presentation = {},
 }: {
   domain: GuideDomain;
   slug: string;
+  locale?: GuideLocale;
   presentation?: GuidePresentation;
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [related, setRelated] = useState<GuideMetadata[]>([]);
+  const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>([locale]);
+  const ui = GUIDE_UI[locale];
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
@@ -56,7 +62,10 @@ export function GuidePage({
       () => controller.abort(),
       REQUEST_DEADLINE_MS,
     );
-    getGuide(slug, controller.signal)
+    const guideRequest = locale === "zh-CN"
+      ? getGuide(slug, controller.signal)
+      : getLocalizedGuide(slug, locale, controller.signal).then((result) => result.guide);
+    guideRequest
       .then((guide) => {
         if (!active) return;
         // A Guide from another section is treated as not found here, so its
@@ -75,24 +84,41 @@ export function GuidePage({
       })
       .finally(() => window.clearTimeout(timeout));
     // Related-guide titles come from the list; if it fails the article still works.
-    getGuides(controller.signal)
+    const listRequest = locale === "zh-CN" ? getGuides(controller.signal) : getLocalizedGuides(locale, controller.signal);
+    listRequest
       .then((guides) => {
         if (active) setRelated(relatedGuidesFor(domain, slug, guides));
       })
       .catch(() => {});
+    Promise.allSettled(GUIDE_LOCALES.map((candidate) =>
+      candidate === "zh-CN" ? getGuides(controller.signal) : getLocalizedGuides(candidate, controller.signal),
+    )).then((results) => {
+      if (!active) return;
+      const found = results.flatMap((result, index) => result.status === "fulfilled"
+        && result.value.some((item) => item.slug === slug) ? [GUIDE_LOCALES[index]] : []);
+      setAvailableLocales(found.includes(locale) ? found : [...found, locale]);
+    });
     return () => {
       active = false;
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [domain, slug]);
+  }, [domain, slug, locale]);
 
   useEffect(() => {
-    if (state.status === "ready")
-      document.title = `${state.guide.title} · Life in UK`;
-    else if (state.status === "not-found")
-      document.title = "没有找到这篇指南 · Life in UK";
-  }, [state]);
+    if (state.status === "ready") {
+      const canonical = new URL(localizedGuidePath(locale, domain.id, slug), window.location.origin).href;
+      applyGuideSeo({ locale, canonical, title: `${state.guide.title} · Life in UK`, description: state.guide.summary,
+        alternates: guideAlternates(window.location.origin, domain.id, slug, availableLocales) });
+    } else if (state.status === "not-found" || state.status === "error") {
+      applyGuideSeo({ locale, canonical: null,
+        title: state.status === "not-found" ? "Guide not found · Life in UK" : "Guide unavailable · Life in UK",
+        description: "", noIndex: true });
+    } else {
+      document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
+      document.documentElement.dir = textDirection(locale);
+    }
+  }, [state, locale, domain.id, slug, availableLocales]);
 
   const parsed = useMemo(() => {
     if (state.status !== "ready") return null;
@@ -119,13 +145,13 @@ export function GuidePage({
     };
   }, [state]);
 
-  const sectionTitle = presentation.sectionTitle?.(slug);
+  const sectionTitle = locale === "zh-CN" ? presentation.sectionTitle?.(slug) : undefined;
   const tone = (target: string) => presentation.tone?.(target) ?? "";
   const headerArt = presentation.headerArt?.(slug);
   const backLink = (
-    <Link to={domain.basePath} className="button button-secondary">
+    <Link to={localizedGuidePath(locale, domain.id)} className="button button-secondary">
       <ArrowLeft size={16} aria-hidden="true" />
-      {domain.backLabel}
+      {ui.domain[domain.id]}
     </Link>
   );
 
@@ -146,46 +172,47 @@ export function GuidePage({
           : "guide-page"
       }
     >
-      <nav className="breadcrumb" aria-label="当前位置">
+      <nav className="breadcrumb" aria-label={ui.home}>
         <ol>
           <li>
-            <Link to="/">首页</Link>
+            <Link to={`/${locale}/guides`}>{ui.home}</Link>
           </li>
           <li>
-            <Link to={domain.basePath}>{domain.label}</Link>
+            <Link to={localizedGuidePath(locale, domain.id)}>{ui.domain[domain.id]}</Link>
           </li>
           {state.status === "ready" && (
             <li aria-current="page">{state.guide.title}</li>
           )}
         </ol>
       </nav>
+      <div className="guide-toolbar">
+        <GuideLanguageSelect locale={locale} domain={domain.id} slug={slug} available={availableLocales} />
+      </div>
 
       {state.status === "loading" && (
-        <p className="guide-status" role="status">
-          正在加载指南…
-        </p>
+        <p className="guide-status" role="status">{ui.loading}</p>
       )}
       {state.status === "not-found" && (
         <div className="guide-status-card" role="status">
-          <h1>没有找到这篇指南</h1>
-          <p>链接可能有误，或者这篇指南暂时不在了。</p>
+          <h1>{ui.notFound}</h1>
+          <p>{ui.notFoundText}</p>
           {backLink}
         </div>
       )}
       {state.status === "error" && (
         <div className="guide-status-card" role="status">
-          <h1>指南暂时无法加载</h1>
-          <p>请稍后再试。</p>
+          <h1>{ui.unavailable}</h1>
+          <p>{ui.retry}</p>
           {backLink}
         </div>
       )}
 
       {state.status === "ready" && parsed && (
-        <article className="guide-article" lang="zh-CN">
+        <article className="guide-article" lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
           <header className={`guide-header ${tone(slug)}`.trim()}>
             <div className="guide-header-text">
               <p className="guide-kicker">
-                {domain.label}
+                {ui.domain[domain.id]}
                 {sectionTitle && (
                   <>
                     <span aria-hidden="true"> · </span>
@@ -195,10 +222,10 @@ export function GuidePage({
               </p>
               <h1>{state.guide.title}</h1>
               <p className="guide-summary">{state.guide.summary}</p>
-              <ul className="guide-meta" aria-label="指南信息">
+              <ul className="guide-meta" aria-label={ui.updated}>
                 <li>
                   <CalendarDays size={15} aria-hidden="true" />
-                  更新于{" "}
+                  {ui.updated}{" "}
                   <time dateTime={state.guide.updatedAt}>
                     {formatUkDate(state.guide.updatedAt)}
                   </time>
@@ -206,7 +233,7 @@ export function GuidePage({
                 {parsed.evidenceLinks > 0 && (
                   <li>
                     <FileCheck2 size={15} aria-hidden="true" />
-                    {parsed.evidenceLinks} 处标注了依据
+                    {parsed.evidenceLinks} {ui.evidenceCount}
                   </li>
                 )}
               </ul>
@@ -215,14 +242,12 @@ export function GuidePage({
           </header>
           <p className="evidence-intro">
             <FileCheck2 size={18} aria-hidden="true" />
-            <span>
-              文中标着<strong>依据链接</strong>
-              的地方，可以点开看这句话依据的是哪份资料、出自哪个机构。
-            </span>
+              <span>{ui.evidenceIntro}</span>
           </p>
           <div className="guide-body">
             <GuideMarkdown
               domain={domain}
+              locale={locale}
               blocks={parsed.body}
               evidence={parsed.evidence}
               sources={parsed.sources}
@@ -232,7 +257,7 @@ export function GuidePage({
           </div>
           {related.length > 0 && (
             <aside className="related-guides" aria-labelledby="related-title">
-              <h2 id="related-title">相关指南</h2>
+              <h2 id="related-title">{ui.related}</h2>
               <ul>
                 {related.map((guide) => (
                   <li
@@ -240,7 +265,7 @@ export function GuidePage({
                     className={tone(guide.slug) || undefined}
                   >
                     <Link
-                      to={guidePath(domain, guide.slug)}
+                      to={localizedGuidePath(locale, domain.id, guide.slug)}
                       title={guide.title}
                     >
                       <span>{shortGuideTitle(guide.title)}</span>
@@ -252,9 +277,9 @@ export function GuidePage({
             </aside>
           )}
           <p className="guide-back">
-            <Link to={domain.basePath}>
+            <Link to={localizedGuidePath(locale, domain.id)}>
               <ArrowLeft size={16} aria-hidden="true" />
-              {domain.backLabel}
+              {ui.domain[domain.id]}
             </Link>
           </p>
         </article>

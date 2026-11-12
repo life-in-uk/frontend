@@ -1,5 +1,6 @@
 // Public Guide API: GET /api/guides and GET /api/guides/{slug}.
 // The backend is the runtime source of published content; nothing here is a fallback copy.
+import type { GuideLocale } from "./locales";
 
 export type GuideMetadata = {
   slug: string;
@@ -35,6 +36,13 @@ export type GuideDetail = GuideMetadata & {
   content: string;
   sources: GuideSource[];
   evidence: GuideEvidence[];
+};
+
+export type LocalizedGuide = {
+  locale: GuideLocale;
+  guide: GuideDetail;
+  sourceRevisionId: string | null;
+  contentHash: string | null;
 };
 
 /** 404 from the detail endpoint: no published Guide with this slug. */
@@ -162,4 +170,37 @@ export async function getGuide(
   if (!isGuideDetail(data) || data.slug !== slug)
     throw new Error("Invalid Guide response");
   return data;
+}
+
+/** Published-only locale index. Missing translations are omitted by Spring. */
+export async function getLocalizedGuides(
+  locale: GuideLocale,
+  signal?: AbortSignal,
+): Promise<GuideMetadata[]> {
+  const response = await fetch(`/api/guides/locales/${encodeURIComponent(locale)}`, { signal });
+  if (response.status === 404) throw new GuideNotFoundError();
+  if (!response.ok) throw new Error("Guides unavailable");
+  const data: unknown = await response.json();
+  if (!isGuideList(data)) throw new Error("Invalid localized Guides response");
+  return data;
+}
+
+/** Published-only localized detail. Spring returns 404 for absent/unpublished locales. */
+export async function getLocalizedGuide(
+  slug: string,
+  locale: GuideLocale,
+  signal?: AbortSignal,
+): Promise<LocalizedGuide> {
+  if (!isGuideSlug(slug)) throw new GuideNotFoundError();
+  const response = await fetch(`/api/guides/${encodeURIComponent(slug)}/locales/${encodeURIComponent(locale)}`, { signal });
+  if (response.status === 404) throw new GuideNotFoundError();
+  if (!response.ok) throw new Error("Guide unavailable");
+  const data: unknown = await response.json();
+  if (!isRecord(data) || data.locale !== locale || !isGuideDetail(data.guide)
+    || data.guide.slug !== slug
+    || !(data.sourceRevisionId === null || typeof data.sourceRevisionId === "string")
+    || !(data.contentHash === null || typeof data.contentHash === "string")) {
+    throw new Error("Invalid localized Guide response");
+  }
+  return { locale, guide: data.guide, sourceRevisionId: data.sourceRevisionId, contentHash: data.contentHash };
 }

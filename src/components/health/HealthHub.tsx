@@ -23,6 +23,7 @@ import { guidePath, HEALTH_GUIDE_DOMAIN } from "../../guides/domains";
 import { shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
 import { CategoryArt } from "./CategoryArt";
+import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import "./Health.css";
 
 type State =
@@ -109,6 +110,7 @@ export function HealthHub() {
 
   return (
     <main id="main" className="health-page health-hub">
+      <div className="guide-toolbar"><GuideLanguageSelect locale="zh-CN" domain="health" /></div>
       <section className="health-hero" aria-labelledby="health-title">
         <div className="health-hero-copy">
           <span className="eyebrow">

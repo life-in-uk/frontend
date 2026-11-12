@@ -17,6 +17,7 @@ import { formatUkDate } from "../../guides/format";
 import { Link } from "../Link";
 import { FamilyVisaHeroArt, FamilyVisaNotebookArt } from "./FamilyVisaArt";
 import { FamilyVisaNavigator } from "./navigator/FamilyVisaNavigator";
+import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import "./FamilyVisa.css";
 
 type State =
@@ -68,6 +69,7 @@ export function FamilyVisaHub() {
 
   return (
     <main id="main" className="family-visa-page family-hub">
+      <div className="guide-toolbar"><GuideLanguageSelect locale="zh-CN" domain="family-visa" /></div>
       <section className="family-hero" aria-labelledby="family-title">
         <div className="family-hero-copy">
           <span className="eyebrow family-eyebrow">

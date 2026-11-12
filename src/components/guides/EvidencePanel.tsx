@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import type { GuideEvidence, GuideSource } from "../../guides/api";
 import { formatUkDate, sourceTextLang } from "../../guides/format";
+import { GUIDE_UI, type GuideLocale } from "../../guides/locales";
 
 type Props = {
   id: string;
@@ -8,6 +9,7 @@ type Props = {
   sources: Map<string, GuideSource>;
   /** Domain rule for sources cited only as non-official examples. */
   isExampleSource?: (source: GuideSource) => boolean;
+  locale?: GuideLocale;
 };
 
 /**
@@ -20,17 +22,19 @@ export function EvidencePanel({
   evidence,
   sources,
   isExampleSource,
+  locale = "zh-CN",
 }: Props) {
+  const ui = GUIDE_UI[locale];
   if (!evidence) {
     return (
       <div
         className="evidence-panel"
         id={id}
         role="region"
-        aria-label="这句话的依据"
+        aria-label={ui.evidenceLabel}
       >
         <p className="evidence-missing">
-          这条依据暂时无法显示。文末列出了本文使用的全部来源。
+          {ui.evidenceMissing}
         </p>
       </div>
     );
@@ -40,12 +44,12 @@ export function EvidencePanel({
       className="evidence-panel"
       id={id}
       role="region"
-      aria-label="这句话的依据"
+      aria-label={ui.evidenceLabel}
     >
-      <p className="evidence-label">这句话的依据</p>
+      <p className="evidence-label">{ui.evidenceLabel}</p>
       <p className="evidence-statement">{evidence.statement}</p>
       {evidence.supports.length === 0 ? (
-        <p className="evidence-missing">这条依据暂时没有可显示的来源。</p>
+        <p className="evidence-missing">{ui.noSource}</p>
       ) : (
         <ol className="evidence-supports">
           {evidence.supports.map((support, index) => {
@@ -64,9 +68,7 @@ export function EvidencePanel({
                         {source.organisation}
                       </span>
                       {example && (
-                        <span className="evidence-example-tag">
-                          价格举例 · 非官方资料
-                        </span>
+                        <span className="evidence-example-tag">{ui.exampleSource}</span>
                       )}
                     </div>
                     <a
@@ -79,16 +81,16 @@ export function EvidencePanel({
                         {source.title}
                       </span>
                       <ExternalLink size={14} aria-hidden="true" />
-                      <span className="sr-only">（在新窗口打开）</span>
+                      <span className="sr-only">{ui.newWindow}</span>
                     </a>
                   </>
                 ) : (
-                  <p className="evidence-missing">来源信息暂缺。</p>
+                  <p className="evidence-missing">{ui.sourceMissing}</p>
                 )}
                 <dl className="evidence-details">
                   {support.locator && (
                     <div>
-                      <dt>原文位置</dt>
+                      <dt>{ui.locator}</dt>
                       <dd lang={sourceTextLang(support.locator)}>
                         {support.locator}
                       </dd>
@@ -96,7 +98,7 @@ export function EvidencePanel({
                   )}
                   {support.excerpt && (
                     <div>
-                      <dt>原文摘录</dt>
+                          <dt>{ui.excerpt}</dt>
                       <dd>
                         <blockquote lang={sourceTextLang(support.excerpt)}>
                           {support.excerpt}
@@ -106,13 +108,13 @@ export function EvidencePanel({
                   )}
                   {support.note && (
                     <div>
-                      <dt>说明</dt>
+                      <dt>{ui.note}</dt>
                       <dd>{support.note}</dd>
                     </div>
                   )}
                   {source && (
                     <div>
-                      <dt>查阅日期</dt>
+                      <dt>{ui.accessed}</dt>
                       <dd>
                         <time dateTime={source.accessedAt}>
                           {formatUkDate(source.accessedAt)}

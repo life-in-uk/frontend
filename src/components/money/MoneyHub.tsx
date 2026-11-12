@@ -33,6 +33,7 @@ import {
 import type { AffiliateOffer } from "./affiliate";
 import "../guides/Guide.css";
 import "./Money.css";
+import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 
 type ListState =
   | { status: "loading" }
@@ -119,6 +120,7 @@ export function MoneyHub() {
 
   return (
     <main id="main" className="money-page money-hub">
+      <div className="guide-toolbar"><GuideLanguageSelect locale="zh-CN" domain="money" /></div>
       <section className="money-hero" aria-labelledby="money-title">
         <div className="money-hero-copy">
           <span className="eyebrow money-eyebrow">

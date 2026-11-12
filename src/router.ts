@@ -9,11 +9,15 @@
 //   /money/:slug        Money & Finance Guide detail
 
 import type { GuideDomainId } from "./guides/domains";
+import { isGuideLocale, type GuideLocale } from "./guides/locales.ts";
 
 export type Route =
   | { name: "home" }
   | { name: "hub"; domain: GuideDomainId }
   | { name: "guide"; domain: GuideDomainId; slug: string }
+  | { name: "localized-index"; locale: GuideLocale }
+  | { name: "localized-hub"; locale: GuideLocale; domain: GuideDomainId }
+  | { name: "localized-guide"; locale: GuideLocale; domain: GuideDomainId; slug: string }
   | { name: "topic"; domain: "family-visa"; topic: FamilyVisaTopicId }
   | { name: "not-found" };
 
@@ -33,6 +37,18 @@ const DOMAIN_BASES = new Map<string, GuideDomainId>([
 export function matchRoute(pathname: string): Route {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/") return { name: "home" };
+  const localized = /^\/([^/]+)(?:\/([^/]+)(?:\/([^/]+))?)?$/.exec(path);
+  if (localized && isGuideLocale(localized[1])) {
+    const [, localeValue, section, rawSlug] = localized;
+    const locale = localeValue;
+    if (!section || section === "guides") return { name: "localized-index", locale };
+    const domain = DOMAIN_BASES.get(section);
+    if (!domain) return { name: "not-found" };
+    if (!rawSlug) return { name: "localized-hub", locale, domain };
+    let slug: string;
+    try { slug = decodeURIComponent(rawSlug); } catch { return { name: "not-found" }; }
+    return { name: "localized-guide", locale, domain, slug };
+  }
   const topic = /^\/family-visa\/topics\/([a-z0-9-]+)$/.exec(path);
   if (topic)
     return (FAMILY_VISA_TOPICS as readonly string[]).includes(topic[1])

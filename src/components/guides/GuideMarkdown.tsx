@@ -10,6 +10,7 @@ import {
   inlineText,
 } from "../../guides/markdown";
 import type { GuideDomain } from "../../guides/domains";
+import { GUIDE_UI, type GuideLocale } from "../../guides/locales";
 import { guidePath } from "../../guides/domains";
 import { Link } from "../Link";
 import { EvidencePanel } from "./EvidencePanel";
@@ -17,6 +18,7 @@ import { EvidencePanel } from "./EvidencePanel";
 type Props = {
   /** The domain the article renders in; resolves its 《title》 references. */
   domain: GuideDomain;
+  locale?: GuideLocale;
   blocks: Block[];
   evidence: Map<string, GuideEvidence>;
   sources: Map<string, GuideSource>;
@@ -31,12 +33,14 @@ type Props = {
  */
 export function GuideMarkdown({
   domain,
+  locale = "zh-CN",
   blocks,
   evidence,
   sources,
   open,
   onToggle,
 }: Props) {
+  const ui = GUIDE_UI[locale];
   // Occurrence ids are assigned in document order so repeated keys stay distinct.
   let counter = 0;
   const nextId = (key: string) => `evidence-${key}-${counter++}`;
@@ -73,7 +77,7 @@ export function GuideMarkdown({
                 onClick={() => onToggle(id)}
               >
                 <FileCheck2 size={14} aria-hidden="true" />
-                {inlineText(node.children) || "查看依据"}
+                {inlineText(node.children) || ui.evidenceLink}
               </button>
             );
           }
@@ -94,7 +98,7 @@ export function GuideMarkdown({
               >
                 {renderInline(node.children, ids)}
                 <ExternalLink size={13} aria-hidden="true" />
-                <span className="sr-only">（在新窗口打开）</span>
+                <span className="sr-only">{ui.newWindow}</span>
               </a>
             );
           return (
@@ -119,6 +123,7 @@ export function GuideMarkdown({
             evidence={evidence.get(key)}
             sources={sources}
             isExampleSource={domain.isExampleSource}
+            locale={locale}
           />
         );
       });
@@ -142,7 +147,7 @@ export function GuideMarkdown({
               {item.task === "done" && <Check size={12} strokeWidth={3} />}
             </span>
           )}
-          {item.task === "done" && <span className="sr-only">（已勾选）</span>}
+          {item.task === "done" && <span className="sr-only">{locale === "en" ? "(checked)" : locale === "ur" ? "(مکمل)" : locale === "hi" ? "(चिह्नित)" : "（已勾选）"}</span>}
           {renderInline(item.children, ids)}
           {panels}
           {item.sublist && renderList(item.sublist, 0)}
