@@ -28,3 +28,8 @@ dist-ssr
 dev/familyVisaDraftContent.ts
 docs/family-visa/
 tests/local/
+
+# Local runtime secrets and data. Keep this directory outside Git.
+!/.local/
+/.local/*
+/.local/n8n.env
