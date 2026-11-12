@@ -33,3 +33,4 @@ tests/local/
 !/.local/
 /.local/*
 /.local/n8n.env
+/.local/ai-provider.env
