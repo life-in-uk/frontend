@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2 } from "lucide-react";
 import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
-import { applyGuideSeo, guideAlternates } from "../../guides/seo";
+import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo";
 import { inlineText, parseMarkdown } from "../../guides/markdown";
 import type { Block } from "../../guides/markdown";
 import type { GuideDomain } from "../../guides/domains";
@@ -54,6 +54,8 @@ export function GuidePage({
   const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>([locale]);
   const ui = GUIDE_UI[locale];
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
+
+  useEffect(() => () => clearGuideSeo(), []);
 
   useEffect(() => {
     const controller = new AbortController();

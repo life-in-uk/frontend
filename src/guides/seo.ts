@@ -1,5 +1,6 @@
 import {
   GUIDE_LOCALES,
+  GUIDE_LOCALE_HREFLANG,
   GUIDE_LOCALE_LANG,
   localizedGuidePath,
   textDirection,
@@ -7,6 +8,13 @@ import {
 } from "./locales.ts";
 
 export type AlternatePage = { locale: GuideLocale; href: string };
+
+/** Remove only metadata owned by the Guide SEO helper and restore the default document language. */
+export function clearGuideSeo(locale: GuideLocale = "zh-CN"): void {
+  document.head.querySelectorAll('[data-guide-seo="true"]').forEach((node) => node.remove());
+  document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
+  document.documentElement.dir = textDirection(locale);
+}
 
 export function guideAlternates(
   origin: string,
@@ -39,27 +47,27 @@ export function applyGuideSeo(options: {
   alternates?: readonly AlternatePage[];
   noIndex?: boolean;
 }): void {
+  clearGuideSeo(options.locale);
   document.title = options.title;
   document.documentElement.lang = GUIDE_LOCALE_LANG[options.locale];
   document.documentElement.dir = textDirection(options.locale);
-  let description = document.head.querySelector<HTMLMetaElement>('meta[name="description"]');
-  if (!description) {
-    description = document.createElement("meta");
-    description.name = "description";
-    document.head.append(description);
-  }
+  const description = document.createElement("meta");
+  description.name = "description";
+  description.dataset.guideSeo = "true";
+  document.head.append(description);
   description.content = options.description;
-  document.head.querySelectorAll('link[rel="canonical"], link[rel="alternate"][hreflang]').forEach((node) => node.remove());
   if (options.canonical) {
     const canonical = document.createElement("link");
     canonical.rel = "canonical";
     canonical.href = options.canonical;
+    canonical.dataset.guideSeo = "true";
     document.head.append(canonical);
     for (const alternate of options.alternates ?? []) {
       const link = document.createElement("link");
       link.rel = "alternate";
-      link.hreflang = GUIDE_LOCALE_LANG[alternate.locale];
+      link.hreflang = GUIDE_LOCALE_HREFLANG[alternate.locale];
       link.href = alternate.href;
+      link.dataset.guideSeo = "true";
       document.head.append(link);
     }
     if (options.alternates?.some((row) => row.locale === "zh-CN")) {
@@ -67,16 +75,15 @@ export function applyGuideSeo(options: {
       fallback.rel = "alternate";
       fallback.hreflang = "x-default";
       fallback.href = options.alternates.find((row) => row.locale === "zh-CN")!.href;
+      fallback.dataset.guideSeo = "true";
       document.head.append(fallback);
     }
   }
-  let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
   if (options.noIndex) {
-    if (!robots) {
-      robots = document.createElement("meta");
-      robots.name = "robots";
-      document.head.append(robots);
-    }
+    const robots = document.createElement("meta");
+    robots.name = "robots";
+    robots.dataset.guideSeo = "true";
     robots.content = "noindex, nofollow";
-  } else robots?.remove();
+    document.head.append(robots);
+  }
 }

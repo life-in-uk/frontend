@@ -38,7 +38,7 @@ const DOMAIN_BASES = new Map<string, GuideDomainId>([
 export function matchRoute(pathname: string): Route {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/") return { name: "home" };
-  if (path === "/owner/editorial") return { name: "owner-editorial" };
+  if (path === "/owner/editorial" || path.startsWith("/owner/editorial/")) return { name: "owner-editorial" };
   const localized = /^\/([^/]+)(?:\/([^/]+)(?:\/([^/]+))?)?$/.exec(path);
   if (localized && isGuideLocale(localized[1])) {
     const [, localeValue, section, rawSlug] = localized;

@@ -17,6 +17,15 @@ export const GUIDE_LOCALE_LANG: Record<GuideLocale, string> = {
   hi: "hi",
 };
 
+/** BCP 47 hreflang values shared with the backend sitemap output. */
+export const GUIDE_LOCALE_HREFLANG: Record<GuideLocale, string> = {
+  "zh-CN": "zh-CN",
+  "zh-TW": "zh-TW",
+  en: "en-GB",
+  ur: "ur",
+  hi: "hi",
+};
+
 export const GUIDE_UI: Record<GuideLocale, {
   language: string; home: string; loading: string; notFound: string; notFoundText: string;
   unavailable: string; retry: string; updated: string; evidenceCount: string; evidenceIntro: string;

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { matchRoute } from "../src/router.ts";
 import { getLocalizedGuide, getLocalizedGuides, GuideNotFoundError } from "../src/guides/api.ts";
-import { GUIDE_LOCALES, localizedGuidePath, textDirection } from "../src/guides/locales.ts";
+import { GUIDE_LOCALES, GUIDE_LOCALE_HREFLANG, localizedGuidePath, textDirection } from "../src/guides/locales.ts";
 import { guideAlternates } from "../src/guides/seo.ts";
 
 test("locale routes retain domain conventions for all five locales", () => {
@@ -20,7 +20,7 @@ test("locale routes retain domain conventions for all five locales", () => {
 
 test("owner editorial interface has a dedicated route outside public Guide routes", () => {
   assert.deepEqual(matchRoute("/owner/editorial"), { name: "owner-editorial" });
-  assert.deepEqual(matchRoute("/owner/editorial/unknown"), { name: "not-found" });
+  assert.deepEqual(matchRoute("/owner/editorial/batches"), { name: "owner-editorial" });
 });
 
 test("Urdu uses RTL while the other supported locales remain LTR", () => {
@@ -33,6 +33,12 @@ test("hreflang alternates contain only explicitly available published locales", 
     { locale: "zh-CN", href: "https://life.example/zh-CN/health/nhs-dentist" },
     { locale: "ur", href: "https://life.example/ur/health/nhs-dentist" },
   ]);
+});
+
+test("hreflang uses valid shared locale codes, including British English", () => {
+  assert.deepEqual(GUIDE_LOCALE_HREFLANG, {
+    "zh-CN": "zh-CN", "zh-TW": "zh-TW", en: "en-GB", ur: "ur", hi: "hi",
+  });
 });
 
 test("localized Guide API validates the published wrapper and returns 404 for missing locales", async () => {

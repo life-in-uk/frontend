@@ -14,6 +14,8 @@ import { LocalizedGuideIndex } from "./components/guides/LocalizedGuideIndex";
 import { GuidePage } from "./components/guides/GuidePage";
 import { OwnerEditorialPage } from "./pages/OwnerEditorialPage";
 import { GUIDE_DOMAINS } from "./guides/domains";
+import { applyGuideSeo, clearGuideSeo } from "./guides/seo";
+import { GUIDE_LOCALE_LANG, textDirection } from "./guides/locales";
 import { currentPath, matchRoute, subscribeToLocation } from "./router";
 import "./App.css";
 
@@ -32,6 +34,11 @@ function App() {
     ? route.locale : "zh-CN";
 
   useEffect(() => {
+    document.documentElement.lang = GUIDE_LOCALE_LANG[activeLocale];
+    document.documentElement.dir = textDirection(activeLocale);
+  }, [activeLocale]);
+
+  useEffect(() => {
     if (route.name === "home")
       document.title = "Life in UK · 在英国，把日子过明白。";
     else if (hubDomain === "health") document.title = "健康与 NHS · Life in UK";
@@ -43,6 +50,12 @@ function App() {
     else if (route.name === "owner-editorial")
       document.title = "Owner editorial · Life in UK";
   }, [route.name, hubDomain]);
+
+  useEffect(() => {
+    if (route.name !== "owner-editorial") return;
+    applyGuideSeo({ locale: "zh-CN", canonical: null, title: "Owner editorial · Life in UK", description: "", noIndex: true });
+    return () => clearGuideSeo();
+  }, [route.name]);
 
   return (
     <>

@@ -4,7 +4,7 @@ import { getLocalizedGuides } from "../../guides/api";
 import type { GuideMetadata } from "../../guides/api";
 import { GUIDE_DOMAINS, type GuideDomainId } from "../../guides/domains";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
-import { applyGuideSeo, localizedIndexAlternates } from "../../guides/seo";
+import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates } from "../../guides/seo";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
 import "./Guide.css";
@@ -38,6 +38,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
       alternates: localizedIndexAlternates(window.location.origin, candidates) });
     document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
     document.documentElement.dir = textDirection(locale);
+    return () => clearGuideSeo();
   }, [locale, domain, strings]);
 
   return (
