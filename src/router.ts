@@ -18,6 +18,7 @@ export type Route =
   | { name: "localized-index"; locale: GuideLocale }
   | { name: "localized-hub"; locale: GuideLocale; domain: GuideDomainId }
   | { name: "localized-guide"; locale: GuideLocale; domain: GuideDomainId; slug: string }
+  | { name: "owner-editorial" }
   | { name: "topic"; domain: "family-visa"; topic: FamilyVisaTopicId }
   | { name: "not-found" };
 
@@ -37,6 +38,7 @@ const DOMAIN_BASES = new Map<string, GuideDomainId>([
 export function matchRoute(pathname: string): Route {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/") return { name: "home" };
+  if (path === "/owner/editorial") return { name: "owner-editorial" };
   const localized = /^\/([^/]+)(?:\/([^/]+)(?:\/([^/]+))?)?$/.exec(path);
   if (localized && isGuideLocale(localized[1])) {
     const [, localeValue, section, rawSlug] = localized;

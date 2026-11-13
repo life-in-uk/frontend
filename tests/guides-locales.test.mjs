@@ -18,6 +18,11 @@ test("locale routes retain domain conventions for all five locales", () => {
   assert.deepEqual(matchRoute("/xx/health/nhs-dentist-england"), { name: "not-found" });
 });
 
+test("owner editorial interface has a dedicated route outside public Guide routes", () => {
+  assert.deepEqual(matchRoute("/owner/editorial"), { name: "owner-editorial" });
+  assert.deepEqual(matchRoute("/owner/editorial/unknown"), { name: "not-found" });
+});
+
 test("Urdu uses RTL while the other supported locales remain LTR", () => {
   assert.equal(textDirection("ur"), "rtl");
   for (const locale of GUIDE_LOCALES.filter((item) => item !== "ur")) assert.equal(textDirection(locale), "ltr");

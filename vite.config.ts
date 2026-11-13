@@ -59,6 +59,9 @@ export default defineConfig(({ mode, command, isPreview }) => {
         "/api/guides": {
           target: backendTarget,
         },
+        "/api/owner/editorial": {
+          target: backendTarget,
+        },
         "/api/bank-holidays": {
           target: backendTarget,
         },

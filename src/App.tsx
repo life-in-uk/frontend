@@ -12,6 +12,7 @@ import { MoneyHub } from "./components/money/MoneyHub";
 import { MoneyGuidePage } from "./components/money/MoneyGuidePage";
 import { LocalizedGuideIndex } from "./components/guides/LocalizedGuideIndex";
 import { GuidePage } from "./components/guides/GuidePage";
+import { OwnerEditorialPage } from "./pages/OwnerEditorialPage";
 import { GUIDE_DOMAINS } from "./guides/domains";
 import { currentPath, matchRoute, subscribeToLocation } from "./router";
 import "./App.css";
@@ -39,6 +40,8 @@ function App() {
       document.title = "家庭与签证 · Life in UK";
     else if (route.name === "not-found")
       document.title = "页面不存在 · Life in UK";
+    else if (route.name === "owner-editorial")
+      document.title = "Owner editorial · Life in UK";
   }, [route.name, hubDomain]);
 
   return (
@@ -48,6 +51,7 @@ function App() {
       </a>
       <SiteHeader current={section} locale={activeLocale} />
       {route.name === "home" && <HomePage />}
+      {route.name === "owner-editorial" && <OwnerEditorialPage />}
       {hubDomain === "health" && <HealthHub />}
       {hubDomain === "family-visa" && <FamilyVisaHub />}
       {hubDomain === "money" && <MoneyHub />}

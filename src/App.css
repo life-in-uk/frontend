@@ -438,3 +438,19 @@
     font-size: 12px;
   }
 }
+/* Local owner-only Guide editorial surface. */
+.owner-editorial { max-width: 76rem; margin: 2rem auto; padding: 1.25rem; color: #17202a; }
+.owner-editorial header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.owner-editorial form, .owner-editorial .owner-actions { display: grid; gap: .9rem; max-width: 34rem; }
+.owner-editorial label { display: grid; gap: .35rem; font-weight: 600; }
+.owner-editorial input, .owner-editorial select { min-height: 2.7rem; padding: .5rem; }
+.owner-editorial button { min-height: 2.5rem; padding: .45rem .8rem; cursor: pointer; }
+.owner-editorial button:disabled { cursor: not-allowed; opacity: .55; }
+.owner-batch { border: 0; background: transparent; color: #174c83; text-align: left; text-decoration: underline; }
+.owner-editorial dl { display: grid; grid-template-columns: minmax(10rem, 15rem) 1fr; gap: .5rem 1rem; overflow-wrap: anywhere; }
+.owner-editorial dt { font-weight: 700; }
+.owner-locales { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
+.owner-locales > section { border: 1px solid #c8d0d8; border-radius: .5rem; padding: 1rem; min-width: 0; }
+.owner-editorial pre { max-height: 32rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.owner-editorial code { overflow-wrap: anywhere; }
+@media (max-width: 40rem) { .owner-editorial { margin: .5rem auto; padding: .75rem; } .owner-editorial dl { grid-template-columns: 1fr; gap: .15rem; } }
