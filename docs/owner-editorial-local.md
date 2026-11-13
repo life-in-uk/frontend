@@ -1,6 +1,6 @@
 # Local owner editorial preview
 
-The owner screen is at `/owner/editorial`. It uses a same-origin backend proxy and a server session; it does not store a password or API bearer token in browser storage. Choose the **Drafts and previews** role for batch inspection/import operations, or **Approval and publication** for final owner actions. These roles have separate passwords. Review remains on the independent review API and cannot be performed from this screen.
+The owner screen is at `/owner/editorial`. It uses a same-origin backend proxy and a server session; it does not store a password or API bearer token in browser storage. Choose the **Drafts and previews** role to inspect batches, or **Approval and publication** for final owner actions. These roles have separate passwords. Review remains on the independent review API and cannot be performed from this screen.
 
 ## Local-only configuration
 
