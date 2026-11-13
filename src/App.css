@@ -443,7 +443,7 @@
 .owner-editorial header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .owner-editorial form, .owner-editorial .owner-actions { display: grid; gap: .9rem; max-width: 34rem; }
 .owner-editorial label { display: grid; gap: .35rem; font-weight: 600; }
-.owner-editorial input, .owner-editorial select { min-height: 2.7rem; padding: .5rem; }
+.owner-editorial input, .owner-editorial select, .owner-editorial textarea { min-height: 2.7rem; padding: .5rem; width: 100%; }
 .owner-editorial button { min-height: 2.5rem; padding: .45rem .8rem; cursor: pointer; }
 .owner-editorial button:disabled { cursor: not-allowed; opacity: .55; }
 .owner-batch { border: 0; background: transparent; color: #174c83; text-align: left; text-decoration: underline; }

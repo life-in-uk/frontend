@@ -4,6 +4,7 @@ type Session = { role: "DRAFT" | "APPROVAL"; csrfToken: string };
 type Batch = { batchId: string; slug: string; sourceRevisionId: string; sourceContentHash: string; status: string; validFrom: string; validUntil: string | null };
 type Locale = { localeRevisionId: string; locale: string; sourceRevisionId: string; canonicalContent: string | null; contentHash: string | null; validationStatus: string; reviewStatus: string; reviewedHash: string | null; reviewResult: string | null; reviewer: string | null; failureCode: string | null };
 type Detail = { batch: Batch; policyVersion: string; sourceVersion: string; locales: Locale[] };
+type TranslationPackage = { contractVersion: string; batchId: string; slug: string; sourceRevisionId: string; sourceContentHash: string; sourceGuide: unknown; requiredLocales: string[]; instructions: string };
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/owner/editorial${path}`, { ...init, credentials: "same-origin", headers: { "Content-Type": "application/json", ...init?.headers } });
@@ -24,6 +25,9 @@ export function OwnerEditorialPage() {
   const [checklistId, setChecklistId] = useState("");
   const [verifiedOn, setVerifiedOn] = useState(new Date().toISOString().slice(0, 10));
   const [expectedPublication, setExpectedPublication] = useState("");
+  const [translationExport, setTranslationExport] = useState("");
+  const [translationImport, setTranslationImport] = useState("");
+  const [importedLocales, setImportedLocales] = useState<string[]>([]);
 
   async function loadBatches(active: Session) {
     const rows = await api<Batch[]>("/batches");
@@ -72,6 +76,33 @@ export function OwnerEditorialPage() {
     finally { setSession(null); setDetail(null); setBatches([]); }
   }
 
+  async function exportTranslations() {
+    if (!detail) return;
+    setError(""); setBusy(true); setImportedLocales([]);
+    try {
+      const result = await api<TranslationPackage>(`/batches/${detail.batch.batchId}/translation-export`);
+      setTranslationExport(JSON.stringify(result, null, 2));
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "Could not export source package"); }
+    finally { setBusy(false); }
+  }
+
+  async function importTranslations() {
+    if (!detail || !session) return;
+    setError(""); setBusy(true); setImportedLocales([]);
+    let payload: unknown;
+    try { payload = JSON.parse(translationImport); }
+    catch { setError("The translation result is not valid JSON."); setBusy(false); return; }
+    try {
+      const result = await api<Locale[]>(`/batches/${detail.batch.batchId}/translations/import`, {
+        method: "POST", headers: { "X-CSRF-Token": session.csrfToken }, body: JSON.stringify(payload),
+      });
+      setImportedLocales(result.map((locale) => locale.locale));
+      setTranslationImport("");
+      await loadBatches(session);
+    } catch (failure) { setError(failure instanceof Error ? failure.message : "Translation import failed"); }
+    finally { setBusy(false); }
+  }
+
   if (!session) return <main id="main" className="owner-editorial"><h1>Owner editorial</h1><p>Sign in with a separate draft or approval password. Machine API tokens are not accepted here.</p>
     <form onSubmit={login}><label>Access role<select value={role} onChange={(event) => setRole(event.target.value as Session["role"])}><option value="DRAFT">Drafts and previews</option><option value="APPROVAL">Approval and publication</option></select></label>
       <label>Password<input name="credential" type="password" autoComplete="current-password" required /></label><button disabled={busy}>Sign in</button></form>
@@ -81,6 +112,13 @@ export function OwnerEditorialPage() {
     {error && <p role="alert">{error}</p>}
     <section><h2>Recent batches</h2>{batches.length === 0 ? <p>No batches found.</p> : <ul>{batches.map((batch) => <li key={batch.batchId}><button className="owner-batch" onClick={() => selectBatch(batch.batchId)}>{batch.slug} — {batch.status} — {batch.batchId}</button></li>)}</ul>}</section>
     {detail && <article><h2>{detail.batch.slug}</h2><dl><dt>Status</dt><dd>{detail.batch.status}</dd><dt>Chinese source revision</dt><dd>{detail.batch.sourceRevisionId}</dd><dt>Source hash</dt><dd><code>{detail.batch.sourceContentHash}</code></dd><dt>Policy/source version</dt><dd>{detail.policyVersion} / {detail.sourceVersion}</dd><dt>Validity</dt><dd>{detail.batch.validFrom} — {detail.batch.validUntil || "no end date"}</dd></dl>
+      {session.role === "DRAFT" && <section className="owner-translation"><h3>Manual Claude translation</h3><p>Export this exact Chinese source, submit its instructions to Claude manually, then paste the complete JSON response below. Imported locales remain drafts and still require independent review.</p>
+        <button disabled={busy} onClick={exportTranslations}>Export source and translation instructions</button>
+        {translationExport && <><label>Translation package<textarea readOnly rows={14} value={translationExport} /><button type="button" onClick={() => navigator.clipboard.writeText(translationExport).catch(() => setError("Clipboard access is unavailable; select and copy the package manually."))}>Copy package</button></label></>}
+        <label>Claude translation package<textarea rows={14} value={translationImport} onChange={(event) => setTranslationImport(event.target.value)} placeholder="Paste the complete translation-package-v1 JSON here" /></label>
+        <button disabled={busy || !translationImport.trim()} onClick={importTranslations}>Validate and save locale drafts</button>
+        {importedLocales.length > 0 && <p role="status">Saved as drafts: {importedLocales.join(", ")}. No reviews or approvals were recorded.</p>}
+      </section>}
       <h3>Locale drafts and review</h3><div className="owner-locales">{["zh-CN", "zh-TW", "en", "ur", "hi"].map((locale) => { const item = detail.locales.find((entry) => entry.locale === locale); return <section key={locale}><h4>{locale}</h4>{!item ? <p>Missing translation</p> : <><p>{item.validationStatus} · {item.reviewStatus}{item.reviewer ? ` · ${item.reviewer}` : ""}</p><p>Source revision: {item.sourceRevisionId}</p><p>Content hash: <code>{item.contentHash || "—"}</code></p>{item.reviewedHash && <p>Reviewed hash: <code>{item.reviewedHash}</code></p>}{item.failureCode && <p>Failure: {item.failureCode}</p>}{item.reviewResult && <pre>{item.reviewResult}</pre>}{item.canonicalContent && <details><summary>Preview draft JSON</summary><pre>{item.canonicalContent}</pre></details>}</>}</section>; })}</div>
       {session.role === "APPROVAL" && <section className="owner-actions"><h3>Owner actions</h3><p>Approval requires all five current locale drafts to pass independent review. Publishing replaces the current five-locale set atomically.</p><button disabled={busy || detail.batch.status !== "READY"} onClick={() => window.confirm("Approve this complete reviewed Guide batch?") && mutate(`/batches/${detail.batch.batchId}/approve`)}>Approve batch</button>
         <label>Checklist ID<input value={checklistId} onChange={(event) => setChecklistId(event.target.value)} /></label><label>Verified on<input type="date" value={verifiedOn} onChange={(event) => setVerifiedOn(event.target.value)} /></label><label>Expected current publication ID (blank if none)<input value={expectedPublication} onChange={(event) => setExpectedPublication(event.target.value)} /></label>
