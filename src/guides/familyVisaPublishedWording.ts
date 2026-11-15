@@ -14,11 +14,11 @@ import type { FamilyVisaContent } from "./familyVisaContent.ts";
 
 export const FAMILY_VISA_PUBLISHED_WORDING: FamilyVisaContent = {
   "reviewedFor": {
-    "routes": "2026-11-14T02:11:25Z",
-    "finance": "2026-11-14T02:11:38Z",
-    "relationship": "2026-11-14T02:11:39Z",
-    "children": "2026-11-15T20:13:09Z",
-    "application": "2026-11-15T20:13:09Z"
+    "routes": "2026-11-15T20:44:59Z",
+    "finance": "2026-11-15T20:45:00Z",
+    "relationship": "2026-11-15T20:45:00Z",
+    "children": "2026-11-15T20:44:59Z",
+    "application": "2026-11-15T20:44:59Z"
   },
   "passages": {
     "s1-married": {
@@ -403,7 +403,7 @@ export const FAMILY_VISA_PUBLISHED_WORDING: FamilyVisaContent = {
     },
     "s5-online": {
       "text": [
-        "境外和境内都在**网上申请**。申请费每人境外 **£2,064**、境内 **£1,407**，多数情况下还要交医疗附加费。"
+        "境外和境内都在**网上申请**。申请费每人境外 **£2,064**、境内 **£1,407**，可能还需要交医疗附加费。"
       ]
     },
     "s5-checklist": {

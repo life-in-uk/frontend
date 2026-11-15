@@ -288,23 +288,23 @@ export const QUESTIONS: Readonly<Record<QuestionStep, Question>> = {
 export const JOURNEY_GUIDES = {
   routes: {
     slug: "partner-visa-routes-overview",
-    reviewedUpdatedAt: "2026-11-14T02:11:25Z",
+    reviewedUpdatedAt: "2026-11-15T20:44:59Z",
   },
   finance: {
     slug: "partner-visa-financial-requirement",
-    reviewedUpdatedAt: "2026-11-14T02:11:38Z",
+    reviewedUpdatedAt: "2026-11-15T20:45:00Z",
   },
   relationship: {
     slug: "partner-visa-relationship-evidence",
-    reviewedUpdatedAt: "2026-11-14T02:11:39Z",
+    reviewedUpdatedAt: "2026-11-15T20:45:00Z",
   },
   children: {
     slug: "partner-visa-dependent-children",
-    reviewedUpdatedAt: "2026-11-15T20:13:09Z",
+    reviewedUpdatedAt: "2026-11-15T20:44:59Z",
   },
   application: {
     slug: "partner-visa-application-process",
-    reviewedUpdatedAt: "2026-11-15T20:13:09Z",
+    reviewedUpdatedAt: "2026-11-15T20:44:59Z",
   },
 } as const;
 export type JourneyGuideId = keyof typeof JOURNEY_GUIDES;
@@ -1130,7 +1130,7 @@ export const JOURNEY_STAGES: readonly Stage[] = [
         guide: "application",
         when: always,
         evidenceKeys: ["apply-online", "fees", "health-surcharge"],
-        fingerprint: "3cf27828",
+        fingerprint: "305578b5",
       },
       {
         id: "s5-checklist",
@@ -1164,7 +1164,7 @@ export const JOURNEY_STAGES: readonly Stage[] = [
             guide: "application",
             when: always,
             evidenceKeys: ["fees", "health-surcharge", "priority-and-payment"],
-            fingerprint: "8601b04d",
+            fingerprint: "552a9980",
           },
         ],
       },
