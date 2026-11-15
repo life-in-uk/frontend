@@ -1,11 +1,11 @@
 // Production isolation in a real browser: builds the app for production,
-// serves it with `vite preview`, and mocks the API so that all four Family &
-// Visa Guides look PUBLISHED at exactly the reviewed versions (the strongest
-// case for a leak). The production build carries only the wording for the
-// three PUBLISHED Guides (src/guides/familyVisaPublishedWording.ts); the
-// dependent-children wording is local-only, so the children checklist
-// section, its rules and the topic page must stay pending, whatever UI state
-// or route is used.
+// serves it with `vite preview`, and mocks the API so that all five Family &
+// Visa Guides look PUBLISHED at exactly the reviewed versions. The production
+// build carries only the reviewed wording in
+// src/guides/familyVisaPublishedWording.ts (since 15 Nov 2026 this includes the
+// dependent-children and application Guides). Draft-only text in the
+// gitignored dev/ files (superseded children wording) must never render,
+// whatever UI state or route is used.
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { localDraftContent as localContent } from "./fixtures/familyVisaContent.mjs";
 import { JOURNEY_GUIDES } from "../src/guides/familyVisaJourney.ts";
+import { FAMILY_VISA_PUBLISHED_WORDING } from "../src/guides/familyVisaPublishedWording.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -36,6 +37,7 @@ const SLUGS = [
   "partner-visa-routes-overview",
   "partner-visa-financial-requirement",
   "partner-visa-relationship-evidence",
+  "partner-visa-application-process",
   "partner-visa-dependent-children",
 ];
 // Mandatory: with the backend drafts (real evidence, the strongest case) when
@@ -92,13 +94,23 @@ const list = Object.values(details).map(
 // Distinctive local wording that must never render, when the gitignored
 // local file is present (read at run time; nothing is quoted here).
 const LOCAL = await localContent();
+// Only strings that exist in the dev file but NOT in the published wording are
+// draft-only; those are the probes.
+const allStrings = (value, out = []) => {
+  if (typeof value === "string") out.push(value);
+  else if (Array.isArray(value)) value.forEach((v) => allStrings(v, out));
+  else if (value && typeof value === "object")
+    for (const [k, v] of Object.entries(value)) if (k !== "reviewedFor") allStrings(v, out);
+  return out;
+};
+const plain = (text) => text.replace(/\*\*/g, "");
+const publishedText = allStrings(FAMILY_VISA_PUBLISHED_WORDING).map(plain);
 const probes = LOCAL
-  ? [
-      LOCAL.tasks["kid-sole-responsibility"].summary,
-      LOCAL.tasks["kid-finance"].summary,
-      LOCAL.sections.children.intro,
-      LOCAL.topics["children-from-previous-relationship"].intro,
-    ].map((text) => text.replace(/\*\*/g, "").slice(0, 18))
+  ? [...new Set(allStrings(LOCAL).map(plain))]
+      .filter((text) => text.length >= 30)
+      .map((text) => text.slice(0, 30))
+      // A probe must not also begin (or appear in) any published string.
+      .filter((probe) => !publishedText.some((text) => text.includes(probe)))
   : [];
 console.log(
   `Production isolation fixtures: ${haveDrafts ? "backend draft Guides" : "synthetic Guides"}; wording probes: ${LOCAL ? "local file" : "none (structural checks only)"}`,
@@ -197,15 +209,16 @@ try {
       badges.some((b) => b !== "待核对"),
       badges.join(","),
     );
-    // Dependent children: unpublished wording, so every task stays pending.
+    // Dependent children: published wording since 15 Nov 2026, so the section
+    // is verified, with its reviewed intro.
     const kids = p.locator(".checklist-section", { hasText: "随行孩子" });
     const kidBadges = await kids.locator(".checklist-badge").allTextContents();
     assert.ok(kidBadges.length > 0);
-    assert.ok(
-      kidBadges.every((b) => b === "待核对"),
-      kidBadges.join(","),
-    );
-    assert.equal(await kids.locator(".checklist-section-intro").count(), 0);
+    if (haveDrafts)
+      assert.ok(
+        kidBadges.some((b) => b !== "待核对"),
+        kidBadges.join(","),
+      );
     // The rules section shows published passages only.
     await p.getByRole("button", { name: "想了解这些要求背后的规则？" }).click();
     await openAll(p, ".journey-toggle[aria-expanded='false']");
@@ -226,20 +239,20 @@ try {
     await context.close();
   }
 
-  // Hidden route: the topic page stays pending and noindex.
+  // Topic page: verified from the published wording, never draft-only text.
   {
     const { p, context } = await page();
     await p.goto(
       `${baseURL}/family-visa/topics/children-from-previous-relationship`,
     );
-    await p.getByText("这个专题还在核对中").waitFor();
-    assert.equal(
-      await p.locator('meta[name="robots"]').getAttribute("content"),
-      "noindex, nofollow",
-    );
-    assert.equal(await p.locator(".family-topic-task").count(), 0);
+    if (haveDrafts) {
+      await p.locator(".family-topic-task").first().waitFor();
+      assert.equal(await p.locator('meta[name="robots"]').count(), 0);
+    } else {
+      await p.getByText("这个专题还在核对中").waitFor();
+    }
     await noWording(p, "topic page");
-    console.log("PASS production topic page: pending, noindex, no wording");
+    console.log("PASS production topic page: published wording only, no draft-only text");
     await context.close();
   }
 
@@ -276,12 +289,8 @@ try {
       .locator(".checklist-badge")
       .allTextContents();
     assert.ok(kidBadges.length > 0);
-    assert.ok(
-      kidBadges.every((b) => b === "待核对"),
-      kidBadges.join(","),
-    );
     await noWording(p, "resumed checklist");
-    console.log("PASS production resume: saved state cannot unlock children wording");
+    console.log("PASS production resume: saved state shows no draft-only wording");
     await context.close();
   }
   console.log("Family & Visa production isolation checks passed");

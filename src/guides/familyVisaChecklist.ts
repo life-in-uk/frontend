@@ -528,7 +528,7 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         title: "孩子的护照或身份证件，以及基本条件",
         kind: "required",
         when: always,
-        basis: basis("children", ["basic-requirements"], "f4a32fe0"),
+        basis: basis("children", ["basic-requirements"], "6e21ecfe"),
         official: [GOV.child],
       },
       {
@@ -539,7 +539,7 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         basis: basis(
           "children",
           ["three-limbs", "parent-definition"],
-          "40da943a",
+          "b244278c",
         ),
         official: [GOV.child],
       },
@@ -549,7 +549,7 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         kind: "required",
         when: child("parent"),
         condition: "孩子是你们两人的孩子",
-        basis: basis("children", ["parent-definition"], "eb10eec9"),
+        basis: basis("children", ["parent-definition"], "382c6075"),
         official: [GOV.child],
       },
       {
@@ -562,12 +562,12 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         basis: basis(
           "children",
           [
-            "sole-responsibility-factual-test",
-            "custody-order-not-sufficient",
+            "sole-responsibility-guidance",
+            "sole-responsibility-separated",
             "sole-responsibility-factors",
-            "both-parents-involved",
+            "custody-order-guidance",
           ],
-          "bac4ac36",
+          "9e7e2f5f",
         ),
         official: [GOV.child],
       },
@@ -582,7 +582,7 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         basis: basis(
           "children",
           ["in-country-normally-lives-with"],
-          "5a3fafce",
+          "a46bc5b1",
         ),
         official: [GOV.child],
       },
@@ -593,7 +593,11 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         when: child("not-parent", "adopt-guard", "unsure"),
         optional: true,
         condition: "如果要按第三种情形申请",
-        basis: basis("children", ["serious-compelling-welfare"], "e2072a53"),
+        basis: basis(
+          "children",
+          ["serious-compelling-purpose", "serious-compelling-child-focus"],
+          "b303999d",
+        ),
         official: [GOV.child],
       },
       {
@@ -606,7 +610,7 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         basis: basis(
           "children",
           ["adoption-definition", "guardian-not-parent"],
-          "b10e3500",
+          "c97c4672",
         ),
         official: [GOV.child],
         special: true,
@@ -616,7 +620,7 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         title: "孩子在英国的照护和住宿安排",
         kind: "required",
         when: always,
-        basis: basis("children", ["care-arrangements"], "64cbc84a"),
+        basis: basis("children", ["care-arrangements"], "0db8c9bc"),
         official: [GOV.child],
       },
       {
@@ -627,7 +631,7 @@ export const CHECKLIST_SECTIONS: readonly ChecklistSection[] = [
         basis: basis(
           "children",
           ["child-financial", "child-accommodation", "child-income-sources"],
-          "d85188b1",
+          "931ac76b",
         ),
         official: [GOV.child, GOV.income],
       },

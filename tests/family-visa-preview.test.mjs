@@ -181,7 +181,7 @@ const reviewedDir = fileURLToPath(
   ),
 );
 test(
-  "the reviewed drafts are served as exactly the four journey Guides",
+  "the reviewed drafts are served as exactly the five journey Guides",
   { skip: existsSync(reviewedDir) ? false : "backend drafts not present" },
   () => {
     assert.deepEqual(
@@ -189,6 +189,7 @@ test(
         .map((d) => d.slug)
         .sort(),
       [
+        "partner-visa-application-process",
         "partner-visa-dependent-children",
         "partner-visa-financial-requirement",
         "partner-visa-relationship-evidence",

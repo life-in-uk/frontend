@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { localContent } from "./fixtures/familyVisaContent.mjs";
+import { FAMILY_VISA_PUBLISHED_WORDING } from "../src/guides/familyVisaPublishedWording.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -97,7 +98,7 @@ try {
     assert.match(statuses[1], /^已核对/);
     assert.match(statuses[2], /^已核对/);
     assert.match(statuses[3], /^已核对/);
-    assert.equal(statuses[4], "待核对");
+    assert.match(statuses[4], /^已核对/); // stage 5 cites the published application Guide (15 Nov 2026)
     assert.match(statuses[5], /^已核对/);
     assert.ok(
       (await stage(p, 1).textContent()).includes(
@@ -125,11 +126,11 @@ try {
     await stage(p, 4).getByRole("button", { name: "展开详细信息" }).click();
     assert.ok(
       (await stage(p, 4).locator(".journey-details").textContent()).includes(
-        probe(LOCAL.passages["d4-3-meaning"].text[0]),
+        probe(FAMILY_VISA_PUBLISHED_WORDING.passages["d4-3-meaning"].text[0]),
       ),
     );
-    assert.equal(statuses[4], "待核对");
-    assert.equal(await stage(p, 5).locator(".journey-passage").count(), 0);
+    // Stage 5 restates the published application Guide (15 Nov 2026).
+    assert.ok((await stage(p, 5).locator(".journey-passage").count()) > 0);
     assert.equal(await noOverflow(p), true, `overflow at ${width}`);
     await p.screenshot({
       path: `${screenshots}/preview-journey-${width}.png`,
@@ -139,7 +140,7 @@ try {
     for (const url of requests.filter((u) => u.includes("/api/")))
       assert.match(
         new URL(url).pathname,
-        /^\/api\/guides(\/partner-visa-(routes-overview|financial-requirement|relationship-evidence|dependent-children))?$/,
+        /^\/api\/guides(\/partner-visa-(routes-overview|financial-requirement|relationship-evidence|dependent-children|application-process))?$/,
       );
     // The full Guide opens from the journey.
     await stage(p, 1)
@@ -165,17 +166,18 @@ try {
     await p.goto(`${previewURL}/family-visa`);
     await p.getByRole("button", { name: "全部指南" }).click();
     await p.locator(".family-guide-card").first().waitFor();
-    // Exactly the four drafts, by slug.
+    // Exactly the five Family Visa Guides, by slug.
     const draftLinks = await p
       .locator(".family-guide-card a[href^='/family-visa/partner-visa-']")
       .evaluateAll((links) => links.map((a) => a.getAttribute("href")).sort());
     assert.deepEqual(draftLinks, [
+      "/family-visa/partner-visa-application-process",
       "/family-visa/partner-visa-dependent-children",
       "/family-visa/partner-visa-financial-requirement",
       "/family-visa/partner-visa-relationship-evidence",
       "/family-visa/partner-visa-routes-overview",
     ]);
-    console.log("PASS preview: 全部指南 lists exactly the four drafts");
+    console.log("PASS preview: 全部指南 lists exactly the five Guides");
     await context.close();
   }
 
@@ -221,18 +223,23 @@ try {
         statuses.join(","),
       );
       assert.ok((await p.locator(".journey-passage").count()) > 0);
-      // The unpublished children draft is never served by the normal server.
-      const draft = await p.request.get(
+      // The children Guide is published (15 Nov 2026): the normal server serves
+      // the backend's published version, never a local draft.
+      const children = await p.request.get(
         `${normalURL}/api/guides/partner-visa-dependent-children`,
       );
-      assert.equal(draft.status(), 404);
+      assert.equal(children.status(), 200);
+      assert.equal(
+        (await children.json()).updatedAt,
+        FAMILY_VISA_PUBLISHED_WORDING.reviewedFor.children,
+      );
       // Plain `npm run dev` refuses the local wording module itself.
       const wordingModule = await p.request.get(
         `${normalURL}/dev/familyVisaDraftContent.ts`,
       );
       assert.equal(wordingModule.status(), 404);
       console.log(
-        "PASS normal dev server: published wording shows; no drafts, no draft wording module, no banner",
+        "PASS normal dev server: published wording shows; published Guides only, no draft wording module, no banner",
       );
     }
     await context.close();

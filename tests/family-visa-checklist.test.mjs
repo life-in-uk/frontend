@@ -197,10 +197,10 @@ test("sole responsibility: cited rules, and no relinquishment requirement", () =
   assert.equal(task.kind, "conditional");
   assert.equal(task.optional, true);
   assert.deepEqual([...task.basis.evidenceKeys].sort(), [
-    "both-parents-involved",
-    "custody-order-not-sufficient",
+    "custody-order-guidance",
     "sole-responsibility-factors",
-    "sole-responsibility-factual-test",
+    "sole-responsibility-guidance",
+    "sole-responsibility-separated",
   ]);
   const all = JSON.stringify(CHECKLIST_SECTIONS);
   for (const banned of ["必须放弃", "放弃抚养权是必须", "必须先放弃"])

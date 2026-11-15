@@ -191,9 +191,11 @@ test("the real production build contains none of the local wording (when present
   const wording = [...new Set(strings(content))].filter(
     (s) => s.length >= 6 && !structural.has(s) && !published.has(s),
   );
+  // Since 15 Nov 2026 the children wording is published; the dev file keeps
+  // only superseded draft text, which still must never ship.
   assert.ok(
-    wording.length > 40,
-    `expected the full wording set, got ${wording.length}`,
+    wording.length > 0,
+    `expected some draft-only wording, got ${wording.length}`,
   );
   assert.deepEqual(
     wording.filter((s) => bundle.includes(s)),

@@ -16,7 +16,7 @@ import {
   loadFamilyVisaContentStrings,
 } from "../src/guides/familyVisaContent.ts";
 
-const PUBLISHED = ["finance", "relationship", "routes"];
+const PUBLISHED = ["application", "children", "finance", "relationship", "routes"];
 const published = new Set(PUBLISHED);
 const taskGuide = Object.fromEntries(
   CHECKLIST_SECTIONS.flatMap((s) =>
@@ -31,8 +31,7 @@ test("published wording is reviewed for exactly the published Guides", () => {
   assert.deepEqual(Object.keys(W.reviewedFor).sort(), PUBLISHED);
   for (const id of PUBLISHED)
     assert.equal(W.reviewedFor[id], JOURNEY_GUIDES[id].reviewedUpdatedAt, id);
-  assert.equal("children" in W.reviewedFor, false);
-  assert.deepEqual(W.topics, {});
+  assert.deepEqual(Object.keys(W.topics), ["children-from-previous-relationship"]);
 });
 
 test("every passage, task and section of a published Guide has wording, and nothing else does", () => {
@@ -71,7 +70,7 @@ test("the loader serves the published wording without the preview flag", async (
   assert.equal(await loadFamilyVisaContentStrings("en"), S.en);
 });
 
-test("with published Guides at their reviewed versions, children stages stay pending", async () => {
+test("an unpublished Guide's passages never show, even with the others at their reviewed versions", async () => {
   const ready = (id) => ({
     status: "ready",
     meta: { slug: JOURNEY_GUIDES[id].slug },
@@ -87,6 +86,7 @@ test("with published Guides at their reviewed versions, children stages stay pen
     routes: ready("routes"),
     finance: ready("finance"),
     relationship: ready("relationship"),
+    application: ready("application"),
     children: { status: "unpublished" },
   };
   const stages = buildJourney(

@@ -9,6 +9,7 @@ import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { localContent } from "./fixtures/familyVisaContent.mjs";
 import { JOURNEY_GUIDES } from "../src/guides/familyVisaJourney.ts";
+import { FAMILY_VISA_PUBLISHED_WORDING } from "../src/guides/familyVisaPublishedWording.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -30,6 +31,7 @@ const SLUGS = {
   finance: "partner-visa-financial-requirement",
   relationship: "partner-visa-relationship-evidence",
   children: "partner-visa-dependent-children",
+  application: "partner-visa-application-process",
 };
 const STORAGE_KEY = "lifeinuk.familyVisa.checklist";
 const haveGuides = Object.values(SLUGS).every((slug) =>
@@ -773,14 +775,20 @@ try {
           name: "孩子来自上一段关系，如何准备英国签证材料？",
         })
         .waitFor();
-      if (haveWording) {
+      // Since 15 Nov 2026 the children wording is published (src/), so the
+      // verified topic page needs only the reviewed Guide files.
+      if (haveGuides) {
         await p.locator(".family-topic-task").first().waitFor();
         assert.equal(await p.locator('meta[name="robots"]').count(), 0);
         const topic = await p.locator(".family-topic-article").textContent();
         assert.match(topic, /单方负责的证据/);
         assert.ok(
           topic.includes(
-            probe(LOCAL.topics["children-from-previous-relationship"].intro),
+            probe(
+              FAMILY_VISA_PUBLISHED_WORDING.topics[
+                "children-from-previous-relationship"
+              ].intro,
+            ),
           ),
         );
       } else {
@@ -853,7 +861,8 @@ try {
       const statuses = await p.locator(".journey-status").allTextContents();
       assert.equal(statuses.length, 6);
       assert.match(statuses[0], /^已核对/);
-      assert.equal(statuses[4], "待核对");
+      // Stage 5 (application) cites the published application Guide.
+      assert.match(statuses[4], /^已核对/);
       console.log("PASS rules disclosure: six-stage explanation with evidence");
       await context.close();
     }

@@ -435,12 +435,14 @@ test("sole responsibility is explained only for children of a previous relations
   const notParent = childStage({ childRelations: ["not-parent"] });
   assert.ok(passageIds(notParent).includes("d4-3-meaning"));
   assert.ok(passageIds(notParent).includes("d4-3-sources"));
+  assert.ok(passageIds(notParent).includes("d4-3-consent"));
   const meaning = allPassages().find((p) => p.id === "d4-3-meaning");
+  // Official guidance only (15 Nov 2026): no case-law evidence is cited.
   assert.deepEqual([...meaning.evidenceKeys].sort(), [
-    "both-parents-involved",
-    "custody-order-not-sufficient",
-    "sole-responsibility-factors",
-    "sole-responsibility-factual-test",
+      "custody-order-guidance",
+      "sole-responsibility-factors",
+      "sole-responsibility-guidance",
+      "sole-responsibility-separated",
   ]);
   assert.ok(
     !passageIds(childStage({ childRelations: ["parent"] })).includes(
@@ -475,7 +477,7 @@ test("child advice is contextual, and never replaces the child stage", () => {
   ]);
 });
 
-test("the application stage stays pending, with no claims", () => {
+test("the application stage restates only the published application Guide", () => {
   const details = fixtures();
   for (const answers of every()) {
     const stage = buildJourney(
@@ -483,9 +485,12 @@ test("the application stage stays pending, with no claims", () => {
       availability(details),
       stampedStages(details),
     ).find((s) => s.id === "application");
-    assert.equal(stage.status, "pending");
-    assert.equal(stage.items.length, 0);
-    assert.equal(stage.summary, null);
+    assert.equal(stage.status, "verified");
+    assert.ok(stage.items.length >= 3);
+    assert.deepEqual(stage.pending, []);
+    const passages = [...stage.summary, ...stage.items.flatMap((i) => i.passages)];
+    assert.ok(passages.length > 0);
+    assert.ok(passages.every((p) => p.guide === "application"));
   }
 });
 
@@ -552,7 +557,7 @@ test("English: location alone never triggers A2; exemptions are cited", () => {
   ]);
 });
 
-test("fiancé(e) settlement: no 5-year credit and the switch stays pending", () => {
+test("fiancé(e) settlement: no 5-year credit, and the switch cites the application Guide", () => {
   const details = fixtures();
   const stage = buildJourney(
     { relationship: "fiance", children: "none", location: "outside" },
@@ -561,14 +566,12 @@ test("fiancé(e) settlement: no 5-year credit and the switch stays pending", () 
   ).find((s) => s.id === "settlement");
   assert.deepEqual(
     stage.summary.map((p) => p.id),
-    ["s6-fiance"],
+    ["s6-fiance-switch", "s6-fiance"],
   );
-  assert.deepEqual(
-    stage.pending.map((n) => n.id),
-    ["p6-fiance-switch"],
-  );
+  assert.equal(stage.summary[0].guide, "application");
+  assert.deepEqual(stage.pending, []);
   assert.equal(stage.itemsHeading?.text, "转为伴侣居留之后");
-  assert.equal(stage.status, "partial");
+  assert.equal(stage.status, "verified");
 });
 
 test("unpublished Guides never show restated text", () => {
