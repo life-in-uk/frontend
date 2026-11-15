@@ -90,8 +90,7 @@ try {
   {
     // Real local backend. Underground follows the stored snapshot's real age:
     // with the local TfL refresh running it is fresh and must match the API
-    // exactly; otherwise it is older than 15 minutes and must be hidden. Roads
-    // refresh stays off, so its snapshot is always stale here.
+    // exactly; otherwise it is older than 15 minutes and must be hidden.
     const { context, page, errors, external } = await open();
     const snapshot = await (await fetch(`${baseURL}/api/travel/underground`)).json();
     // Leave a margin so the snapshot cannot cross the 15-minute limit mid-check.
@@ -121,9 +120,19 @@ try {
     await context.grantPermissions(["geolocation"]);
     await context.setGeolocation({ latitude: 51.5074, longitude: -0.1278 });
     await roads.locator(".roads-locate").click();
-    await roads.locator(".travel-stale").waitFor();
-    assert.equal(await roads.locator(".roads-summary, .roads-item").count(), 0);
-    assert.match(await roads.locator(".travel-stale").innerText(), /more than 30 minutes ago/);
+    // Roads also follows the stored snapshot's real age (10-minute refresh, 15-minute limit).
+    const roadsReply = await fetch(`${baseURL}/api/travel/roads?lat=51.5074&lon=-0.1278`);
+    const roadsData = roadsReply.ok ? await roadsReply.json() : null;
+    const roadsFresh = roadsData !== null && Date.now() - Date.parse(roadsData.snapshotAt) < 14 * 60_000;
+    if (roadsFresh) {
+      await roads.locator(".roads-summary").waitFor();
+      assert.equal(await roads.locator(".travel-stale").count(), 0);
+      assert.equal(await roads.locator(".roads-item").count(), roadsData.disruptions.length);
+    } else {
+      await roads.locator(".travel-stale").waitFor();
+      assert.equal(await roads.locator(".roads-summary, .roads-item").count(), 0);
+      assert.match(await roads.locator(".travel-stale").innerText(), /more than 15 minutes ago/);
+    }
     assert.equal(await roads.locator('a[href="https://nationalhighways.co.uk/travel-updates/"]').count(), 1);
     // Rail is not released (no ?rail-preview): an explicit notice, no Rail tool.
     await page.locator('.travel-tab[data-tool="rail"]').click();
@@ -133,7 +142,7 @@ try {
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     await context.close();
-    console.log(`PASS real backend: Underground ${fresh ? "fresh, matches the API" : "stale, hidden"}; stale Roads hidden with official fallbacks; Rail shown as not yet available`);
+    console.log(`PASS real backend: Underground ${fresh ? "fresh, matches the API" : "stale, hidden"}; Roads ${roadsFresh ? "fresh, matches the API" : "stale, hidden"}; official fallbacks; Rail shown as not yet available`);
   }
   {
     // Fresh (mocked) data is shown, localized chrome around untranslated provider text.

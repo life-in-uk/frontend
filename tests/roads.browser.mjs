@@ -1150,11 +1150,11 @@ try {
     );
   }
 
-  // ---- Freshness: snapshots older than 30 minutes show no disruption claims ----
+  // ---- Freshness: snapshots older than 15 minutes show no disruption claims ----
   for (const [name, now, data] of [
     [
-      "30 min 1 s old",
-      Date.parse(fixture.snapshotAt) + 30 * 60_000 + 1000,
+      "15 min 1 s old",
+      Date.parse(fixture.snapshotAt) + 15 * 60_000 + 1000,
       fixture,
     ],
     ["five weeks old (real clock)", null, fixture],
@@ -1170,7 +1170,7 @@ try {
     await stale.waitFor();
     assert.equal(roadsRequests.length, 1, "the lookup itself still runs");
     assert.match(await stale.innerText(), /暂无最新的附近道路异常信息/);
-    assert.match(await stale.innerText(), /已超过 30 分钟/);
+    assert.match(await stale.innerText(), /已超过 15 分钟/);
     assert.equal(
       await stale.locator("time").getAttribute("datetime"),
       fixture.snapshotAt,

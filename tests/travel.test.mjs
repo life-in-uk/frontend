@@ -12,9 +12,9 @@ import { TRAVEL_TOOLS } from "../src/travel/tools.ts";
 const OBSERVED = "2026-10-03T15:47:08.441419123Z";
 const at = (ms) => Date.parse("2026-10-03T15:47:08.441Z") + ms;
 
-test("product thresholds: Underground 15 minutes, Roads 30 minutes", () => {
+test("product thresholds: Underground and Roads 15 minutes", () => {
   assert.equal(UNDERGROUND_MAX_AGE_MS, 15 * 60_000);
-  assert.equal(ROADS_MAX_AGE_MS, 30 * 60_000);
+  assert.equal(ROADS_MAX_AGE_MS, 15 * 60_000);
 });
 
 test("fresh up to and including the limit, stale after it", () => {
@@ -29,11 +29,11 @@ test("fresh up to and including the limit, stale after it", () => {
     observedAt: OBSERVED,
   });
   assert.equal(
-    assessFreshness(OBSERVED, ROADS_MAX_AGE_MS, at(20 * 60_000)).state,
+    assessFreshness(OBSERVED, ROADS_MAX_AGE_MS, at(14 * 60_000)).state,
     "fresh",
   );
   assert.equal(
-    assessFreshness(OBSERVED, ROADS_MAX_AGE_MS, at(31 * 60_000)).state,
+    assessFreshness(OBSERVED, ROADS_MAX_AGE_MS, at(16 * 60_000)).state,
     "stale",
   );
   // A five-week-old snapshot is stale for both tools.
