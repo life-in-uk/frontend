@@ -93,7 +93,7 @@ async function assertHomepage(page, requests, runtimeErrors, width) {
     await page.locator("h1").innerText(),
     /在英国生活、工作、\s*学习的实用指南/,
   );
-  assert.equal(await page.locator(".topic-card").count(), 7);
+  assert.equal(await page.locator(".topic-card").count(), 8);
   assert.equal(await page.locator(".home-practical .holiday-panel").count(), 1);
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth),
