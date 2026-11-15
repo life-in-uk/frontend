@@ -88,14 +88,31 @@ try {
     console.log("PASS navigation: Home topic card, Home transport entry (#roads), header (zh-CN), footer (hi)");
   }
   {
-    // Real local backend: the stored Underground and Roads snapshots are days
-    // old, so neither tool may present them as current status.
+    // Real local backend. Underground follows the stored snapshot's real age:
+    // with the local TfL refresh running it is fresh and must match the API
+    // exactly; otherwise it is older than 10 minutes and must be hidden. Roads
+    // refresh stays off, so its snapshot is always stale here.
     const { context, page, errors, external } = await open();
+    const snapshot = await (await fetch(`${baseURL}/api/travel/underground`)).json();
+    // Leave a margin so the snapshot cannot cross the 10-minute limit mid-check.
+    const fresh = Date.now() - Date.parse(snapshot.observedAt) < 9 * 60_000;
     await page.goto(`${baseURL}/en/travel`);
     const underground = page.locator(".travel-page .underground-card");
-    await underground.locator(".travel-stale").waitFor();
-    assert.match(await underground.locator(".travel-stale").innerText(), /No up-to-date London Underground line status/);
-    assert.equal(await underground.locator(".underground-line, .underground-summary").count(), 0);
+    if (fresh) {
+      await underground.locator(".underground-line").first().waitFor();
+      assert.equal(await underground.locator(".travel-stale").count(), 0);
+      assert.equal(await underground.locator(".underground-line").count(), snapshot.lines.length);
+      for (const line of snapshot.lines) {
+        const item = underground.locator(".underground-line", { has: page.locator(`h3:text-is("${line.lineName}")`) });
+        assert.equal(await item.count(), 1, line.lineName);
+        for (const status of line.statuses) assert.match(await item.innerText(), new RegExp(status.description), line.lineName);
+      }
+      assert.equal(await underground.locator(`.provenance time[datetime="${snapshot.observedAt}"]`).count(), 1);
+    } else {
+      await underground.locator(".travel-stale").waitFor();
+      assert.match(await underground.locator(".travel-stale").innerText(), /No up-to-date London Underground line status/);
+      assert.equal(await underground.locator(".underground-line, .underground-summary").count(), 0);
+    }
     assert.match(await underground.innerText(), /Powered by TfL Open Data/);
     assert.equal(await underground.locator('a[href="https://tfl.gov.uk/tube-dlr-overground/status/"]').count(), 1);
     // Roads: search via a mocked place list is not needed; use a device location.
@@ -116,7 +133,7 @@ try {
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     await context.close();
-    console.log("PASS real backend: stale Underground and Roads snapshots hidden with official fallbacks; Rail shown as not yet available");
+    console.log(`PASS real backend: Underground ${fresh ? "fresh, matches the API" : "stale, hidden"}; stale Roads hidden with official fallbacks; Rail shown as not yet available`);
   }
   {
     // Fresh (mocked) data is shown, localized chrome around untranslated provider text.
