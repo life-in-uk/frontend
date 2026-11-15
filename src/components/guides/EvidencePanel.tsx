@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import type { GuideEvidence, GuideSource } from "../../guides/api";
-import { formatUkDate, sourceTextLang } from "../../guides/format";
-import { GUIDE_UI, type GuideLocale } from "../../guides/locales";
+import { formatUkDateFor, sourceTextLang } from "../../guides/format";
+import { GUIDE_LOCALE_LANG, GUIDE_UI, type GuideLocale } from "../../guides/locales";
 
 type Props = {
   id: string;
@@ -117,7 +117,7 @@ export function EvidencePanel({
                       <dt>{ui.accessed}</dt>
                       <dd>
                         <time dateTime={source.accessedAt}>
-                          {formatUkDate(source.accessedAt)}
+                          {formatUkDateFor(source.accessedAt, GUIDE_LOCALE_LANG[locale])}
                         </time>
                       </dd>
                     </div>

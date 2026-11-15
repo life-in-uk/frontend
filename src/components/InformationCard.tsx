@@ -12,12 +12,19 @@ import { Button } from "./Button";
 export type TrustState = { tone: "reviewed" | "pending"; label: string };
 export type Source = { name: string; href: string };
 
-export function OfficialSource({ source }: { source: Source }) {
+export function OfficialSource({
+  source,
+  label = "官方来源",
+}: {
+  source: Source;
+  /** Localized "official source" wording shown after the provider name. */
+  label?: string;
+}) {
   return (
     <a className="source-label" href={source.href}>
       <Building2 aria-hidden="true" size={16} />
       <span>
-        <span lang="en">{source.name}</span> 官方来源
+        <span lang="en">{source.name}</span> {label}
       </span>
       <ExternalLink aria-hidden="true" size={13} />
     </a>

@@ -95,7 +95,7 @@ try {
     assert.equal(await page.locator(".rail-card, .rail-check").count(), 0);
     // Underground is fetched only after its tab is chosen.
     await page.getByRole("tab", { name: "伦敦地铁" }).click();
-    await page.locator(".travel-dialog .underground-card").waitFor();
+    await page.locator(".travel-page .underground-card").waitFor();
     assert(
       requests.filter((p) => p.endsWith(".js")).length > scriptsBefore,
       "tool code loaded on demand",

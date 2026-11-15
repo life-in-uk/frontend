@@ -1,6 +1,8 @@
 import { ArrowRight, Coins, HeartPulse } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "../Link";
+import type { GuideLocale } from "../../guides/locales";
+import { SITE_UI } from "../../guides/siteUi";
 
 export type QuestionLink = { question: string; href: string };
 
@@ -19,14 +21,15 @@ const ICONS: Record<QuestionGroup["icon"], ReactNode> = {
 };
 
 /** Common questions that lead to published Guides or reviewed answers. */
-export function CommonQuestions({ groups }: { groups: QuestionGroup[] }) {
+export function CommonQuestions({ groups, locale = "zh-CN" }: { groups: QuestionGroup[]; locale?: GuideLocale }) {
+  const ui = SITE_UI[locale].questions;
   const shown = groups.filter((group) => group.questions.length > 0);
   if (shown.length === 0) return null;
   return (
     <section className="home-container home-section" aria-labelledby="questions-title">
       <div className="home-section-head">
-        <h2 id="questions-title">从这些问题开始</h2>
-        <p>刚到英国时常遇到的问题，点开直接看对应的指南或简短回答。</p>
+        <h2 id="questions-title">{ui.title}</h2>
+        <p>{ui.text}</p>
       </div>
       <div className="question-grid">
         {shown.map((group) => (

@@ -1,18 +1,21 @@
 import { Link } from "../Link";
+import { GUIDE_UI, guideHomePath, guideRoutePath, type GuideLocale } from "../../guides/locales";
+import { SITE_UI } from "../../guides/siteUi";
 import "./Health.css";
 
-export function NotFoundPage() {
+export function NotFoundPage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
+  const ui = SITE_UI[locale].notFound;
   return (
     <main id="main" className="health-page">
       <div className="health-status-card" role="status">
-        <h1>页面不存在</h1>
-        <p>这个地址没有对应的页面。</p>
+        <h1>{ui.title}</h1>
+        <p>{ui.text}</p>
         <p className="not-found-links">
-          <Link to="/" className="button button-secondary">
-            回到首页
+          <Link to={guideHomePath(locale)} className="button button-secondary">
+            {ui.home}
           </Link>
-          <Link to="/health" className="button button-secondary">
-            健康与 NHS
+          <Link to={guideRoutePath(locale, "health")} className="button button-secondary">
+            {GUIDE_UI[locale].domain.health}
           </Link>
         </p>
       </div>

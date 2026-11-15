@@ -19,6 +19,18 @@ export type Board = {
   unknownTimingCount: number;
   disruptions: Disruption[];
 };
+/**
+ * The backend answers 503 with one of these codes when it has no Rail
+ * provider credentials (RAIL_NOT_CONFIGURED) or when the Rail access flag is
+ * off (RAIL_DISABLED). Either way no train data exists to show.
+ */
+export const RAIL_NOT_ENABLED_CODES: readonly string[] = ["RAIL_NOT_CONFIGURED", "RAIL_DISABLED"];
+export class RailNotConfiguredError extends Error {
+  constructor() {
+    super("Rail provider not configured");
+    this.name = "RailNotConfiguredError";
+  }
+}
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -33,7 +45,14 @@ function validDisruption(value: unknown): boolean {
 }
 export async function getDisruptions(crs: string, direction: Direction, signal: AbortSignal): Promise<Board> {
   const response = await fetch(`/api/rail/stations/${encodeURIComponent(crs)}/disruptions?direction=${direction}`, { signal });
-  if (!response.ok) throw new Error("Rail data unavailable");
+  if (!response.ok) {
+    if (response.status === 503) {
+      const body: unknown = await response.json().catch(() => null);
+      if (record(body) && typeof body.code === "string" && RAIL_NOT_ENABLED_CODES.includes(body.code))
+        throw new RailNotConfiguredError();
+    }
+    throw new Error("Rail data unavailable");
+  }
   const data: unknown = await response.json();
   if (!record(data) || !Array.isArray(data.disruptions) || !data.disruptions.every(validDisruption) || typeof data.stationName !== "string" || data.crs !== crs || data.direction !== direction || typeof data.unknownTimingCount !== "number" || !Number.isInteger(data.unknownTimingCount) || data.unknownTimingCount < 0 || !nullableText(data.generatedAt) || (typeof data.generatedAt === "string" && !Number.isFinite(Date.parse(data.generatedAt)))) throw new Error("Invalid rail data");
   return data as Board;

@@ -701,7 +701,7 @@ async function mocked() {
       await p
         .locator(".topic-card a")
         .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/health", "/money"],
+      ["/health", "/money", "/family-visa", "/travel"],
     );
     assert.doesNotMatch(await entry.textContent(), /官方/);
     const nav = p.getByRole("navigation", { name: "主导航" });
@@ -709,7 +709,7 @@ async function mocked() {
       await nav
         .getByRole("link")
         .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/health", "/money"],
+      ["/", "/health", "/money", "/family-visa", "/travel"],
     );
     await p.evaluate(() => (window.__noReload = true));
     await entry.click();
@@ -737,8 +737,7 @@ async function mocked() {
       moneyOne.title,
     ]);
     assert.equal(
-      await p
-        .getByRole("link", { name: "回到金钱与财务" })
+      await p.locator(".guide-back a, .guide-status-card a", { hasText: "金钱与财务" })
         .getAttribute("href"),
       "/money",
     );
@@ -803,10 +802,10 @@ async function mocked() {
   {
     const { p, context } = await page(1280);
     for (const [path, back, backHref] of [
-      [`/health/${moneyOne.slug}`, "回到健康与 NHS", "/health"],
-      [`/family-visa/${moneyOne.slug}`, "回到家庭与签证", "/family-visa"],
-      [`/money/${health.slug}`, "回到金钱与财务", "/money"],
-      [`/money/${family.slug}`, "回到金钱与财务", "/money"],
+      [`/health/${moneyOne.slug}`, "健康与 NHS", "/health"],
+      [`/family-visa/${moneyOne.slug}`, "家庭与签证", "/family-visa"],
+      [`/money/${health.slug}`, "金钱与财务", "/money"],
+      [`/money/${family.slug}`, "金钱与财务", "/money"],
     ]) {
       await p.goto(`${baseURL}${path}`);
       await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
@@ -817,7 +816,7 @@ async function mocked() {
         path,
       );
       assert.equal(
-        await p.getByRole("link", { name: back }).getAttribute("href"),
+        await p.locator(".guide-back a, .guide-status-card a", { hasText: back }).getAttribute("href"),
         backHref,
       );
     }

@@ -2,8 +2,10 @@
 //
 // Enabled only by `vite --mode family-visa-preview` on the dev server. The
 // middleware answers the Guide API before the backend proxy:
-//   GET /api/guides          backend list + the drafts (drafts win on slug)
-//   GET /api/guides/{slug}   a draft's detail; anything else goes to backend
+//   GET /api/guides          backend list + the drafts not yet published
+//   GET /api/guides/{slug}   an unpublished draft's detail; else the backend
+// A Guide the backend already publishes always wins over its draft file, so
+// published Guides show their real, current version here too.
 // Drafts are read unchanged from the backend checkout (no copies here), except
 // that `status` is dropped and `publishedAt` is set to `updatedAt`, which is
 // what a published Guide of that version would look like. The application is
@@ -74,23 +76,38 @@ const META_KEYS = [
   "updatedAt",
 ] as const;
 
-/** The backend list with drafts added; a draft replaces a same-slug Guide. */
+/** Slugs of the Guides the backend publishes (empty when unreachable). */
+function upstreamSlugs(upstream: unknown): Set<string> {
+  return new Set(
+    Array.isArray(upstream)
+      ? upstream.flatMap((guide) =>
+          typeof guide === "object" &&
+          guide !== null &&
+          typeof (guide as Record<string, unknown>).slug === "string"
+            ? [(guide as Record<string, unknown>).slug as string]
+            : [],
+        )
+      : [],
+  );
+}
+
+/** The backend list plus the drafts it does not publish; published wins. */
 export function mergeGuideList(
   upstream: unknown,
   drafts: readonly DraftGuide[],
 ): Record<string, unknown>[] {
-  const slugs = new Set(drafts.map((draft) => draft.slug));
+  const published = upstreamSlugs(upstream);
   const list = Array.isArray(upstream)
     ? upstream.filter(
         (guide): guide is Record<string, unknown> =>
-          typeof guide === "object" &&
-          guide !== null &&
-          !slugs.has((guide as Record<string, unknown>).slug as string),
+          typeof guide === "object" && guide !== null,
       )
     : [];
-  const metas = drafts.map((draft) =>
-    Object.fromEntries(META_KEYS.map((key) => [key, draft[key]])),
-  );
+  const metas = drafts
+    .filter((draft) => !published.has(draft.slug))
+    .map((draft) =>
+      Object.fromEntries(META_KEYS.map((key) => [key, draft[key]])),
+    );
   return [...list, ...metas];
 }
 
@@ -137,7 +154,13 @@ export function previewMiddleware(options: {
       const draft = readDraftGuides(options.draftsDir, options.warn).find(
         (guide) => guide.slug === match[1],
       );
-      if (draft) return sendJson(res, draft);
+      if (
+        draft &&
+        !upstreamSlugs(await upstreamList(options.backendTarget)).has(
+          draft.slug,
+        )
+      )
+        return sendJson(res, draft);
     }
     next();
   };

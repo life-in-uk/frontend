@@ -3,42 +3,51 @@ import type { FormEvent, KeyboardEvent } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import { searchEntries } from "../../home/search";
 import type { SearchEntry } from "../../home/search";
-import { SEARCH_SUGGESTIONS } from "../../home/topics";
-import { shortGuideTitle } from "../../guides/format";
+import { shortGuideTitle, shortLocalizedTitle } from "../../guides/format";
+import { GUIDE_UI, guideRoutePath, type GuideLocale } from "../../guides/locales";
+import { SITE_UI } from "../../guides/siteUi";
 import { Link } from "../Link";
+import { FallbackBadge, ForeignText } from "../site/FallbackLabel";
 
 type HomeHeroProps = {
   /** null while the published list is loading; "error" if it failed. */
   index: SearchEntry[] | null | "error";
+  locale?: GuideLocale;
 };
 
 const MAX_RESULTS = 8;
 
-export function HomeHero({ index }: HomeHeroProps) {
+export function HomeHero({ index, locale = "zh-CN" }: HomeHeroProps) {
+  const ui = SITE_UI[locale];
   return (
     <section className="home-hero" aria-labelledby="home-title">
       <div className="home-container home-hero-inner">
         <div className="home-hero-copy">
-          <p className="home-eyebrow" lang="en">
-            UK LIFE GUIDE FOR CHINESE SPEAKERS
+          <p className="home-eyebrow" lang={ui.hero.eyebrowLang === locale ? undefined : ui.hero.eyebrowLang}>
+            {ui.hero.eyebrow}
           </p>
           <h1 id="home-title">
-            <span>在英国生活、工作、</span>
-            <span>学习的实用指南</span>
+            <span>{ui.hero.title[0]}</span>
+            <span>{ui.hero.title[1]}</span>
           </h1>
           <p className="home-hero-lead">
-            真实、可靠、易懂的英国生活信息，帮助你解决实际问题。
+            {ui.hero.lead[0]}
             <br className="home-hero-break" />
-            每篇指南都附上英国官方及一手来源，写明适用地区和更新日期。
+            {ui.hero.lead[1]}
           </p>
+          {ui.translationNotice && (
+            <p className="home-translation-notice" role="note">{ui.translationNotice}</p>
+          )}
         </div>
-        <HomeSearch index={index} />
+        <HomeSearch index={index} locale={locale} />
       </div>
     </section>
   );
 }
 
-function HomeSearch({ index }: HomeHeroProps) {
+function HomeSearch({ index, locale = "zh-CN" }: HomeHeroProps) {
+  const ui = SITE_UI[locale];
+  const copy = ui.search;
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsId = useId();
@@ -71,23 +80,23 @@ function HomeSearch({ index }: HomeHeroProps) {
   const status = !trimmed
     ? ""
     : index === null
-      ? "正在加载可搜索的内容…"
+      ? copy.loading
       : index === "error"
-        ? "搜索暂时不可用，请直接浏览下面的主题。"
+        ? copy.error
         : results.length === 0
-          ? `没有找到与“${trimmed}”相关的已发布内容。`
-          : `找到 ${results.length} 条相关内容`;
+          ? copy.none(trimmed)
+          : copy.found(results.length);
 
   return (
     <div className="home-search" id="search">
       <form
         role="search"
-        aria-label="站内搜索"
+        aria-label={copy.form}
         className="home-search-form"
         onSubmit={submit}
       >
         <label htmlFor="home-search" className="sr-only">
-          搜索指南和常见问题
+          {copy.input}
         </label>
         <Search className="home-search-icon" size={20} aria-hidden="true" />
         <input
@@ -97,19 +106,19 @@ function HomeSearch({ index }: HomeHeroProps) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="输入你关心的问题，例如：怎么注册 GP、银行开户"
+          placeholder={copy.placeholder}
           autoComplete="off"
           enterKeyHint="search"
           aria-describedby={trimmed ? resultsId : undefined}
         />
         <button type="submit" className="home-search-button">
-          搜索
+          {copy.button}
         </button>
       </form>
       <div className="home-search-suggestions">
-        <span id={`${resultsId}-label`}>试试搜索：</span>
+        <span id={`${resultsId}-label`}>{copy.tryLabel}</span>
         <ul aria-labelledby={`${resultsId}-label`}>
-          {SEARCH_SUGGESTIONS.map((text) => (
+          {copy.suggestions.map((text) => (
             <li key={text}>
               <button type="button" onClick={() => suggest(text)}>
                 {text}
@@ -129,12 +138,17 @@ function HomeSearch({ index }: HomeHeroProps) {
                 <Link to={entry.href}>
                   <span className="home-search-kind">
                     {entry.sectionLabel} ·{" "}
-                    {entry.kind === "guide" ? "指南" : "快速解答"}
+                    {entry.kind === "guide" ? copy.guide : copy.answer}
                   </span>
                   <span className="home-search-title">
-                    {entry.kind === "guide"
-                      ? shortGuideTitle(entry.title)
-                      : entry.title}
+                    <ForeignText lang={entry.lang}>
+                      {entry.kind !== "guide"
+                        ? entry.title
+                        : locale === "zh-CN" || entry.lang === "zh-CN"
+                          ? shortGuideTitle(entry.title)
+                          : shortLocalizedTitle(entry.title)}
+                    </ForeignText>
+                    <FallbackBadge label={entry.fallback && ui.fallbackBadge} />
                   </span>
                   <ArrowRight size={16} aria-hidden="true" />
                 </Link>
@@ -144,9 +158,11 @@ function HomeSearch({ index }: HomeHeroProps) {
         )}
         {Array.isArray(index) && trimmed && results.length === 0 && (
           <p className="home-search-empty">
-            换个说法试试，或浏览
-            <Link to="/health">健康与 NHS</Link>、
-            <Link to="/money">金钱与财务</Link>。
+            {copy.emptyBefore}
+            <Link to={guideRoutePath(locale, "health")}>{GUIDE_UI[locale].domain.health}</Link>
+            {copy.emptyBetween}
+            <Link to={guideRoutePath(locale, "money")}>{GUIDE_UI[locale].domain.money}</Link>
+            {copy.emptyAfter}
           </p>
         )}
       </div>

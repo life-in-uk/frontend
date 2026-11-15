@@ -3,8 +3,47 @@
 import type { GuideMetadata } from "../guides/api";
 import type { GuideDomain } from "../guides/domains";
 import { belongsToDomain } from "../guides/domains.ts";
+import { shortGuideTitle, shortLocalizedTitle } from "../guides/format.ts";
+import { GUIDE_LOCALE_LANG, guideRoutePath, type GuideLocale } from "../guides/locales.ts";
 
 export type PlacedGuide = { guide: GuideMetadata; domain: GuideDomain };
+
+/** A home-page Guide in the page language, or a labelled Simplified Chinese fallback. */
+export type HomeGuide = PlacedGuide & {
+  /** Language of the title/summary shown and of the page the link opens. */
+  locale: GuideLocale;
+  /** True when the page locale has no published translation of this Guide. */
+  fallback: boolean;
+  href: string;
+};
+
+/**
+ * The home page's Guides for `locale`. The Simplified Chinese list decides
+ * what exists; a Guide counts as translated only when it is present in the
+ * locale's own published list for the same section. Everything else stays
+ * visible as a fallback that links to the Chinese original.
+ */
+export function localizeHomeGuides(
+  source: readonly GuideMetadata[],
+  localized: readonly GuideMetadata[],
+  domains: readonly GuideDomain[],
+  locale: GuideLocale,
+): HomeGuide[] {
+  const placedSource = placeGuides(source, domains);
+  const known = new Set(placedSource.map((item) => item.guide.slug));
+  const translations = locale === "zh-CN" ? [] : placeGuides(localized, domains);
+  const translationFor = (item: PlacedGuide) =>
+    translations.find((t) => t.guide.slug === item.guide.slug && t.domain === item.domain);
+  const items: HomeGuide[] = placedSource.map((item) => {
+    const translated = translationFor(item);
+    return translated
+      ? { ...translated, locale, fallback: false, href: guideRoutePath(locale, item.domain.id, item.guide.slug) }
+      : { ...item, locale: "zh-CN", fallback: locale !== "zh-CN", href: guideRoutePath("zh-CN", item.domain.id, item.guide.slug) };
+  });
+  for (const extra of translations.filter((t) => !known.has(t.guide.slug)))
+    items.push({ ...extra, locale, fallback: false, href: guideRoutePath(locale, extra.domain.id, extra.guide.slug) });
+  return items;
+}
 
 /** Published Guides that belong to a launched section, in backend order. */
 export function placeGuides(
@@ -20,7 +59,7 @@ export function placeGuides(
 }
 
 /** Most recently updated first; ties keep backend order. */
-export function byRecentUpdate(guides: readonly PlacedGuide[]): PlacedGuide[] {
+export function byRecentUpdate<T extends PlacedGuide>(guides: readonly T[]): T[] {
   return guides
     .map((item, position) => ({ item, position }))
     .sort(
@@ -35,12 +74,12 @@ export function byRecentUpdate(guides: readonly PlacedGuide[]): PlacedGuide[] {
  * Preferred slugs first (when published), then the most recently updated
  * remaining Guides, up to `count`.
  */
-export function selectFeatured(
-  guides: readonly PlacedGuide[],
+export function selectFeatured<T extends PlacedGuide>(
+  guides: readonly T[],
   preferred: readonly string[],
   count: number,
-): PlacedGuide[] {
-  const chosen: PlacedGuide[] = [];
+): T[] {
+  const chosen: T[] = [];
   for (const slug of preferred) {
     const found = guides.find((item) => item.guide.slug === slug);
     if (found && !chosen.includes(found)) chosen.push(found);
@@ -48,6 +87,16 @@ export function selectFeatured(
   for (const item of byRecentUpdate(guides))
     if (!chosen.includes(item)) chosen.push(item);
   return chosen.slice(0, count);
+}
+
+/** Compact title in the item's own language style. */
+export function homeGuideTitle(item: HomeGuide): string {
+  return item.locale === "zh-CN" ? shortGuideTitle(item.guide.title) : shortLocalizedTitle(item.guide.title);
+}
+
+/** Language attribute for an item whose text differs from the page language. */
+export function itemLang(item: HomeGuide, page: GuideLocale): string | undefined {
+  return item.locale === page ? undefined : GUIDE_LOCALE_LANG[item.locale];
 }
 
 const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];

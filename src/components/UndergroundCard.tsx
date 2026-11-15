@@ -5,14 +5,15 @@ import { Freshness, OfficialSource } from "./InformationCard";
 import { getUnderground } from "../underground/api";
 import type { UndergroundResponse } from "../underground/api";
 import {
-  PRESENTATION_LABELS,
   classifyStatus,
   hasMeaningfulReason,
   lineColour,
   summariseLines,
 } from "../underground/presentation";
 import { StaleNotice } from "./travel/StaleNotice";
-import { formatUkDateTimeZh } from "../travel/format";
+import { formatUkDateTime } from "../travel/format";
+import { GUIDE_LOCALE_LANG, type GuideLocale } from "../guides/locales";
+import { TRAVEL_UI } from "../travel/i18n";
 import { assessFreshness, UNDERGROUND_MAX_AGE_MS } from "../travel/freshness";
 import { useNow } from "../travel/useNow";
 import "./UndergroundCard.css";
@@ -34,16 +35,9 @@ type State =
   | { status: "unavailable" }
   | { status: "ready"; data: UndergroundResponse };
 
-function summaryText(data: UndergroundResponse): string {
+function summaryText(data: UndergroundResponse, locale: GuideLocale): string {
   const { affected, unclassified } = summariseLines(data.lines);
-  const total = data.lines.length;
-  const parts = [
-    affected === 0
-      ? `${total} 条线路均未报告异常`
-      : `${total} 条线路中有 ${affected} 条报告异常`,
-  ];
-  if (unclassified > 0) parts.push(`${unclassified} 条未能分类`);
-  return parts.join(" · ");
+  return TRAVEL_UI[locale].underground.summary(affected, data.lines.length, unclassified);
 }
 
 /**
@@ -56,9 +50,13 @@ const REQUEST_DEADLINE_MS = 10_000;
 interface UndergroundCardProps {
   /** False while another dialog tab is shown: no re-reads are scheduled. */
   active?: boolean;
+  locale?: GuideLocale;
 }
 
-export function UndergroundCard({ active = true }: UndergroundCardProps) {
+export function UndergroundCard({ active = true, locale = "zh-CN" }: UndergroundCardProps) {
+  const t = TRAVEL_UI[locale].underground;
+  const common = TRAVEL_UI[locale].common;
+  const lang = GUIDE_LOCALE_LANG[locale];
   const [state, setState] = useState<State>({ status: "loading" });
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const idPrefix = useId();
@@ -173,33 +171,43 @@ export function UndergroundCard({ active = true }: UndergroundCardProps) {
         <header className="underground-header">
           <span className="category">
             <TrainFront size={18} aria-hidden="true" />
-            出行
+            {common.category}
           </span>
           <h2 id="underground-heading">
-            伦敦地铁 <span lang="en">London Underground</span>
+            {t.title === "London Underground" ? (
+              <span lang="en">London Underground</span>
+            ) : (
+              <>
+                {t.title} <span lang="en">London Underground</span>
+              </>
+            )}
           </h2>
           {facts && facts.lines.length > 0 && (
-            <p className="underground-summary">{summaryText(facts)}</p>
+            <p className="underground-summary">{summaryText(facts, locale)}</p>
           )}
         </header>
         <div className="underground-content" aria-live="polite">
           {state.status === "loading" && (
-            <p role="status">正在加载伦敦地铁运行状态…</p>
+            <p role="status">{t.loading}</p>
           )}
           {state.status === "unavailable" && (
-            <p role="status">伦敦地铁运行状态暂时无法获取。</p>
+            <div role="status">
+              <p>{t.unavailable}</p>
+              <p>{common.seeOfficial(t.fallback)}</p>
+            </div>
           )}
           {freshness && freshness.state !== "fresh" && (
             <StaleNotice
               freshness={freshness}
-              subject="伦敦地铁线路运行状态"
+              subject={t.subject}
               limitMinutes={UNDERGROUND_MAX_AGE_MS / 60_000}
-              fallback="TfL 官方运行状态"
+              fallback={t.fallback}
+              locale={locale}
             />
           )}
           {facts &&
             (facts.lines.length === 0 ? (
-              <p role="status">这次来源观测中没有包含任何地铁线路的状态信息。</p>
+              <p role="status">{t.empty}</p>
             ) : (
               <ul className="underground-lines">
                 {facts.lines.map((line, lineIndex, lines) => {
@@ -252,8 +260,8 @@ export function UndergroundCard({ active = true }: UndergroundCardProps) {
                                 <span
                                   className={`underground-led underground-led-${presentation}`}
                                   role="img"
-                                  aria-label={PRESENTATION_LABELS[presentation]}
-                                  title={PRESENTATION_LABELS[presentation]}
+                                  aria-label={t.labels[presentation]}
+                                  title={t.labels[presentation]}
                                 />
                                 {hasMeaningfulReason(status.reason) ? (
                                   <button
@@ -265,7 +273,7 @@ export function UndergroundCard({ active = true }: UndergroundCardProps) {
                                   >
                                     {description}
                                     <span className="sr-only">
-                                      {`，查看 ${line.lineName} 的详情`}
+                                      {t.details(line.lineName)}
                                     </span>
                                     <ChevronDown
                                       className="underground-chevron"
@@ -306,7 +314,7 @@ export function UndergroundCard({ active = true }: UndergroundCardProps) {
         <div className="provenance">
           {facts && (
             <Freshness
-              label={`来源观测于 ${formatUkDateTimeZh(facts.observedAt)}（英国时间）`}
+              label={t.observed(formatUkDateTime(facts.observedAt, lang))}
               dateTime={facts.observedAt}
             />
           )}
@@ -315,6 +323,7 @@ export function UndergroundCard({ active = true }: UndergroundCardProps) {
               name: "Transport for London",
               href: "https://tfl.gov.uk/tube-dlr-overground/status/",
             }}
+            label={common.officialSource}
           />
           <p className="travel-attribution" lang="en">
             {TFL_ATTRIBUTION}

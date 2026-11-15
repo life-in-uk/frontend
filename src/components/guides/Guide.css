@@ -70,7 +70,6 @@
 .localized-guide-list > li > a > span { display: grid; gap: 8px; min-width: 0; }
 .localized-guide-list strong, .localized-guide-list span { overflow-wrap: anywhere; }
 .localized-guide-list time { color: var(--color-muted); font-size: var(--text-sm); }
-.localized-guide-index[dir="rtl"] .guide-toolbar { justify-content: flex-start; }
 .guide-article[dir="rtl"] .guide-body ul:not([class]),
 .guide-article[dir="rtl"] .guide-body ol:not([class]) { padding-left: 0; padding-right: 1.4em; }
 .guide-article[dir="rtl"] .task-marker { left: auto; right: 0; }

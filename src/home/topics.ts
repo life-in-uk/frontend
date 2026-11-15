@@ -7,7 +7,12 @@
 // homepage never implies published content that does not exist.
 
 import type { GuideDomain } from "../guides/domains";
-import { HEALTH_GUIDE_DOMAIN, MONEY_GUIDE_DOMAIN } from "../guides/domains.ts";
+import {
+  FAMILY_VISA_GUIDE_DOMAIN,
+  HEALTH_GUIDE_DOMAIN,
+  MONEY_GUIDE_DOMAIN,
+} from "../guides/domains.ts";
+import { guideRoutePath, type GuideLocale } from "../guides/locales.ts";
 
 export type TopicTone =
   | "health"
@@ -33,6 +38,11 @@ export type HomeTopic = {
   icon: TopicIcon;
   /** Present only for launched sections; drives links, counts and search. */
   domain?: GuideDomain;
+  /**
+   * A launched section that is not a Guide domain (e.g. the Travel tools):
+   * linked from navigation, but never counted or searched as Guides.
+   */
+  page?: "travel";
 };
 
 export const HOME_TOPICS: readonly HomeTopic[] = [
@@ -52,14 +62,14 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
     icon: "coins",
     domain: MONEY_GUIDE_DOMAIN,
   },
-  // Family & Visa exists as an internal review surface only; it is not
-  // launched and must not be linked or indexed from the homepage.
+  // Family & Visa: launched locally (Life in UK is local-only in 2026).
   {
     id: "family-visa",
     title: "签证与家庭",
-    description: "配偶/伴侣签证、家人团聚等内容正在编写和核对。",
+    description: "配偶/伴侣签证的路线、收入和关系要求，以及按你情况生成的材料清单。",
     tone: "visa",
     icon: "id-card",
+    domain: FAMILY_VISA_GUIDE_DOMAIN,
   },
   {
     id: "education",
@@ -78,9 +88,10 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   {
     id: "travel",
     title: "出行与交通",
-    description: "火车、地铁与道路出行信息正在准备中。",
+    description: "伦敦地铁线路状态与附近道路异常查询，附运营方官方信息链接。",
     tone: "travel",
     icon: "bus",
+    page: "travel",
   },
 ];
 
@@ -107,11 +118,11 @@ export const FEATURED_GUIDE_SLUGS: readonly string[] = [
   "nhs-ihs-costs-england",
 ];
 
-/** Suggested queries under the search box. Not a popularity ranking. */
-export const SEARCH_SUGGESTIONS: readonly string[] = [
-  "银行开户",
-  "注册 GP",
-  "牙疼",
-  "处方药",
-  "父母探亲",
-];
+// Suggested search queries, per language, live in guides/siteUi.ts.
+
+/** Where a topic links in a locale, or undefined while it has no live page. */
+export function topicHref(topic: HomeTopic, locale: GuideLocale): string | undefined {
+  if (topic.domain) return guideRoutePath(locale, topic.domain.id);
+  if (topic.page) return guideRoutePath(locale, topic.page);
+  return undefined;
+}

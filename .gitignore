@@ -26,7 +26,11 @@ dist-ssr
 # Family & Visa: local-only DRAFT wording, research notes and wording tests.
 # The public repository holds application code and structure only.
 dev/familyVisaDraftContent.ts
+dev/familyVisaDraftContentLocales.ts
 docs/family-visa/
+# Work Visa Phase 1: local legal research record (drafts live in the backend's excluded content/drafts).
+docs/work-visa/
+docs/settlement/
 tests/local/
 
 # Local runtime secrets and data. Keep this directory outside Git.
@@ -34,3 +38,5 @@ tests/local/
 /.local/*
 /.local/n8n.env
 /.local/ai-provider.env
+# Playwright MCP page snapshots
+.playwright-mcp/

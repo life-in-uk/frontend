@@ -1,33 +1,37 @@
-import { HOME_TOPICS } from "../../home/topics";
+import { HOME_TOPICS, topicHref } from "../../home/topics";
 import { Link } from "../Link";
+import { guideHomePath, type GuideLocale } from "../../guides/locales";
+import { SITE_UI } from "../../guides/siteUi";
 import "./Site.css";
 
 /** Shared site footer: section navigation, About and the independence note. */
-export function SiteFooter() {
+export function SiteFooter({ locale = "zh-CN" }: { locale?: GuideLocale }) {
+  const ui = SITE_UI[locale];
+  const home = guideHomePath(locale);
+  const about = home === "/" ? "/#about" : `${home}#about`;
   return (
     <footer className="site-footer">
       <div className="site-footer-inner">
         <div className="site-footer-brand">
-          <strong lang="en">
+          <strong lang="en" dir="ltr">
             Life in UK<span className="brand-dot">.</span>
           </strong>
-          <p>在英国，把日子过明白。</p>
-          <p className="site-footer-note">
-            面向在英国生活的中文读者的独立信息服务。内容依据英国官方及一手公开来源整理，仅供参考，不能替代医生、律师或持牌顾问的专业意见。
-          </p>
+          <p>{ui.tagline}</p>
+          <p className="site-footer-note">{ui.footer.note}</p>
+          {ui.translationNotice && <p className="site-footer-note">{ui.translationNotice}</p>}
         </div>
-        <nav className="site-footer-nav" aria-label="页脚导航">
+        <nav className="site-footer-nav" aria-label={ui.footer.nav}>
           <div>
-            <h2>主题</h2>
+            <h2>{ui.footer.topics}</h2>
             <ul>
               {HOME_TOPICS.map((topic) => (
                 <li key={topic.id}>
-                  {topic.domain ? (
-                    <Link to={topic.domain.basePath}>{topic.title}</Link>
+                  {topicHref(topic, locale) ? (
+                    <Link to={topicHref(topic, locale)!}>{ui.topics[topic.id]?.title ?? topic.title}</Link>
                   ) : (
                     <span className="site-footer-upcoming">
-                      {topic.title}
-                      <small>即将推出</small>
+                      {ui.topics[topic.id]?.title ?? topic.title}
+                      <small>{ui.comingSoon}</small>
                     </span>
                   )}
                 </li>
@@ -35,18 +39,18 @@ export function SiteFooter() {
             </ul>
           </div>
           <div>
-            <h2>关于</h2>
+            <h2>{ui.footer.about}</h2>
             <ul>
               <li>
-                <Link to="/#about">关于我们</Link>
+                <Link to={about}>{ui.about}</Link>
               </li>
               <li>
-                <Link to="/#about">内容来源与核对</Link>
+                <Link to={about}>{ui.footer.sources}</Link>
               </li>
             </ul>
           </div>
           <div>
-            <h2>官方渠道</h2>
+            <h2>{ui.footer.official}</h2>
             <ul>
               <li>
                 <a href="https://www.gov.uk/" lang="en">
@@ -60,7 +64,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <a href="https://www.nhs.uk/nhs-services/urgent-and-emergency-care-services/when-to-use-111/">
-                  <span lang="en">NHS 111</span>（非紧急医疗求助）
+                  <span lang="en" dir="ltr">NHS 111</span>{ui.footer.nhs111Note}
                 </a>
               </li>
             </ul>
@@ -68,8 +72,8 @@ export function SiteFooter() {
         </nav>
       </div>
       <div className="site-footer-bottom">
-        <span>© 2026 Life in UK</span>
-        <span>独立的中文生活信息服务，与 NHS 及英国政府无隶属关系。</span>
+        <span dir="ltr">© 2026 Life in UK</span>
+        <span>{ui.footer.independence}</span>
       </div>
     </footer>
   );

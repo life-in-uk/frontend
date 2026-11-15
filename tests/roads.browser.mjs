@@ -1,6 +1,6 @@
 // Deterministic Roads browser checks: geolocation and every API response are
 // mocked, so no real location, backend or National Highways request is used.
-// Roads is a first-party tool inside the homepage travel dialog. The browser
+// Roads is a first-party tool on the Travel page (/travel). The browser
 // clock is pinned shortly after the fixture snapshot so the fresh path runs;
 // stale paths use other times.
 import assert from "node:assert/strict";
@@ -202,9 +202,9 @@ async function newPage(
   page.on("request", (request) => requests.push(request.url()));
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(baseURL);
-  const card = page.locator(".travel-dialog .roads-card");
+  const card = page.locator(".travel-page .roads-card");
   if (open) {
-    // Open the Roads tool from the homepage transport panel.
+    // Open the Roads tool on /travel from the homepage transport panel.
     await page.locator('.transport-item[data-tool="roads"]').click();
     await card.waitFor();
   }
@@ -255,7 +255,8 @@ async function assertSafe({ page, card, requests, errors, geo }, width) {
     await card.locator(".travel-attribution").innerText(),
     NH_ATTRIBUTION,
   );
-  assert.equal(await page.locator("dialog.travel-dialog[open]").count(), 1);
+  assert.equal(new URL(page.url()).pathname, "/travel");
+  assert.equal(await page.locator(".travel-page").count(), 1);
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth),
     width,

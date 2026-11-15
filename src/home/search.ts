@@ -22,6 +22,9 @@ export type SearchEntry = {
   text: string;
   href: string;
   sectionLabel: string;
+  /** Language of `title` when it differs from the page (a Simplified Chinese fallback). */
+  lang?: string;
+  fallback?: boolean;
 };
 
 export type QuickAnswerSource = {
@@ -78,7 +81,8 @@ export function normalize(text: string): string {
   return text
     .normalize("NFKC")
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}&\s]/gu, " ")
+    // Combining marks (\p{M}) are part of Devanagari and Urdu words.
+    .replace(/[^\p{L}\p{M}\p{N}&\s]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

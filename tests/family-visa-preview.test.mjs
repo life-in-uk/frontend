@@ -69,19 +69,21 @@ test("only family-visa DRAFTs matching their file name are served", () => {
   assert.deepEqual(readDraftGuides("/nonexistent/dir"), []);
 });
 
-test("the backend list gains the drafts; a draft replaces a same slug", () => {
+test("the backend list gains the unpublished drafts; a published Guide wins over its draft", () => {
   const drafts = readDraftGuides(fixtureDir());
   const upstream = [
     { slug: "health-one", category: "health-nhs" },
-    { slug: "good-one", category: "family-visa", title: "Old" },
+    { slug: "good-one", category: "family-visa", title: "Published" },
   ];
   const list = mergeGuideList(upstream, drafts);
   assert.deepEqual(
     list.map((g) => g.slug),
     ["health-one", "good-one", "good-two"],
   );
-  // List entries carry metadata only, never article bodies.
-  assert.deepEqual(Object.keys(list[1]).sort(), [
+  // The published backend entry is kept as is; the stale draft is ignored.
+  assert.equal(list[1].title, "Published");
+  // Draft entries carry metadata only, never article bodies.
+  assert.deepEqual(Object.keys(mergeGuideList([], drafts)[0]).sort(), [
     "category",
     "publishedAt",
     "slug",

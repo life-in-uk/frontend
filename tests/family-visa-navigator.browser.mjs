@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { localContent } from "./fixtures/familyVisaContent.mjs";
+import { JOURNEY_GUIDES } from "../src/guides/familyVisaJourney.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -49,7 +50,11 @@ function published(slug) {
   const { status: _status, ...guide } = JSON.parse(
     readFileSync(`${guidesDir}/${slug}-zh.json`, "utf8"),
   );
-  return { ...guide, publishedAt: guide.updatedAt };
+  // Exactly the reviewed version (publishing re-stamps updatedAt).
+  const reviewed = Object.values(JOURNEY_GUIDES).find(
+    (g) => g.slug === slug,
+  ).reviewedUpdatedAt;
+  return { ...guide, publishedAt: reviewed, updatedAt: reviewed };
 }
 const meta = ({ slug, category, title, summary, publishedAt, updatedAt }) => ({
   slug,

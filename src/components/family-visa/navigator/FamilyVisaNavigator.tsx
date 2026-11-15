@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListChecks, RotateCcw, Trash2 } from "lucide-react";
 import {
   applicableTaskIdsFor,
@@ -33,11 +33,23 @@ import type {
   NavigatorState,
   Step,
 } from "../../../guides/familyVisaJourney";
-import { formatUkDate } from "../../../guides/format";
+import { formatUkDateFor } from "../../../guides/format";
+import { GUIDE_LOCALE_LANG } from "../../../guides/locales";
+import {
+  familyVisaText,
+  translateDeep,
+  useFamilyVisaLocale,
+} from "../../../guides/familyVisaI18n";
 import { ChecklistView } from "../checklist/ChecklistView";
 import type { SaveState } from "../checklist/ChecklistView";
 import { SavePrompt } from "../checklist/SavePrompt";
 import { NavigatorQuestion } from "./NavigatorQuestion";
+import { emphasis } from "../emphasis";
+import {
+  localizeSections,
+  localizeStages,
+  useLocalizedJourneyGuides,
+} from "../localizedJourney";
 import { useFamilyVisaContent, useJourneyGuides } from "../useJourneyGuides";
 import type { GuideListState } from "../useJourneyGuides";
 import "../../guides/Guide.css";
@@ -136,6 +148,7 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
   const saveRef = useRef<SaveChoice | undefined>(saveChoice);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const moved = useRef(false);
+  const { locale, t } = useFamilyVisaLocale();
 
   const writeHistory = useCallback(
     (next: NavigatorState, push: boolean, choice = saveRef.current) => {
@@ -294,7 +307,14 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
   };
 
   const availability = useJourneyGuides(list, nav.step === "results");
-  const { content } = useFamilyVisaContent();
+  const localized = useLocalizedJourneyGuides(locale, availability);
+  const { content, strings } = useFamilyVisaContent(locale);
+  // Built from the Simplified Chinese data (so integrity checks are
+  // unchanged), then shown in the page language.
+  const display = useMemo(() => {
+    const text = familyVisaText(locale, strings);
+    return (value: string) => text(value);
+  }, [locale, strings]);
 
   const toggle = (id: string, checked: boolean) => {
     const current = progressRef.current;
@@ -327,40 +347,45 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
       <div className="navigator-intro">
         <span className="navigator-kicker">
           <ListChecks size={15} aria-hidden="true" />
-          伴侣签证 · 材料清单
+          {t("伴侣签证 · 材料清单")}
         </span>
-        <h2 id="navigator-title">回答几个问题，生成你的材料清单</h2>
+        <h2 id="navigator-title">{t("回答几个问题，生成你的材料清单")}</h2>
         <p>
-          按你的情况列出要准备的材料，一项一项勾选。这
-          <strong>不是签证资格判断</strong>
-          ，不需要注册，也不会上传你的回答。
+          {emphasis(
+            t(
+              "按你的情况列出要准备的材料，一项一项勾选。这**不是签证资格判断**，不需要注册，也不会上传你的回答。",
+            ),
+          )}
         </p>
       </div>
 
       {notice && (
         <p className="navigator-notice" role="status">
-          {notice}
+          {t(notice)}
           <button
             type="button"
             className="checklist-link-button"
             onClick={() => setNotice(null)}
           >
-            知道了
+            {t("知道了")}
           </button>
         </p>
       )}
 
       {offer && nav.step !== "results" && (
-        <div className="resume-card" role="region" aria-label="继续上次的清单">
+        <div
+          className="resume-card"
+          role="region"
+          aria-label={t("继续上次的清单")}
+        >
           <p className="resume-title">
-            欢迎回来！你在这台设备上保存了一份准备清单。
+            {t("欢迎回来！你在这台设备上保存了一份准备清单。")}
           </p>
           <p className="resume-meta">
-            保存到{" "}
-            <time dateTime={offer.expiresAt}>
-              {formatUkDate(offer.expiresAt)}
-            </time>
-            ，已勾选 {offer.progress.checked.length} 项。
+            {t("保存到 {date}，已勾选 {count} 项。", {
+              date: formatUkDateFor(offer.expiresAt, GUIDE_LOCALE_LANG[locale]),
+              count: offer.progress.checked.length,
+            })}
           </p>
           <div className="navigator-actions">
             <button
@@ -368,7 +393,7 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
               className="navigator-button navigator-button-primary"
               onClick={() => resume(offer)}
             >
-              继续上次的清单
+              {t("继续上次的清单")}
             </button>
             <button
               type="button"
@@ -376,7 +401,7 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
               onClick={() => setOffer(null)}
             >
               <RotateCcw size={16} aria-hidden="true" />
-              重新开始
+              {t("重新开始")}
             </button>
             <button
               type="button"
@@ -391,7 +416,7 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
               }}
             >
               <Trash2 size={15} aria-hidden="true" />
-              删除保存的进度
+              {t("删除保存的进度")}
             </button>
           </div>
         </div>
@@ -416,18 +441,27 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
         <ChecklistView
           headingRef={headingRef}
           answers={nav.answers}
-          sections={buildChecklist(
-            nav.answers,
-            availability,
-            JOURNEY_GUIDES,
-            CHECKLIST_SECTIONS,
-            content,
+          sections={localizeSections(
+            translateDeep(
+              buildChecklist(
+                nav.answers,
+                availability,
+                JOURNEY_GUIDES,
+                CHECKLIST_SECTIONS,
+                content,
+              ),
+              display,
+            ),
+            locale,
+            localized,
           )}
-          stages={buildJourney(
-            nav.answers,
-            availability,
-            JOURNEY_STAGES,
-            content,
+          stages={localizeStages(
+            translateDeep(
+              buildJourney(nav.answers, availability, JOURNEY_STAGES, content),
+              display,
+            ),
+            locale,
+            localized,
           )}
           progress={progress}
           save={save}

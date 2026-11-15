@@ -1,16 +1,18 @@
 // Production isolation in a real browser: builds the app for production,
 // serves it with `vite preview`, and mocks the API so that all four Family &
 // Visa Guides look PUBLISHED at exactly the reviewed versions (the strongest
-// case for a leak). The production build has no restated wording, so every
-// checklist task, the rules section and the topic page must stay pending,
-// whatever UI state or route is used.
+// case for a leak). The production build carries only the wording for the
+// three PUBLISHED Guides (src/guides/familyVisaPublishedWording.ts); the
+// dependent-children wording is local-only, so the children checklist
+// section, its rules and the topic page must stay pending, whatever UI state
+// or route is used.
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { localContent } from "./fixtures/familyVisaContent.mjs";
+import { localDraftContent as localContent } from "./fixtures/familyVisaContent.mjs";
 import { JOURNEY_GUIDES } from "../src/guides/familyVisaJourney.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
@@ -43,15 +45,16 @@ const haveDrafts = SLUGS.every((slug) =>
 );
 const details = Object.fromEntries(
   SLUGS.map((slug) => {
-    if (haveDrafts) {
-      const { status: _status, ...guide } = JSON.parse(
-        readFileSync(path.join(guidesDir, `${slug}-zh.json`), "utf8"),
-      );
-      return [slug, { ...guide, publishedAt: guide.updatedAt }];
-    }
     const reviewed = Object.values(JOURNEY_GUIDES).find(
       (g) => g.slug === slug,
     ).reviewedUpdatedAt;
+    if (haveDrafts) {
+      // Exactly the reviewed version (publishing re-stamps updatedAt).
+      const { status: _status, ...guide } = JSON.parse(
+        readFileSync(path.join(guidesDir, `${slug}-zh.json`), "utf8"),
+      );
+      return [slug, { ...guide, publishedAt: reviewed, updatedAt: reviewed }];
+    }
     return [
       slug,
       {
@@ -92,8 +95,7 @@ const LOCAL = await localContent();
 const probes = LOCAL
   ? [
       LOCAL.tasks["kid-sole-responsibility"].summary,
-      LOCAL.tasks["rel-certificate"].summary,
-      LOCAL.tasks["fin-standard"].summary,
+      LOCAL.tasks["kid-finance"].summary,
       LOCAL.sections.children.intro,
       LOCAL.topics["children-from-previous-relationship"].intro,
     ].map((text) => text.replace(/\*\*/g, "").slice(0, 18))
@@ -190,25 +192,24 @@ try {
     await openAll(p, "button.checklist-link-button[aria-expanded='false']");
     const badges = await p.locator(".checklist-badge").allTextContents();
     assert.ok(badges.length > 20);
+    // Published Guides: some tasks are verified, with their legal basis.
     assert.ok(
-      badges.every((b) => b === "待核对"),
+      badges.some((b) => b !== "待核对"),
       badges.join(","),
     );
-    assert.equal(await p.locator(".checklist-section-intro").count(), 0);
-    assert.equal(
-      await p.getByRole("button", { name: /^查看法律依据/ }).count(),
-      0,
+    // Dependent children: unpublished wording, so every task stays pending.
+    const kids = p.locator(".checklist-section", { hasText: "随行孩子" });
+    const kidBadges = await kids.locator(".checklist-badge").allTextContents();
+    assert.ok(kidBadges.length > 0);
+    assert.ok(
+      kidBadges.every((b) => b === "待核对"),
+      kidBadges.join(","),
     );
-    assert.ok((await p.locator(".checklist-pending").count()) > 20);
-    // The rules section stays pending too.
+    assert.equal(await kids.locator(".checklist-section-intro").count(), 0);
+    // The rules section shows published passages only.
     await p.getByRole("button", { name: "想了解这些要求背后的规则？" }).click();
     await openAll(p, ".journey-toggle[aria-expanded='false']");
-    const statuses = await p.locator(".journey-status").allTextContents();
-    assert.ok(
-      statuses.every((s) => s === "待核对"),
-      statuses.join(","),
-    );
-    assert.equal(await p.locator(".journey-passage").count(), 0);
+    assert.ok((await p.locator(".journey-passage").count()) > 0);
     await noWording(p, "checklist");
     // No module beyond the production bundle was requested.
     assert.ok(
@@ -220,7 +221,7 @@ try {
     assert.equal(await p.locator("#family-visa-draft-preview").count(), 0);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS production checklist: published-looking Guides still show no wording",
+      "PASS production checklist: published wording shows; children wording stays pending",
     );
     await context.close();
   }
@@ -270,13 +271,17 @@ try {
     await p.locator(".checklist-section").first().waitFor();
     await p.waitForLoadState("networkidle");
     await openAll(p, ".checklist-section-toggle[aria-expanded='false']");
-    const badges = await p.locator(".checklist-badge").allTextContents();
+    const kidBadges = await p
+      .locator(".checklist-section", { hasText: "随行孩子" })
+      .locator(".checklist-badge")
+      .allTextContents();
+    assert.ok(kidBadges.length > 0);
     assert.ok(
-      badges.every((b) => b === "待核对"),
-      badges.join(","),
+      kidBadges.every((b) => b === "待核对"),
+      kidBadges.join(","),
     );
     await noWording(p, "resumed checklist");
-    console.log("PASS production resume: saved state cannot unlock wording");
+    console.log("PASS production resume: saved state cannot unlock children wording");
     await context.close();
   }
   console.log("Family & Visa production isolation checks passed");

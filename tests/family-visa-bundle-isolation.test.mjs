@@ -26,7 +26,8 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { localContent } from "./fixtures/familyVisaContent.mjs";
+import { localDraftContent } from "./fixtures/familyVisaContent.mjs";
+import { FAMILY_VISA_PUBLISHED_WORDING } from "../src/guides/familyVisaPublishedWording.ts";
 
 // The only code-split chunks allowed besides the single entry: the lazily
 // loaded homepage travel tools (and their shared helpers). Any other chunk,
@@ -166,7 +167,7 @@ test("the real production build has no dev markers or extra chunks", () => {
 });
 
 test("the real production build contains none of the local wording (when present)", async (t) => {
-  const content = await localContent();
+  const content = await localDraftContent();
   if (!content) {
     t.skip("local wording file not present; the canary check covers isolation");
     return;
@@ -185,11 +186,13 @@ test("the real production build contains none of the local wording (when present
       Object.values(QUESTIONS).map((q) => [q.title, q.hint, q.options]),
     ]),
   );
+  // Wording for published Guides ships by design; only draft wording must not.
+  const published = new Set(strings(FAMILY_VISA_PUBLISHED_WORDING));
   const wording = [...new Set(strings(content))].filter(
-    (s) => s.length >= 6 && !structural.has(s),
+    (s) => s.length >= 6 && !structural.has(s) && !published.has(s),
   );
   assert.ok(
-    wording.length > 150,
+    wording.length > 40,
     `expected the full wording set, got ${wording.length}`,
   );
   assert.deepEqual(
@@ -212,7 +215,12 @@ test("no DRAFT Guide text or evidence is bundled (when the drafts are present)",
     return;
   }
   const leaked = [];
-  for (const { slug } of Object.values(JOURNEY_GUIDES)) {
+  // Guides with published wording are published; check only the others.
+  const publishedGuides = new Set(
+    Object.keys(FAMILY_VISA_PUBLISHED_WORDING.reviewedFor),
+  );
+  for (const [id, { slug }] of Object.entries(JOURNEY_GUIDES)) {
+    if (publishedGuides.has(id)) continue;
     const file = path.join(draftsDir, `${slug}-zh.json`);
     if (!existsSync(file)) continue;
     const guide = JSON.parse(readFileSync(file, "utf8"));

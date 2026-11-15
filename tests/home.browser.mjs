@@ -97,27 +97,27 @@ try {
     assert.equal(await p.locator("h1").count(), 1);
     assert.match(await p.locator("h1").innerText(), /在英国生活、工作、\s*学习的实用指南/);
     assert.equal(await p.title(), "Life in UK · 在英国，把日子过明白。");
-    // Navigation: real anchors, only launched sections linked.
+    // Navigation: real anchors, only launched sections linked (Family &
+    // Visa is launched locally).
     const nav = p.getByRole("navigation", { name: "主导航" });
     assert.deepEqual(
       await nav.getByRole("link").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/health", "/money"],
+      ["/", "/health", "/money", "/family-visa", "/travel"],
     );
     assert.equal(
       await nav.getByRole("link", { name: "首页" }).getAttribute("aria-current"),
       "page",
     );
-    assert.equal(await p.locator("a[href^='/family-visa']").count(), 0);
-    // Topic cards: six; four upcoming without links.
+    // Topic cards: six; two upcoming without links (Travel links to /travel).
     assert.equal(await p.locator(".topic-card").count(), 6);
-    assert.equal(await p.locator(".topic-card a").count(), 2);
-    assert.equal(await p.locator(".topic-card-soon").count(), 4);
+    assert.equal(await p.locator(".topic-card a").count(), 4);
+    assert.equal(await p.locator(".topic-card-soon").count(), 2);
     assert.deepEqual(
       await p.locator(".topic-card a").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/health", "/money"],
+      ["/health", "/money", "/family-visa", "/travel"],
     );
     const counts = await p.locator(".topic-card-count").allInnerTexts();
-    if (!REAL) assert.deepEqual(counts, ["6 篇指南", "1 篇指南 · 12 条解答"]);
+    if (!REAL) assert.deepEqual(counts, ["6 篇指南", "1 篇指南 · 12 条解答", "1 篇指南"]);
     // Featured: four published Guides, preferred order.
     const featured = await p
       .locator(".featured-card-link")
@@ -136,6 +136,7 @@ try {
     assert.ok(more.every((href) => !featured.includes(href)));
     if (!REAL)
       assert.deepEqual(more, [
+        "/family-visa/fixture-family-visa",
         "/health/visiting-parents-healthcare-england",
         "/health/urgent-dental-care-england",
         "/health/medicines-prescriptions-england",
@@ -161,15 +162,18 @@ try {
       await holiday.locator(".holiday-name").waitFor();
     }
     assert.match(await holiday.innerText(), /England & Wales/);
-    // Transport: tool entries only (no service data or requests until a
-    // tool is opened in the travel dialog); Rail is not available.
+    // Transport: entries into /travel only (no service data or requests on
+    // the homepage); Rail is not available.
     const transport = p.locator(".transport-panel");
     assert.deepEqual(await transport.locator(".transport-status").allInnerTexts(), [
       "线路运行状态",
       "暂未开放",
       "按地点查附近道路异常",
     ]);
-    assert.equal(await transport.locator("button.transport-item").count(), 3);
+    assert.deepEqual(
+      await transport.locator("a.transport-item").evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
+      ["/travel#underground", "/travel#rail", "/travel#roads"],
+    );
     assert.doesNotMatch(
       await transport.innerText(),
       /Good Service|Delay|延误|拥堵|畅通|正常运行/,
@@ -210,8 +214,12 @@ try {
     await p.locator(".home-search-suggestions button", { hasText: "银行开户" }).click();
     assert.equal(await input.inputValue(), "银行开户");
     assert.equal(await results.first().getAttribute("href"), "/money/open-uk-bank-account-new-arrival");
-    // Unlaunched content never appears.
+    // Family & Visa is launched (locally), so its Guides are searchable.
     await input.fill("配偶签证草稿");
+    await results.first().waitFor();
+    assert.equal(await results.first().getAttribute("href"), "/family-visa/fixture-family-visa");
+    // A query with no match shows the empty state.
+    await input.fill("完全不存在的内容");
     await p.locator(".home-search-empty").waitFor();
     assert.match(await p.locator(".home-search-status").innerText(), /没有找到/);
     assert.equal(await results.count(), 0);
@@ -261,8 +269,8 @@ try {
     await p.getByRole("searchbox").fill("牙疼");
     assert.match(await p.locator(".home-search-status").innerText(), /搜索暂时不可用/);
     // Topic navigation still works; counts are not invented.
-    assert.equal(await p.locator(".topic-card a").count(), 2);
-    assert.deepEqual(await p.locator(".topic-card-count").allInnerTexts(), ["", ""]);
+    assert.equal(await p.locator(".topic-card a").count(), 4);
+    assert.deepEqual(await p.locator(".topic-card-count").allInnerTexts(), ["", "", ""]);
     console.log("PASS unavailable Guides and Bank Holidays");
     await context.close();
   }
@@ -286,7 +294,7 @@ try {
     const topicColumns = await p
       .locator(".topic-card")
       .evaluateAll((els) => new Set(els.map((el) => el.getBoundingClientRect().top)).size);
-    if (width >= 1280) assert.equal(topicColumns, 1, "six topics in one row");
+    if (width >= 1280) assert.ok(topicColumns <= 2, "seven topics in at most two rows (4 + 3)");
     if (width <= 390) assert.ok(topicColumns >= 3, "topics reflow on mobile");
     await p.screenshot({ path: `${screenshots}/home-${width}.png`, fullPage: true });
     await context.close();

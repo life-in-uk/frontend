@@ -9,7 +9,11 @@ import type {
   GuideAvailability,
   JourneyGuideId,
 } from "../../guides/familyVisaJourney";
-import { loadFamilyVisaContent } from "../../guides/familyVisaContent";
+import {
+  loadFamilyVisaContent,
+  loadFamilyVisaContentStrings,
+} from "../../guides/familyVisaContent";
+import type { GuideLocale } from "../../guides/locales";
 import type { FamilyVisaContent } from "../../guides/familyVisaContent";
 
 export type GuideListState =
@@ -85,26 +89,28 @@ export function useJourneyGuides(
  * The restated Family & Visa wording, loaded once. In a production build this
  * always settles to null (see familyVisaContent.ts).
  */
-export function useFamilyVisaContent(): {
+export function useFamilyVisaContent(locale: GuideLocale = "zh-CN"): {
   content: FamilyVisaContent | null;
+  strings: Readonly<Record<string, string>> | null;
   loaded: boolean;
 } {
   const [state, setState] = useState<{
     content: FamilyVisaContent | null;
+    strings: Readonly<Record<string, string>> | null;
     loaded: boolean;
-  }>({ content: null, loaded: false });
+  }>({ content: null, strings: null, loaded: false });
   useEffect(() => {
     let active = true;
-    loadFamilyVisaContent()
-      .then((content) => {
-        if (active) setState({ content, loaded: true });
+    Promise.all([loadFamilyVisaContent(), loadFamilyVisaContentStrings(locale)])
+      .then(([content, strings]) => {
+        if (active) setState({ content, strings, loaded: true });
       })
       .catch(() => {
-        if (active) setState({ content: null, loaded: true });
+        if (active) setState({ content: null, strings: null, loaded: true });
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [locale]);
   return state;
 }

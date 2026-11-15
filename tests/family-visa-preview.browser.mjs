@@ -202,11 +202,11 @@ try {
       await p.getByRole("button", { name: "不保存，直接开始" }).click();
       await p.locator(".checklist-section").first().waitFor();
       await p.waitForLoadState("networkidle");
-      // Without the preview, every checklist task stays pending.
+      // Without the preview, the PUBLISHED Guides' wording still shows.
+      const badges = await p.locator(".checklist-badge").allTextContents();
       assert.ok(
-        (await p.locator(".checklist-badge").allTextContents()).every(
-          (b) => b === "待核对",
-        ),
+        badges.some((b) => b !== "待核对"),
+        badges.join(","),
       );
       await p
         .getByRole("button", { name: "想了解这些要求背后的规则？" })
@@ -215,12 +215,15 @@ try {
       await p.waitForFunction(
         () => !document.querySelector(".journey-status-loading"),
       );
-      assert.deepEqual(
-        await p.locator(".journey-status").allTextContents(),
-        Array(5).fill("待核对"),
+      const statuses = await p.locator(".journey-status").allTextContents();
+      assert.ok(
+        statuses.some((s) => s !== "待核对"),
+        statuses.join(","),
       );
+      assert.ok((await p.locator(".journey-passage").count()) > 0);
+      // The unpublished children draft is never served by the normal server.
       const draft = await p.request.get(
-        `${normalURL}/api/guides/partner-visa-routes-overview`,
+        `${normalURL}/api/guides/partner-visa-dependent-children`,
       );
       assert.equal(draft.status(), 404);
       // Plain `npm run dev` refuses the local wording module itself.
@@ -229,7 +232,7 @@ try {
       );
       assert.equal(wordingModule.status(), 404);
       console.log(
-        "PASS normal dev server: no drafts, no wording module, no banner, all pending",
+        "PASS normal dev server: published wording shows; no drafts, no draft wording module, no banner",
       );
     }
     await context.close();

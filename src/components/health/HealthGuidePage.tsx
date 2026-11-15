@@ -1,6 +1,7 @@
 import { groupForSlug } from "../../guides/catalog";
 import { HEALTH_GUIDE_DOMAIN } from "../../guides/domains";
 import { GuidePage } from "../guides/GuidePage";
+import type { GuideLocale } from "../../guides/locales";
 import type { GuidePresentation } from "../guides/GuidePage";
 import { CategoryArt } from "./CategoryArt";
 import "./Health.css";
@@ -16,11 +17,12 @@ const healthPresentation: GuidePresentation = {
   },
 };
 
-export function HealthGuidePage({ slug }: { slug: string }) {
+export function HealthGuidePage({ slug, locale = "zh-CN" }: { slug: string; locale?: GuideLocale }) {
   return (
     <GuidePage
       domain={HEALTH_GUIDE_DOMAIN}
       slug={slug}
+      locale={locale}
       presentation={healthPresentation}
     />
   );

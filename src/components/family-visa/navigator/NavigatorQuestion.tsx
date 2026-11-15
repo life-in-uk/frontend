@@ -16,6 +16,7 @@ import type {
   QuestionStep,
   Step,
 } from "../../../guides/familyVisaJourney";
+import { useFamilyVisaLocale } from "../../../guides/familyVisaI18n";
 
 type Props = {
   headingRef: RefObject<HTMLHeadingElement | null>;
@@ -33,6 +34,7 @@ export function NavigatorQuestion({
   onAnswer,
   onGo,
 }: Props) {
+  const { t } = useFamilyVisaLocale();
   const question = QUESTIONS[step];
   const id = useId();
   const [error, setError] = useState(false);
@@ -76,7 +78,7 @@ export function NavigatorQuestion({
   return (
     <form className="navigator-card" onSubmit={submit} noValidate>
       <p className="navigator-progress">
-        第 {index + 1} 步，共 {steps.length} 步
+        {t("第 {n} 步，共 {total} 步", { n: index + 1, total: steps.length })}
       </p>
       <div className="navigator-progress-bar" aria-hidden="true">
         <span style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
@@ -92,10 +94,10 @@ export function NavigatorQuestion({
           tabIndex={-1}
           className="navigator-question"
         >
-          {question.title}
+          {t(question.title)}
         </h3>
         <p id={`${id}-hint`} className="navigator-hint">
-          {question.hint}
+          {t(question.hint)}
         </p>
         <div className="navigator-options">
           {question.options.map((option) => (
@@ -110,10 +112,12 @@ export function NavigatorQuestion({
                 }
               />
               <span className="navigator-option-text">
-                <span className="navigator-option-label">{option.label}</span>
+                <span className="navigator-option-label">
+                  {t(option.label)}
+                </span>
                 {option.detail && (
                   <span className="navigator-option-detail">
-                    {option.detail}
+                    {t(option.detail)}
                   </span>
                 )}
               </span>
@@ -122,7 +126,7 @@ export function NavigatorQuestion({
         </div>
         {error && (
           <p id={`${id}-error`} className="navigator-error" role="alert">
-            {question.multiple ? "请至少选择一项。" : "请选择一项。"}
+            {question.multiple ? t("请至少选择一项。") : t("请选择一项。")}
           </p>
         )}
       </fieldset>
@@ -134,14 +138,14 @@ export function NavigatorQuestion({
             onClick={() => onGo(previous)}
           >
             <ArrowLeft size={16} aria-hidden="true" />
-            上一步
+            {t("上一步")}
           </button>
         )}
         <button
           type="submit"
           className="navigator-button navigator-button-primary"
         >
-          {next === "results" ? "查看结果" : "下一步"}
+          {next === "results" ? t("查看结果") : t("下一步")}
           <ArrowRight size={16} aria-hidden="true" />
         </button>
         {canSkipToResults && answered && (
@@ -150,7 +154,7 @@ export function NavigatorQuestion({
             className="navigator-button navigator-button-link"
             onClick={() => onGo("results")}
           >
-            直接查看结果
+            {t("直接查看结果")}
           </button>
         )}
       </div>

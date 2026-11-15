@@ -1,8 +1,12 @@
 import { ArrowRight, Coins, FileText, HeartPulse } from "lucide-react";
-import type { PlacedGuide } from "../../home/featured";
-import { formatUkDate, shortGuideTitle } from "../../guides/format";
+import { homeGuideTitle, itemLang } from "../../home/featured";
+import type { HomeGuide } from "../../home/featured";
+import { formatUkDateFor } from "../../guides/format";
+import { GUIDE_LOCALE_LANG, GUIDE_UI, type GuideLocale } from "../../guides/locales";
+import { SITE_UI } from "../../guides/siteUi";
 import { Link } from "../Link";
-import { guidePath } from "../../guides/domains";
+import { FallbackBadge, ForeignText } from "../site/FallbackLabel";
+
 
 /** Restrained, consistent artwork stand-in: no Guide has an approved image. */
 function GuideCover({ domainId }: { domainId: string }) {
@@ -14,21 +18,26 @@ function GuideCover({ domainId }: { domainId: string }) {
   );
 }
 
-export function FeaturedGuideCard({ guide, domain }: PlacedGuide) {
+export function FeaturedGuideCard({ item, locale = "zh-CN" }: { item: HomeGuide; locale?: GuideLocale }) {
+  const { guide, domain } = item;
+  const ui = SITE_UI[locale];
+  const lang = itemLang(item, locale);
   return (
-    <li className={`featured-card featured-${domain.id}`}>
-      <Link to={guidePath(domain, guide.slug)} className="featured-card-link">
+    <li className={`featured-card featured-${domain.id}`} data-fallback={item.fallback || undefined}>
+      <Link to={item.href} className="featured-card-link" hrefLang={lang}>
         <span className="featured-media">
           <GuideCover domainId={domain.id} />
-          <span className="featured-tag">{domain.label}</span>
+          <span className="featured-tag">{GUIDE_UI[locale].domain[domain.id]}</span>
         </span>
         <div className="featured-body">
-          <h3>{shortGuideTitle(guide.title)}</h3>
-          <span className="featured-summary">{guide.summary}</span>
+          <h3><ForeignText lang={lang}>{homeGuideTitle(item)}</ForeignText></h3>
+          <FallbackBadge label={item.fallback && ui.fallbackBadge} />
+          {/* lang/dir on the clamped element itself, so the ellipsis follows the text direction. */}
+          <span className="featured-summary" lang={lang} dir={lang ? "ltr" : undefined}>{guide.summary}</span>
           <span className="featured-meta">
             <FileText size={15} aria-hidden="true" />
-            完整指南 · 更新于{" "}
-            <time dateTime={guide.updatedAt}>{formatUkDate(guide.updatedAt)}</time>
+            {ui.featured.meta}{" "}
+            <time dateTime={guide.updatedAt}>{formatUkDateFor(guide.updatedAt, GUIDE_LOCALE_LANG[locale])}</time>
           </span>
         </div>
       </Link>
@@ -38,17 +47,19 @@ export function FeaturedGuideCard({ guide, domain }: PlacedGuide) {
 
 type FeaturedGuidesProps = {
   status: "loading" | "error" | "ready";
-  guides: PlacedGuide[];
+  guides: HomeGuide[];
+  locale?: GuideLocale;
 };
 
-export function FeaturedGuides({ status, guides }: FeaturedGuidesProps) {
+export function FeaturedGuides({ status, guides, locale = "zh-CN" }: FeaturedGuidesProps) {
+  const ui = SITE_UI[locale].featured;
   return (
     <section className="home-container home-section" aria-labelledby="featured-title">
       <div className="home-section-head">
-        <h2 id="featured-title">精选指南</h2>
-        <p>从最常见、最实用的问题开始，快速了解在英国生活的关键事项。</p>
+        <h2 id="featured-title">{ui.title}</h2>
+        <p>{ui.text}</p>
         <a href="#all-guides" className="home-more-link">
-          查看更多指南
+          {ui.more}
           <ArrowRight size={16} aria-hidden="true" />
         </a>
       </div>
@@ -61,21 +72,21 @@ export function FeaturedGuides({ status, guides }: FeaturedGuidesProps) {
       )}
       {status === "loading" && (
         <p className="sr-only" role="status">
-          正在加载指南…
+          {GUIDE_UI[locale].loading}
         </p>
       )}
       {status === "error" && (
         <p className="home-notice" role="status">
-          指南列表暂时无法加载，请稍后再试，或从上方主题进入。
+          {ui.error}
         </p>
       )}
       {status === "ready" && guides.length === 0 && (
-        <p className="home-notice">指南正在编写和核对中，发布后会显示在这里。</p>
+        <p className="home-notice">{ui.empty}</p>
       )}
       {guides.length > 0 && (
         <ul className="featured-grid">
           {guides.map((item) => (
-            <FeaturedGuideCard key={item.guide.slug} {...item} />
+            <FeaturedGuideCard key={item.guide.slug} item={item} locale={locale} />
           ))}
         </ul>
       )}

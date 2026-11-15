@@ -654,6 +654,8 @@ export type ResolvedTask = ChecklistTask & {
   label: string | null;
   /** Reviewed wording: present only for "verified" and "suggestion". */
   wording: TaskContent | null;
+  /** Display only: set when evidence is shown in Simplified Chinese. */
+  evidenceLang?: string;
 };
 
 export type ResolvedSection = Omit<ChecklistSection, "tasks"> & {

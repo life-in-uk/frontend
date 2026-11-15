@@ -20,13 +20,11 @@ try {
       const direction = new URL(route.request().url()).searchParams.get("direction");
       return route.fulfill({json: { ...base, direction, disruptions: mode === "results" ? services : [] }});
     });
-    // Development-only Rail preview inside the homepage travel dialog.
-    await page.goto(`${process.env.FRONTEND_URL || "http://127.0.0.1:5199"}/?rail-preview`);
-    await page.locator('.transport-item[data-tool="rail"]').click();
-    const card = page.locator(".travel-dialog .rail-card");
+    // Development-only Rail preview on the English Travel page.
+    const origin = process.env.FRONTEND_URL || "http://127.0.0.1:5199";
+    await page.goto(`${origin}/en/travel?rail-preview#rail`);
+    let card = page.locator(".travel-page .rail-card");
     await card.waitFor();
-    assert.equal(await card.getByLabel("Language / 语言").inputValue(), "zh");
-    await card.getByLabel("Language / 语言").selectOption("en");
     await card.getByRole("textbox", {name: "Search station"}).fill("SHF");
     await card.getByRole("button", {name: "Sheffield", exact: true}).click();
     await card.getByRole("button", {name: "Check disruptions"}).click();
@@ -47,7 +45,12 @@ try {
     await card.getByLabel("Board").selectOption("departures");
     await card.getByRole("button", {name: "Check disruptions"}).click();
     await card.getByText("To: Leeds").first().waitFor();
-    await card.getByLabel("Language / 语言").selectOption("zh");
+    // Simplified Chinese: the same results on /travel.
+    await page.goto(`${origin}/travel?rail-preview#rail`);
+    card = page.locator(".travel-page .rail-card");
+    await card.getByRole("textbox", {name: "搜索车站"}).fill("SHF");
+    await card.getByRole("button", {name: "Sheffield", exact: true}).click();
+    await card.getByRole("button", {name: "查询延误"}).click();
     await card.getByText("延误 · 12 分钟").waitFor();
     await card.getByText("部分停站取消").waitFor();
     mode = "error";

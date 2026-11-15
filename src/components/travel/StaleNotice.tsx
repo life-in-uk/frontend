@@ -1,6 +1,8 @@
 import { Clock3 } from "lucide-react";
-import { formatUkDateTimeZh } from "../../travel/format";
+import { formatUkDateTime } from "../../travel/format";
 import type { Freshness } from "../../travel/freshness";
+import { GUIDE_LOCALE_LANG, type GuideLocale } from "../../guides/locales";
+import { TRAVEL_UI } from "../../travel/i18n";
 
 type StaleNoticeProps = {
   freshness: Exclude<Freshness, { state: "fresh" }>;
@@ -9,6 +11,7 @@ type StaleNoticeProps = {
   limitMinutes: number;
   /** Plain-language name of the official fallback, e.g. "TfL 官方运行状态". */
   fallback: string;
+  locale?: GuideLocale;
 };
 
 /**
@@ -21,24 +24,26 @@ export function StaleNotice({
   subject,
   limitMinutes,
   fallback,
+  locale = "zh-CN",
 }: StaleNoticeProps) {
+  const t = TRAVEL_UI[locale].common;
   return (
     <div className="travel-stale" role="status">
       <Clock3 size={20} aria-hidden="true" />
       <div>
-        <p className="travel-stale-title">暂无最新的{subject}</p>
+        <p className="travel-stale-title">{t.staleTitle(subject)}</p>
         {freshness.state === "stale" ? (
           <p>
-            最近一次来源数据观测于{" "}
+            {t.staleBefore}
             <time dateTime={freshness.observedAt}>
-              {formatUkDateTimeZh(freshness.observedAt)}
+              {formatUkDateTime(freshness.observedAt, GUIDE_LOCALE_LANG[locale])}
             </time>
-            （英国时间），已超过 {limitMinutes} 分钟，情况可能已经变化，因此不显示。
+            {t.staleAfter(limitMinutes)}
           </p>
         ) : (
-          <p>来源数据缺少有效的观测时间，无法确认是否为最新，因此不显示。</p>
+          <p>{t.invalid}</p>
         )}
-        <p>请查看下方的 {fallback}。</p>
+        <p>{t.seeOfficial(fallback)}</p>
       </div>
     </div>
   );

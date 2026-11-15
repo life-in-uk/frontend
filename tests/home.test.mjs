@@ -60,19 +60,28 @@ const GUIDES = [
 const DOMAINS = launchedTopics().map((topic) => topic.domain);
 const ANSWERS = [{ set: MONEY_QUICK_ANSWERS, domain: MONEY_GUIDE_DOMAIN }];
 
-test("only Health and Money are launched; Family & Visa is not", () => {
+test("Health, Money, Family & Visa are launched (locally)", () => {
   assert.deepEqual(
     launchedTopics().map((topic) => topic.id),
-    ["health", "money"],
+    ["health", "money", "family-visa"],
   );
   assert.equal(HOME_TOPICS.length, 6);
-  assert.ok(!DOMAINS.includes(FAMILY_VISA_GUIDE_DOMAIN));
+  assert.ok(DOMAINS.includes(FAMILY_VISA_GUIDE_DOMAIN));
 });
 
-test("search index excludes unlaunched sections", () => {
+test("search index covers launched sections only", () => {
   const index = buildSearchIndex(GUIDES, DOMAINS, ANSWERS);
-  assert.ok(index.every((entry) => !entry.href.startsWith("/family-visa")));
-  assert.deepEqual(searchEntries(index, "配偶签证"), []);
+  assert.deepEqual(
+    searchEntries(index, "配偶签证").map((entry) => entry.href),
+    ["/family-visa/fixture-family-visa"],
+  );
+  assert.ok(
+    index.every((entry) =>
+      ["/money", "/health", "/family-visa"].some((base) =>
+        entry.href.startsWith(base),
+      ),
+    ),
+  );
   const guides = index.filter((entry) => entry.kind === "guide");
   assert.deepEqual(
     guides.map((entry) => entry.href),
@@ -80,6 +89,7 @@ test("search index excludes unlaunched sections", () => {
       "/money/open-uk-bank-account-new-arrival",
       "/health/urgent-dental-care-england",
       "/health/registering-with-a-gp-england",
+      "/family-visa/fixture-family-visa",
     ],
   );
 });
@@ -118,7 +128,10 @@ test("search matches Chinese and Latin queries deterministically", () => {
 });
 
 test("featured: preferred slugs first, then most recent; skips missing", () => {
-  const placed = placeGuides(GUIDES, DOMAINS);
+  const placed = placeGuides(
+    GUIDES.filter((guide) => guide.category !== "family-visa"),
+    DOMAINS,
+  );
   assert.equal(placed.length, 3);
   const featured = selectFeatured(
     placed,

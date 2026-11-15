@@ -29,3 +29,29 @@ export function formatDistanceZh(distanceMeters: number): string {
   if (tenths < 10) return `${tenths.toFixed(1)} 英里`;
   return `${Math.round(miles)} 英里`;
 }
+
+/** An instant in UK time for the page language (Chinese keeps the 年月日 form). */
+export function formatUkDateTime(instant: string, lang: string): string {
+  if (lang.startsWith("zh")) return formatUkDateTimeZh(instant);
+  return new Intl.DateTimeFormat(lang, {
+    timeZone: "Europe/London",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(instant));
+}
+
+/** Straight-line distance with formatDistanceZh's rounding, in the page language's words. */
+export function formatDistanceIn(
+  distanceMeters: number,
+  words: { miles: (value: string) => string; underTenth: string },
+): string {
+  const miles = distanceMeters / METRES_PER_MILE;
+  if (miles < 0.1) return words.underTenth;
+  const tenths = Math.round(miles * 10) / 10;
+  if (tenths < 10) return words.miles(tenths.toFixed(1));
+  return words.miles(String(Math.round(miles)));
+}

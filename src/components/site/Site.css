@@ -34,8 +34,8 @@
   flex-direction: column;
   color: var(--site-ink);
   text-decoration: none;
-  padding-right: 28px;
-  border-right: 1px solid var(--site-line);
+  padding-inline-end: 28px;
+  border-inline-end: 1px solid var(--site-line);
   line-height: 1.2;
 }
 .masthead-brand strong {
@@ -91,7 +91,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .masthead-search {
   width: 44px;
@@ -131,7 +131,7 @@
 @media (max-width: 760px) {
   .masthead-inner {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 6px 12px;
     padding-block: 12px 4px;
     min-height: 0;
@@ -269,5 +269,107 @@
   }
   .site-footer-bottom {
     flex-direction: column;
+  }
+}
+
+/* Label on a Guide shown in Simplified Chinese because no translation is published yet. */
+.fallback-badge {
+  display: inline-block;
+  width: fit-content;
+  margin-inline-start: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.6;
+  vertical-align: middle;
+}
+
+/* Right-to-left (Urdu): directional icons point the reading way. */
+[dir="rtl"] .lucide-arrow-right,
+[dir="rtl"] .lucide-arrow-left,
+[dir="rtl"] .lucide-chevron-right,
+[dir="rtl"] .lucide-arrow-up-right {
+  transform: scaleX(-1);
+}
+
+/* Header language selector (home and not-found pages only). */
+.masthead-language > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.masthead-language select {
+  max-width: 9.5rem;
+}
+
+/* Longer labels (English, Urdu, Hindi): the nav never runs under the
+   search/About actions; it scrolls within itself if it must. */
+.masthead-nav {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.masthead-nav::-webkit-scrollbar {
+  display: none;
+}
+@media (max-width: 1600px) {
+  .masthead:not(:lang(zh)) .masthead-upcoming {
+    display: none;
+  }
+}
+.masthead-nav > ul {
+  padding: 4px; /* room for focus outlines inside the scrolling nav */
+}
+/* Phones: brand, search and About share the first row; the language
+   selector (home and not-found only) gets its own row above the nav. */
+@media (max-width: 560px) {
+  .masthead-inner {
+    /* minmax(0, …): longer About/search labels (ur, hi) must not widen the page. */
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+  .masthead-brand {
+    min-width: 0;
+  }
+  .masthead-brand strong {
+    white-space: nowrap;
+  }
+  .masthead-brand .brand-caption {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .masthead-actions {
+    display: contents;
+  }
+  .masthead-search {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  .masthead-about {
+    grid-row: 1;
+    grid-column: 3;
+  }
+  .masthead-language {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+/* Very narrow phones (≤ 380px): longer labels (ur, hi) must not clip the brand. */
+@media (max-width: 380px) {
+  .masthead-brand {
+    min-height: 44px; /* keep the touch target */
+  }
+  .masthead-brand strong {
+    font-size: 20px;
+  }
+  .masthead-about {
+    padding: 0 8px;
+    font-size: 13px;
   }
 }

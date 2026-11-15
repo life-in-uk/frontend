@@ -329,7 +329,7 @@ try {
     assert.doesNotMatch(await p.locator(".guide-meta").textContent(), /官方/);
     assert.equal(
       await p.locator(".evidence-intro").textContent(),
-      "文中标着依据链接的地方，可以点开看这句话依据的是哪份资料、出自哪个机构。",
+      "文中标着依据链接的地方，可以点开查看这句话依据的资料和机构。",
     );
     assert.equal(await p.locator(".internal-label").count(), 0);
     assert.equal(
@@ -458,7 +458,7 @@ try {
         .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
       ["/health/nhs-dentist-england", "/health/where-to-go-when-ill-england"],
     );
-    await p.getByRole("link", { name: "回到健康与 NHS" }).click();
+    await p.locator(".guide-back a, .guide-status-card a", { hasText: "健康与 NHS" }).click();
     await p.waitForURL(`${baseURL}/health`);
     assert.deepEqual(guideErrors(errors), []);
     await context.close();

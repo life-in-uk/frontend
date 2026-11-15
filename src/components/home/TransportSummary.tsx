@@ -1,4 +1,3 @@
-import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
@@ -7,9 +6,13 @@ import {
   TrainFront,
   TrainFrontTunnel,
 } from "lucide-react";
-import { TravelDialog } from "../travel/TravelDialog";
+import type { GuideLocale } from "../../guides/locales";
+import { SITE_UI } from "../../guides/siteUi";
+import { Link } from "../Link";
 import { railPreviewEnabled, TRAVEL_TOOLS } from "../../travel/tools";
 import type { TravelToolId } from "../../travel/tools";
+import { TRAVEL_UI } from "../../travel/i18n";
+import { travelPath } from "../../travel/routes";
 
 // Homepage order of the approved design.
 const HOME_ORDER: readonly TravelToolId[] = ["underground", "rail", "roads"];
@@ -21,66 +24,50 @@ const ICONS: Record<TravelToolId, ReactNode> = {
 };
 
 /**
- * Compact homepage entry to the first-party travel tools. It shows no
- * service data itself and makes no requests: each entry opens the travel
- * dialog, which loads its tool only when shown.
+ * Compact homepage entry to the Travel section. It shows no service data
+ * itself and makes no requests: each entry opens that tool on /travel, which
+ * loads it only when shown.
  */
-export function TransportSummary() {
-  const [tool, setTool] = useState<TravelToolId | null>(null);
-  const trigger = useRef<HTMLButtonElement | null>(null);
-
-  function openTool(id: TravelToolId, button: HTMLButtonElement) {
-    trigger.current = button;
-    setTool(id);
-  }
-  function close() {
-    setTool(null);
-    // Return focus to the entry that opened the dialog.
-    const button = trigger.current;
-    window.requestAnimationFrame(() => button?.focus());
-  }
-
+export function TransportSummary({ locale = "zh-CN" }: { locale?: GuideLocale }) {
+  const ui = TRAVEL_UI[locale];
   return (
-    <section
-      className="home-panel transport-panel"
-      aria-labelledby="transport-title"
-    >
+    <section className="home-panel transport-panel" aria-labelledby="transport-title">
       <div className="home-panel-head">
         <BusFront size={24} aria-hidden="true" />
-        <h2 id="transport-title">交通出行信息</h2>
+        <h2 id="transport-title">{SITE_UI[locale].transport.title}</h2>
       </div>
       <ul className="transport-list">
         {HOME_ORDER.map((id) => {
           const mode = TRAVEL_TOOLS.find((item) => item.id === id)!;
+          const name = ui.tools[id].name;
           const unavailable = id === "rail" && !railPreviewEnabled();
           return (
             <li key={id}>
-              <button
-                type="button"
-                className="transport-item"
-                aria-haspopup="dialog"
-                data-tool={id}
-                onClick={(event) => openTool(id, event.currentTarget)}
-              >
+              <Link to={travelPath(locale, id)} className="transport-item" data-tool={id}>
                 <span className="transport-icon">{ICONS[id]}</span>
                 <span className="transport-text">
                   <span className="transport-name">
-                    {mode.name} <span lang="en">{mode.operator}</span>
+                    {name}
+                    {/* Skip the operator when the name already contains it. */}
+                    {!name.includes(mode.operator) && (
+                      <>
+                        {" "}
+                        <span lang="en">{mode.operator}</span>
+                      </>
+                    )}
                   </span>
                   <span className="transport-status">
-                    {unavailable ? "暂未开放" : mode.description}
+                    {unavailable ? ui.common.notReleased : ui.tools[id].description}
                   </span>
+                  <span className="sr-only">{ui.home.open(name)}</span>
                 </span>
                 <ArrowRight size={18} aria-hidden="true" />
-              </button>
+              </Link>
             </li>
           );
         })}
       </ul>
-      <p className="home-panel-meta">
-        点击打开查询工具。数据过期或无法获取时不显示运行状态，并提供运营方官方信息链接。
-      </p>
-      <TravelDialog tool={tool} onSelect={setTool} onClose={close} />
+      <p className="home-panel-meta">{ui.home.meta}</p>
     </section>
   );
 }

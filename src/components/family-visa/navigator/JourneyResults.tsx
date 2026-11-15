@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { ArrowRight, ChevronDown, FileCheck2, Info } from "lucide-react";
-import { FAMILY_VISA_GUIDE_DOMAIN, guidePath } from "../../../guides/domains";
+import { useFamilyVisaLocale } from "../../../guides/familyVisaI18n";
+import type { FamilyVisaText } from "../../../guides/familyVisaI18n";
+import { guideRoutePath } from "../../../guides/locales";
+import type { ShownGuideLink } from "../localizedJourney";
 import { QUESTIONS, questionSteps } from "../../../guides/familyVisaJourney";
 import type {
   Answers,
@@ -32,10 +35,11 @@ function Blocks({ text }: { text: readonly TextBlock[] }) {
 }
 
 const STATUS_TEXT = {
-  loading: () => "正在加载…",
-  verified: (stage: ResolvedStage) => `已核对 · ${stage.items.length} 个要点`,
-  partial: () => "部分待核对",
-  pending: () => "待核对",
+  loading: (t: FamilyVisaText) => t("正在加载…"),
+  verified: (t: FamilyVisaText, stage: ResolvedStage) =>
+    t("已核对 · {count} 个要点", { count: stage.items.length }),
+  partial: (t: FamilyVisaText) => t("部分待核对"),
+  pending: (t: FamilyVisaText) => t("待核对"),
 } as const;
 
 const FALLBACK_TEXT = {
@@ -64,20 +68,23 @@ export function AnswerSummary({
   answers: Answers;
   onEdit: (step: Step) => void;
 }) {
+  const { t } = useFamilyVisaLocale();
   return (
-    <dl className="journey-answers" aria-label="你的回答">
+    <dl className="journey-answers" aria-label={t("你的回答")}>
       {questionSteps(answers).map((step) => (
         <div key={step} className="journey-answer">
-          <dt className="sr-only">{QUESTIONS[step].title}</dt>
+          <dt className="sr-only">{t(QUESTIONS[step].title)}</dt>
           <dd>
-            <span>{QUESTIONS[step].summary(answers)}</span>
+            <span>{t(QUESTIONS[step].summary(answers) ?? "")}</span>
             <button
               type="button"
               className="journey-edit"
               onClick={() => onEdit(step)}
-              aria-label={`修改：${QUESTIONS[step].title}`}
+              aria-label={t("修改：{title}", {
+                title: t(QUESTIONS[step].title),
+              })}
             >
-              修改
+              {t("修改")}
             </button>
           </dd>
         </div>
@@ -87,6 +94,7 @@ export function AnswerSummary({
 }
 
 function JourneyStage({ stage }: { stage: ResolvedStage }) {
+  const { t } = useFamilyVisaLocale();
   const [open, setOpen] = useState(false);
   const panelId = `journey-${stage.id}-details`;
   const titleId = `journey-${stage.id}-title`;
@@ -109,11 +117,13 @@ function JourneyStage({ stage }: { stage: ResolvedStage }) {
         </span>
         <div className="journey-stage-heading">
           <h4 id={titleId}>
-            <span className="sr-only">第 {stage.number} 步：</span>
+            <span className="sr-only">
+              {t("第 {n} 步：", { n: stage.number })}
+            </span>
             {stage.title}
           </h4>
           <span className="journey-status">
-            {STATUS_TEXT[stage.status](stage)}
+            {STATUS_TEXT[stage.status](t, stage)}
           </span>
         </div>
       </header>
@@ -124,7 +134,7 @@ function JourneyStage({ stage }: { stage: ResolvedStage }) {
         ))}
         {stage.summaryFallback && (
           <p className="journey-fallback">
-            {FALLBACK_TEXT[stage.summaryFallback]}
+            {t(FALLBACK_TEXT[stage.summaryFallback])}
           </p>
         )}
         {stage.summaryNotices.map((notice) => (
@@ -142,7 +152,7 @@ function JourneyStage({ stage }: { stage: ResolvedStage }) {
             aria-controls={panelId}
             onClick={() => setOpen((value) => !value)}
           >
-            {open ? "收起详细信息" : "展开详细信息"}
+            {open ? t("收起详细信息") : t("展开详细信息")}
             <ChevronDown size={16} aria-hidden="true" />
           </button>
           <div id={panelId} className="journey-details" hidden={!open}>
@@ -155,19 +165,20 @@ function JourneyStage({ stage }: { stage: ResolvedStage }) {
 }
 
 function StageDetails({ stage }: { stage: ResolvedStage }) {
+  const { locale, t } = useFamilyVisaLocale();
   return (
     <>
       {stage.changed && (
         <p className="journey-fallback">
-          部分内容已更新，暂不显示；请阅读完整指南。
+          {t("部分内容已更新，暂不显示；请阅读完整指南。")}
         </p>
       )}
       {stage.unpublished && stage.items.length === 0 && (
-        <p className="journey-fallback">核对内容发布后会显示在这里。</p>
+        <p className="journey-fallback">{t("核对内容发布后会显示在这里。")}</p>
       )}
       {stage.pending.map((notice) => (
         <p key={notice.id} className="journey-pending">
-          <span className="journey-pending-tag">待核对</span>
+          <span className="journey-pending-tag">{t("待核对")}</span>
           {notice.text}
         </p>
       ))}
@@ -195,10 +206,13 @@ function StageDetails({ stage }: { stage: ResolvedStage }) {
       ))}
       {stage.guides.length > 0 && (
         <ul className="journey-guide-links">
-          {stage.guides.map((guide) => (
+          {stage.guides.map((guide: ShownGuideLink) => (
             <li key={guide.slug}>
-              <Link to={guidePath(FAMILY_VISA_GUIDE_DOMAIN, guide.slug)}>
-                阅读完整指南《{guide.title}》
+              <Link to={guideRoutePath(locale, "family-visa", guide.slug)}>
+                {t("阅读完整指南")}{" "}
+                <span lang={guide.lang}>
+                  {t("《{title}》", { title: guide.title })}
+                </span>
                 <ArrowRight size={15} aria-hidden="true" />
               </Link>
             </li>
@@ -210,13 +224,18 @@ function StageDetails({ stage }: { stage: ResolvedStage }) {
 }
 
 function Passage({ passage }: { passage: ResolvedPassage }) {
+  const { locale, t } = useFamilyVisaLocale();
   const [shown, setShown] = useState(false);
   if (passage.state.status !== "verified") return null;
-  const { evidence, sources } = passage.state;
+  const { evidence, sources, lang } = passage.state;
   const evidenceId = `journey-e-${passage.id}`;
   return (
     <div className="journey-passage">
-      {passage.label && <p className="journey-place">{passage.label}：</p>}
+      {passage.label && (
+        <p className="journey-place">
+          {t("{label}：", { label: passage.label })}
+        </p>
+      )}
       <Blocks text={passage.text} />
       {passage.advice && (
         <p className="journey-advice">
@@ -232,16 +251,17 @@ function Passage({ passage }: { passage: ResolvedPassage }) {
         onClick={() => setShown((value) => !value)}
       >
         <FileCheck2 size={14} aria-hidden="true" />
-        查看法律依据（{evidence.length} 条）
+        {t("查看法律依据（{count} 条）", { count: evidence.length })}
       </button>
       {shown && (
-        <div id={evidenceId} className="journey-evidence">
+        <div id={evidenceId} className="journey-evidence" lang={lang}>
           {evidence.map((item) => (
             <EvidencePanel
               key={item.key}
               id={`${evidenceId}-${item.key}`}
               evidence={item}
               sources={sources}
+              locale={lang ? "zh-CN" : locale}
             />
           ))}
         </div>

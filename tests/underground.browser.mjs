@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
-// Underground is a first-party tool inside the homepage travel dialog. The
+// Underground is a first-party tool on the Travel page (/travel). The
 // browser clock is pinned shortly after each fixture's observation so the
 // fresh path is exercised; stale paths use the real clock.
 import { isUndergroundResponse } from "../src/underground/api.ts";
@@ -121,20 +121,19 @@ async function newPage(
   });
   return { context, page, requests, responses, errors, consoleErrors };
 }
-/** Opens the Underground tool from the homepage transport panel. */
+/** Opens the Underground tool on /travel from the homepage transport panel. */
 async function openUnderground(page) {
   await page.goto(baseURL);
   await page.locator('.transport-item[data-tool="underground"]').click();
-  await page.locator(".travel-dialog .underground-card").waitFor();
+  await page.locator(".travel-page .underground-card").waitFor();
 }
 async function assertPage(page, requests, errors, width) {
-  // The homepage stays intact behind the open travel dialog.
+  // The Travel page, reached from the homepage transport panel.
   assert.equal(await page.locator("h1").count(), 1);
-  assert.match(
-    await page.locator("h1").innerText(),
-    /在英国生活、工作、\s*学习的实用指南/,
-  );
-  assert.equal(await page.locator("dialog.travel-dialog[open]").count(), 1);
+  assert.equal(await page.locator("h1").innerText(), "交通出行");
+  assert.equal(new URL(page.url()).pathname, "/travel");
+  assert.equal(new URL(page.url()).hash, "#underground");
+  assert.equal(await page.locator(".travel-page").count(), 1);
   assert.equal(
     await page
       .locator('.travel-tab[aria-selected="true"]')
@@ -144,7 +143,7 @@ async function assertPage(page, requests, errors, width) {
       .getAttribute("id"),
   );
   assert.equal(
-    await page.locator(".travel-dialog .underground-card").count(),
+    await page.locator(".travel-page .underground-card").count(),
     1,
   );
   assert.equal(
@@ -297,10 +296,10 @@ try {
         .waitFor();
       assert.equal(await card.getAttribute("aria-busy"), "true");
       assert.equal(await card.locator(".underground-line").count(), 0);
-      // Opening the dialog moves keyboard focus to the selected tab.
+      // The Underground tab is the selected one.
       assert.equal(
-        await page.evaluate(() => document.activeElement?.getAttribute("role")),
-        "tab",
+        await page.locator('.travel-tab[aria-selected="true"]').getAttribute("data-tool"),
+        "underground",
       );
       await assertPage(page, requests, errors, width);
       release();
@@ -330,7 +329,7 @@ try {
       );
       await context.close();
       console.log(
-        `PASS ${width}px (dialog): local loading, all lines/statuses, A/B/A repeats, exact wording/reasons, UK observedAt, TfL attribution, long wrapping, keyboard focus, no TfL requests, one read on open`,
+        `PASS ${width}px (travel page): local loading, all lines/statuses, A/B/A repeats, exact wording/reasons, UK observedAt, TfL attribution, long wrapping, keyboard focus, no TfL requests, one read on open`,
       );
     }
     for (const reducedMotion of ["no-preference", "reduce"]) {
@@ -673,7 +672,7 @@ try {
       );
     }
     {
-      // A snapshot that turns stale while the dialog is open is withdrawn.
+      // A snapshot that turns stale while the page is open is withdrawn.
       // Re-reads return the same old snapshot, which must not revive it.
       const { context, page } = await newPage(1440, "reduce", { fresh: false });
       await page.clock.install({ time: FRESH_NOW });
@@ -719,7 +718,7 @@ try {
     };
     {
       // Every 2 minutes only while the Underground tab is active and the
-      // dialog is open; nothing while another tab is shown or once closed.
+      // Travel page is open; nothing while another tab is shown or after leaving.
       const { context, page, state, card } = await reader((route) =>
         route.fulfill({ json: fixture }),
       );
@@ -737,7 +736,7 @@ try {
         `re-read at 2 minutes (${reads()})`,
       );
       await page.locator(".travel-tab", { hasText: "道路" }).click();
-      await page.locator(".travel-dialog .roads-card").waitFor();
+      await page.locator(".travel-page .roads-card").waitFor();
       await page.clock.runFor(10 * 60_000);
       await page.waitForTimeout(200);
       assert.equal(reads(), 2, "no re-reads while another tab is active");
@@ -758,12 +757,13 @@ try {
       await page.locator(".travel-tab", { hasText: "伦敦地铁" }).click();
       await page.waitForTimeout(300);
       assert.equal(reads(), 4, "no early read on a quick return");
-      await page.keyboard.press("Escape");
-      await page.waitForFunction(() => !document.querySelector("dialog[open]"));
+      // Leaving the Travel page unmounts the tool.
+      await page.locator(".masthead-brand").click();
+      await page.waitForFunction(() => !document.querySelector(".travel-page"));
       const startedAtClose = state.started;
       await page.clock.runFor(10 * 60_000);
       await page.waitForTimeout(200);
-      assert.equal(reads(), 4, "no re-reads after the dialog closes");
+      assert.equal(reads(), 4, "no re-reads after leaving the Travel page");
       assert.equal(state.started, startedAtClose, "no requests after close");
       await page.locator('.transport-item[data-tool="underground"]').click();
       await until(

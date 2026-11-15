@@ -7,7 +7,6 @@ import { getRoads, RoadsUnavailableError } from "../roads/api";
 import type { RoadsResponse } from "../roads/api";
 import {
   describeDisruption,
-  ESTIMATED_END_PASSED_NOTICE,
 } from "../roads/presentation";
 import {
   MAX_PLACE_QUERY_LENGTH,
@@ -16,9 +15,11 @@ import {
   PlacesUnavailableError,
   searchPlaces,
 } from "../places/api";
-import type { Place, PlaceType } from "../places/api";
+import type { Place } from "../places/api";
 import { StaleNotice } from "./travel/StaleNotice";
-import { formatDistanceZh, formatUkDateTimeZh } from "../travel/format";
+import { formatDistanceIn, formatUkDateTime } from "../travel/format";
+import { GUIDE_LOCALE_LANG, type GuideLocale } from "../guides/locales";
+import { TRAVEL_UI } from "../travel/i18n";
 import { assessFreshness, ROADS_MAX_AGE_MS } from "../travel/freshness";
 import { useNow } from "../travel/useNow";
 import "./RoadsCard.css";
@@ -62,17 +63,11 @@ const POSITION_OPTIONS: PositionOptions = {
   maximumAge: 60_000,
 };
 const REQUEST_DEADLINE_MS = 10_000;
-const PLACE_TYPE_LABELS: Record<PlaceType, string> = {
-  postcode: "邮编",
-  city: "城市",
-  town: "城镇",
-  village: "村庄",
-  hamlet: "小村",
-  suburb: "城区",
-  settlement: "居民点",
-};
-
-export function RoadsCard() {
+export function RoadsCard({ locale = "zh-CN" }: { locale?: GuideLocale }) {
+  const t = TRAVEL_UI[locale].roads;
+  const common = TRAVEL_UI[locale].common;
+  const lang = GUIDE_LOCALE_LANG[locale];
+  const distance = (meters: number) => formatDistanceIn(meters, t);
   const [phase, setPhase] = useState<Phase>({ status: "idle" });
   const [placeSearch, setPlaceSearch] = useState<PlaceSearch>({
     status: "idle",
@@ -270,17 +265,17 @@ export function RoadsCard() {
         <header className="roads-header">
           <span className="category">
             <CarFront size={18} aria-hidden="true" />
-            出行
+            {common.category}
           </span>
-          <h2 id="roads-heading">附近道路</h2>
+          <h2 id="roads-heading">{t.title}</h2>
           <p className="roads-coverage">
-            <span lang="en">National Highways</span> · 附近当前道路异常
+            <span lang="en">National Highways</span> · {t.coverage}
           </p>
         </header>
         <div className="roads-chooser">
           <form className="roads-search" role="search" onSubmit={submitSearch}>
             <label htmlFor={inputId} className="roads-search-label">
-              搜索邮编、城镇或地点
+              {t.searchLabel}
             </label>
             <div className="roads-search-row">
               <input
@@ -296,7 +291,7 @@ export function RoadsCard() {
               />
               <Button type="submit" variant="secondary">
                 <Search size={16} aria-hidden="true" />
-                搜索
+                {t.search}
               </Button>
             </div>
           </form>
@@ -306,36 +301,30 @@ export function RoadsCard() {
             onClick={() => locate(false)}
           >
             <LocateFixed size={16} aria-hidden="true" />
-            使用我的位置
+            {t.locate}
           </button>
           <div className="roads-places" aria-live="polite">
             {placeSearch.status === "blank" && (
-              <p role="status">请输入邮编、城镇或地点。</p>
+              <p role="status">{t.blank}</p>
             )}
             {placeSearch.status === "searching" && (
-              <p role="status">正在搜索地点…</p>
+              <p role="status">{t.searching}</p>
             )}
             {placeSearch.status === "empty" && (
-              <p role="status">没有找到匹配的地点。</p>
+              <p role="status">{t.empty}</p>
             )}
             {placeSearch.status === "invalid" && (
-              <p role="status">
-                无法使用这个搜索词，请尝试邮编、城镇或地点名称。
-              </p>
+<p role="status">{t.invalid}</p>
             )}
             {placeSearch.status === "unavailable" && (
-              <p role="status">
-                地点搜索暂时不可用，你仍可以使用当前位置。
-              </p>
+<p role="status">{t.placesUnavailable}</p>
             )}
             {placeSearch.status === "failed" && (
-              <p role="status">地点搜索未能完成。</p>
+              <p role="status">{t.placesFailed}</p>
             )}
             {placeSearch.status === "results" && (
               <>
-                <p role="status">
-                  找到 {placeSearch.places.length} 个地点，请选择：
-                </p>
+                <p role="status">{t.results(placeSearch.places.length)}</p>
                 <ul className="roads-candidates">
                   {placeSearch.places.map((place, index) => (
                     <li key={`${place.id}/${index}`}>
@@ -348,7 +337,7 @@ export function RoadsCard() {
                       >
                         <span lang="en">{place.label}</span>
                         <span className="roads-candidate-type">
-                          {PLACE_TYPE_LABELS[place.type]}
+                          {t.placeTypes[place.type]}
                         </span>
                       </button>
                     </li>
@@ -371,16 +360,18 @@ export function RoadsCard() {
             <p className="roads-active">
               {active.kind === "place" ? (
                 <>
-                  显示{" "}
+                  {t.showingBefore}{" "}
                   <strong className="roads-active-label" lang="en">
                     {active.label}
                   </strong>{" "}
-                  附近的道路
+                  {t.showingAfter}
                 </>
               ) : (
                 <>
-                  显示<strong className="roads-active-label">你的当前位置</strong>
-                  附近的道路
+                  {t.showingBefore}
+                  {lang.startsWith("zh") ? "" : " "}
+                  <strong className="roads-active-label">{t.yourLocation}</strong>
+                  {t.showingAfter}
                 </>
               )}
             </p>
@@ -388,65 +379,59 @@ export function RoadsCard() {
           {phase.status === "idle" && (
             <>
               <p>
-                搜索地点或使用当前位置，查看附近由{" "}
-                <span lang="en">National Highways</span> 报告的道路异常。
+                {t.idleBefore} <span lang="en">National Highways</span>
+                {t.idleAfter === "." ? "" : " "}
+                {t.idleAfter}
               </p>
-              <p className="roads-note">
-                搜索词和位置只用于本次查询，不会被保存。
-              </p>
+              <p className="roads-note">{t.privacy}</p>
             </>
           )}
           {phase.status === "unsupported" && (
-            <p role="status">
-              此浏览器无法提供你的位置，你可以改为搜索地点。
-            </p>
+<p role="status">{t.unsupported}</p>
           )}
           {phase.status === "locating" && (
-            <p role="status">正在获取你的位置…</p>
+            <p role="status">{t.locating}</p>
           )}
           {phase.status === "denied" && (
             <>
-              <p role="status">
-                未获得位置权限。你可以改为搜索地点，或在浏览器中允许本网站使用位置后重试。
-              </p>
+<p role="status">{t.denied}</p>
               <div className="roads-actions">
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => locate(true)}
                 >
-                  重试
+                  {t.tryAgain}
                 </Button>
               </div>
             </>
           )}
           {phase.status === "locationFailed" && (
             <>
-              <p role="status">无法获取你的位置。</p>
+              <p role="status">{t.locationFailed}</p>
               <div className="roads-actions">
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => locate(true)}
                 >
-                  重试
+                  {t.tryAgain}
                 </Button>
               </div>
             </>
           )}
           {phase.status === "loading" && (
-            <p role="status">正在查询附近的道路异常…</p>
+            <p role="status">{t.loading}</p>
           )}
           {(phase.status === "unavailable" || phase.status === "failed") && (
             <>
               <p role="status">
-                {phase.status === "unavailable"
-                  ? "道路信息暂时无法获取。"
-                  : "道路信息未能加载。"}
+                {phase.status === "unavailable" ? t.unavailable : t.failed}
               </p>
+              <p>{common.seeOfficial(t.fallback)}</p>
               <div className="roads-actions">
                 <Button type="button" variant="secondary" onClick={recheck}>
-                  重试
+                  {t.tryAgain}
                 </Button>
               </div>
             </>
@@ -454,9 +439,10 @@ export function RoadsCard() {
           {freshness && freshness.state !== "fresh" && (
             <StaleNotice
               freshness={freshness}
-              subject="附近道路异常信息"
+              subject={t.subject}
               limitMinutes={ROADS_MAX_AGE_MS / 60_000}
-              fallback="National Highways 官方路况"
+              fallback={t.fallback}
+              locale={locale}
             />
           )}
           {phase.status === "ready" && (
@@ -464,8 +450,8 @@ export function RoadsCard() {
               {facts && (
                 <p role="status" className="roads-summary">
                   {facts.disruptions.length === 0
-                    ? "附近没有找到 National Highways 报告的当前道路异常。"
-                    : `${formatDistanceZh(facts.relevanceRadiusMeters)} 范围内有 ${facts.disruptions.length} 条道路异常，按距离由近到远排列。`}
+                    ? t.none
+                    : t.found(facts.disruptions.length, distance(facts.relevanceRadiusMeters))}
                 </p>
               )}
               {facts && facts.disruptions.length > 0 && (
@@ -485,7 +471,7 @@ export function RoadsCard() {
                             {view.roads.length > 0 ? (
                               <span lang="en">{view.roads.join(", ")}</span>
                             ) : (
-                              "未注明道路"
+                              t.roadUnknown
                             )}
                             {view.directions.length > 0 && (
                               <span className="roads-direction" lang="en">
@@ -494,8 +480,8 @@ export function RoadsCard() {
                             )}
                           </h3>
                           <span className="roads-distance">
-                            <span className="sr-only">直线距离 </span>
-                            {formatDistanceZh(disruption.distanceMeters)}
+                            <span className="sr-only">{t.distanceSr}</span>
+                            {distance(disruption.distanceMeters)}
                           </span>
                         </div>
                         {view.locations.map((text) => (
@@ -516,24 +502,23 @@ export function RoadsCard() {
                           )}
                           {view.endTime && (
                             <span>
-                              {view.estimatedEndPassed
-                                ? "原预计结束时间："
-                                : "来源结束时间："}
+                              {view.estimatedEndPassed ? t.endPassed : t.endTime}
                               <time dateTime={view.endTime}>
-                                {formatUkDateTimeZh(view.endTime)}
+                                {formatUkDateTime(view.endTime, lang)}
                               </time>
-                              （英国时间）
+                              {common.ukTime}
                             </span>
                           )}
                           {view.status && (
                             <span>
-                              来源状态：<span lang="en">{view.status}</span>
+                              {t.providerStatus}
+                              <span lang="en">{view.status}</span>
                             </span>
                           )}
                         </p>
                         {view.estimatedEndPassed && (
                           <p className="roads-estimate-passed">
-                            {ESTIMATED_END_PASSED_NOTICE}
+                            {t.endNotice}
                           </p>
                         )}
                       </li>
@@ -544,7 +529,7 @@ export function RoadsCard() {
               <div className="roads-actions">
                 <Button type="button" variant="secondary" onClick={recheck}>
                   <RefreshCw size={16} aria-hidden="true" />
-                  重新查询
+                  {t.refresh}
                 </Button>
               </div>
             </>
@@ -553,18 +538,17 @@ export function RoadsCard() {
         <div className="provenance">
           {facts && (
             <Freshness
-              label={`来源快照时间 ${formatUkDateTimeZh(facts.snapshotAt)}（英国时间）`}
+              label={t.snapshot(formatUkDateTime(facts.snapshotAt, lang))}
               dateTime={facts.snapshotAt}
             />
           )}
           {facts && facts.disruptions.length > 0 && (
-            <p className="roads-note">
-              距离为与所选位置之间的直线距离，不是驾车距离。
-            </p>
+<p className="roads-note">{t.straightLine}</p>
           )}
           {active?.kind === "place" && (
             <p className="roads-note roads-attribution">
-              地点搜索：<span lang="en">{active.attribution}</span>
+              {t.placeSearch}
+              <span lang="en">{active.attribution}</span>
             </p>
           )}
           <OfficialSource
@@ -572,6 +556,7 @@ export function RoadsCard() {
               name: "National Highways",
               href: "https://nationalhighways.co.uk/travel-updates/",
             }}
+            label={common.officialSource}
           />
           <p className="travel-attribution" lang="en">
             {NATIONAL_HIGHWAYS_ATTRIBUTION}

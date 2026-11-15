@@ -22,6 +22,12 @@ export function shortGuideTitle(title: string): string {
   return end > 0 && end < title.length - 1 ? title.slice(0, end + 1) : title;
 }
 
+/** Like `shortGuideTitle`, also ending at "?" (English, Hindi) or "؟" (Urdu). */
+export function shortLocalizedTitle(title: string): string {
+  const end = title.search(/[？?؟]/);
+  return end > 0 && end < title.length - 1 ? title.slice(0, end + 1) : title;
+}
+
 // Han, kana and Hangul letters. Full-width punctuation such as "；" or "（"
 // is deliberately excluded: English locators often use it as a separator.
 const CJK_LETTER = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/;
@@ -34,4 +40,14 @@ const LATIN = /[A-Za-z]/;
  */
 export function sourceTextLang(text: string): "en" | undefined {
   return LATIN.test(text) && !CJK_LETTER.test(text) ? "en" : undefined;
+}
+
+/**
+ * A Guide date in UK time for the page language. Simplified Chinese keeps
+ * the original "2026 年 10 月 5 日" style; other locales use their own.
+ */
+export function formatUkDateFor(instant: string, lang: string): string {
+  return lang === "zh-CN"
+    ? formatUkDate(instant)
+    : new Intl.DateTimeFormat(lang, { timeZone: "Europe/London", dateStyle: "long" }).format(new Date(instant));
 }

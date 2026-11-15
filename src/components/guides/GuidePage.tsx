@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2 } from "lucide-react";
 import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
-import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
+import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, guideRoutePath, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo";
 import { inlineText, parseMarkdown } from "../../guides/markdown";
 import type { Block } from "../../guides/markdown";
@@ -12,7 +12,7 @@ import {
   belongsToDomain,
   relatedGuidesFor,
 } from "../../guides/domains";
-import { formatUkDate, shortGuideTitle } from "../../guides/format";
+import { formatUkDateFor, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
 import { GuideMarkdown } from "./GuideMarkdown";
@@ -151,7 +151,7 @@ export function GuidePage({
   const tone = (target: string) => presentation.tone?.(target) ?? "";
   const headerArt = presentation.headerArt?.(slug);
   const backLink = (
-    <Link to={localizedGuidePath(locale, domain.id)} className="button button-secondary">
+    <Link to={guideRoutePath(locale, domain.id)} className="button button-secondary">
       <ArrowLeft size={16} aria-hidden="true" />
       {ui.domain[domain.id]}
     </Link>
@@ -177,10 +177,10 @@ export function GuidePage({
       <nav className="breadcrumb" aria-label={ui.home}>
         <ol>
           <li>
-            <Link to={`/${locale}/guides`}>{ui.home}</Link>
+            <Link to={guideHomePath(locale)}>{ui.home}</Link>
           </li>
           <li>
-            <Link to={localizedGuidePath(locale, domain.id)}>{ui.domain[domain.id]}</Link>
+            <Link to={guideRoutePath(locale, domain.id)}>{ui.domain[domain.id]}</Link>
           </li>
           {state.status === "ready" && (
             <li aria-current="page">{state.guide.title}</li>
@@ -229,7 +229,7 @@ export function GuidePage({
                   <CalendarDays size={15} aria-hidden="true" />
                   {ui.updated}{" "}
                   <time dateTime={state.guide.updatedAt}>
-                    {formatUkDate(state.guide.updatedAt)}
+                    {formatUkDateFor(state.guide.updatedAt, GUIDE_LOCALE_LANG[locale])}
                   </time>
                 </li>
                 {parsed.evidenceLinks > 0 && (
@@ -267,7 +267,7 @@ export function GuidePage({
                     className={tone(guide.slug) || undefined}
                   >
                     <Link
-                      to={localizedGuidePath(locale, domain.id, guide.slug)}
+                      to={guideRoutePath(locale, domain.id, guide.slug)}
                       title={guide.title}
                     >
                       <span>{shortGuideTitle(guide.title)}</span>
@@ -279,7 +279,7 @@ export function GuidePage({
             </aside>
           )}
           <p className="guide-back">
-            <Link to={localizedGuidePath(locale, domain.id)}>
+            <Link to={guideRoutePath(locale, domain.id)}>
               <ArrowLeft size={16} aria-hidden="true" />
               {ui.domain[domain.id]}
             </Link>

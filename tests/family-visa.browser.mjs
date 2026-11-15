@@ -233,7 +233,8 @@ try {
     await context.close();
   }
 
-  // Review surface: not linked from navigation, the homepage or Health.
+  // Launched locally: linked from the header navigation on every page, from
+  // the homepage topic card, and nowhere else outside the hub.
   {
     const { p, context } = await page(1280, { list: healthOnlyList });
     for (const path of ["/", "/health", "/family-visa"]) {
@@ -241,26 +242,29 @@ try {
       await p.locator("main").waitFor();
       await p.waitForLoadState("networkidle");
       // The hub itself links only to its own special-circumstances topic.
+      const inMain = await p
+        .locator("main a[href^='/family-visa']")
+        .evaluateAll((links) => links.map((a) => a.getAttribute("href")));
       assert.deepEqual(
-        await p
-          .locator("a[href^='/family-visa']")
-          .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
+        inMain,
         path === "/family-visa"
           ? ["/family-visa/topics/children-from-previous-relationship"]
-          : [],
-        `family-visa links on ${path}`,
+          : path === "/"
+            ? ["/family-visa"]
+            : [],
+        `family-visa links in main on ${path}`,
       );
-      // Header navigation links only the launched sections.
+      // Header navigation links the launched sections, Family & Visa included.
       assert.deepEqual(
         await p
           .getByRole("navigation", { name: "主导航" })
           .getByRole("link")
           .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-        ["/", "/health", "/money"],
+        ["/", "/health", "/money", "/family-visa", "/travel"],
       );
     }
     console.log(
-      "PASS not promoted: no /family-visa links in nav, home or Health",
+      "PASS launched locally: /family-visa in nav and home topic card only",
     );
     await context.close();
   }
@@ -282,8 +286,7 @@ try {
       "/family-visa",
     );
     assert.equal(
-      await p
-        .getByRole("link", { name: "回到家庭与签证" })
+      await p.locator(".guide-back a, .guide-status-card a", { hasText: "家庭与签证" })
         .getAttribute("href"),
       "/family-visa",
     );
@@ -346,8 +349,7 @@ try {
     assert.equal(await p.locator(".guide-body").count(), 0);
     assert.doesNotMatch(await p.locator("main").textContent(), /Fixture/);
     assert.equal(
-      await p
-        .getByRole("link", { name: "回到家庭与签证" })
+      await p.locator(".guide-back a, .guide-status-card a", { hasText: "家庭与签证" })
         .getAttribute("href"),
       "/family-visa",
     );
@@ -358,8 +360,7 @@ try {
     assert.equal(await p.locator(".guide-body").count(), 0);
     assert.doesNotMatch(await p.locator("main").textContent(), /Fixture/);
     assert.equal(
-      await p
-        .getByRole("link", { name: "回到健康与 NHS" })
+      await p.locator(".guide-back a, .guide-status-card a", { hasText: "健康与 NHS" })
         .getAttribute("href"),
       "/health",
     );

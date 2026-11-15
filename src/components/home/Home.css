@@ -73,7 +73,8 @@
   border: 1px solid #d3dbcf;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgb(31 51 40 / 6%);
-  padding: 6px 6px 6px 50px;
+  padding-block: 6px;
+  padding-inline: 50px 6px;
 }
 .home-search-form:focus-within {
   border-color: var(--color-brand);
@@ -81,7 +82,7 @@
 }
 .home-search-icon {
   position: absolute;
-  left: 18px;
+  inset-inline-start: 18px;
   color: #3c4a41;
 }
 .home-search-form input {
@@ -215,7 +216,8 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  /* Seven topics: a balanced 4 + 3 layout on desktop. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
 .topic-card {
@@ -300,7 +302,7 @@ a.topic-card-body:hover {
   font-weight: 600;
 }
 .topic-card-soon {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 12px;
   font-weight: 600;
   color: #5f665f;
@@ -348,7 +350,7 @@ a.topic-card-body:hover {
   color: #3c4a41;
 }
 .home-chip-muted {
-  margin-left: auto;
+  margin-inline-start: auto;
   color: #6b5a2d;
   background: #fbf5e7;
   border-color: #efe2c2;
@@ -412,7 +414,7 @@ a.topic-card-body:hover {
   display: flex;
 }
 .transport-list li + li {
-  border-left: 1px solid var(--home-line);
+  border-inline-start: 1px solid var(--home-line);
 }
 .transport-item {
   flex: 1;
@@ -432,7 +434,7 @@ a.topic-card-body:hover {
   text-decoration: none;
 }
 .transport-list li:first-child .transport-item {
-  padding-left: 0;
+  padding-inline-start: 0;
 }
 .transport-item:hover {
   background: #f6f8f4;
@@ -493,7 +495,7 @@ a.topic-card-body:hover {
   color: var(--home-muted);
 }
 .home-section-head .home-more-link {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .home-more-link {
   display: inline-flex;
@@ -564,7 +566,7 @@ a.topic-card-body:hover {
 }
 .guide-cover {
   position: absolute;
-  right: 22px;
+  inset-inline-end: 22px;
   bottom: 14px;
   color: #3c7a53;
   opacity: 0.55;
@@ -575,7 +577,7 @@ a.topic-card-body:hover {
 .featured-tag {
   position: absolute;
   top: 10px;
-  left: 10px;
+  inset-inline-start: 10px;
   padding: 2px 10px;
   border-radius: 6px;
   background: #24513b;
@@ -714,7 +716,7 @@ a.topic-card-body:hover {
   color: var(--home-ink);
 }
 .question-group-head span {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 13px;
   color: var(--home-muted);
 }
@@ -848,7 +850,7 @@ a.topic-card-body:hover {
     grid-template-columns: 1fr;
   }
   .transport-list li + li {
-    border-left: 0;
+    border-inline-start: 0;
     border-top: 1px solid var(--home-line);
   }
   .transport-item,
@@ -873,10 +875,10 @@ a.topic-card-body:hover {
     font-size: 15px;
   }
   .home-search-form {
-    padding-left: 42px;
+    padding-inline-start: 42px;
   }
   .home-search-icon {
-    left: 14px;
+    inset-inline-start: 14px;
   }
   .home-search-button {
     padding: 0 16px;
@@ -903,7 +905,7 @@ a.topic-card-body:hover {
     padding: 16px 18px 12px;
   }
   .home-chip-muted {
-    margin-left: 0;
+    margin-inline-start: 0;
   }
   .guide-index {
     padding: 4px 16px;
@@ -926,4 +928,15 @@ a.topic-card-body:hover {
   .topic-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Translated home pages: most Guides are still Simplified Chinese only. */
+.home-translation-notice {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 14px;
+  line-height: 1.6;
 }

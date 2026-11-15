@@ -10,28 +10,40 @@ import { FamilyVisaGuidePage } from "./components/family-visa/FamilyVisaGuidePag
 import { FamilyVisaTopicPage } from "./components/family-visa/topics/FamilyVisaTopicPage";
 import { MoneyHub } from "./components/money/MoneyHub";
 import { MoneyGuidePage } from "./components/money/MoneyGuidePage";
+import { TravelPage } from "./components/travel/TravelPage";
 import { LocalizedGuideIndex } from "./components/guides/LocalizedGuideIndex";
 import { GuidePage } from "./components/guides/GuidePage";
 import { OwnerEditorialPage } from "./pages/OwnerEditorialPage";
 import { GUIDE_DOMAINS } from "./guides/domains";
 import { applyGuideSeo, clearGuideSeo } from "./guides/seo";
-import { GUIDE_LOCALE_LANG, textDirection } from "./guides/locales";
-import { currentPath, matchRoute, subscribeToLocation } from "./router";
+import { GUIDE_LOCALE_LANG, GUIDE_UI, textDirection } from "./guides/locales";
+import { currentPath, localeSwitchPath, matchRoute, pageRoute, routeLocale, subscribeToLocation } from "./router";
+import type { GuideLocale } from "./guides/locales";
+import { SITE_UI } from "./guides/siteUi";
 import "./App.css";
 
 function App() {
   const path = useSyncExternalStore(subscribeToLocation, currentPath);
-  const route = matchRoute(path);
+  const route = pageRoute(matchRoute(path));
   const section =
-    route.name === "home"
+    route.name === "home" || route.name === "localized-home"
       ? "home"
       : (route.name === "hub" || route.name === "guide" || route.name === "localized-hub" || route.name === "localized-guide") &&
-          (route.domain === "health" || route.domain === "money")
+          (route.domain === "health" || route.domain === "money" || route.domain === "family-visa")
         ? route.domain
-        : undefined;
+        : route.name === "travel"
+          ? "travel"
+          : undefined;
   const hubDomain = route.name === "hub" ? route.domain : undefined;
-  const activeLocale = route.name === "localized-index" || route.name === "localized-hub" || route.name === "localized-guide"
-    ? route.locale : "zh-CN";
+  const familyVisaHub =
+    hubDomain === "family-visa" || (route.name === "localized-hub" && route.domain === "family-visa");
+  const activeLocale = routeLocale(route);
+  // Pages with their own language selector (hubs, Guides, the Guide index)
+  // don't get a second one in the header.
+  const headerSwitch =
+    route.name === "home" || route.name === "localized-home" || route.name === "not-found" || route.name === "topic" || route.name === "travel"
+      ? (next: GuideLocale) => localeSwitchPath(route, next)
+      : undefined;
 
   useEffect(() => {
     document.documentElement.lang = GUIDE_LOCALE_LANG[activeLocale];
@@ -39,17 +51,17 @@ function App() {
   }, [activeLocale]);
 
   useEffect(() => {
-    if (route.name === "home")
-      document.title = "Life in UK · 在英国，把日子过明白。";
+    if (route.name === "home" || route.name === "localized-home")
+      document.title = SITE_UI[activeLocale].homeTitle;
     else if (hubDomain === "health") document.title = "健康与 NHS · Life in UK";
     else if (hubDomain === "money") document.title = "金钱与财务 · Life in UK";
-    else if (hubDomain === "family-visa")
-      document.title = "家庭与签证 · Life in UK";
+    else if (familyVisaHub)
+      document.title = `${GUIDE_UI[activeLocale].domain["family-visa"]} · Life in UK`;
     else if (route.name === "not-found")
-      document.title = "页面不存在 · Life in UK";
+      document.title = `${SITE_UI[activeLocale].notFound.title} · Life in UK`;
     else if (route.name === "owner-editorial")
       document.title = "Owner editorial · Life in UK";
-  }, [route.name, hubDomain]);
+  }, [route.name, hubDomain, familyVisaHub, activeLocale]);
 
   useEffect(() => {
     if (route.name !== "owner-editorial") return;
@@ -60,10 +72,11 @@ function App() {
   return (
     <>
       <a className="skip-link" href="#main">
-        跳至主要内容
+        {SITE_UI[activeLocale].skipLink}
       </a>
-      <SiteHeader current={section} locale={activeLocale} />
+      <SiteHeader current={section} locale={activeLocale} switchPath={headerSwitch} />
       {route.name === "home" && <HomePage />}
+      {route.name === "localized-home" && <HomePage key={route.locale} locale={route.locale} />}
       {route.name === "owner-editorial" && <OwnerEditorialPage />}
       {hubDomain === "health" && <HealthHub />}
       {hubDomain === "family-visa" && <FamilyVisaHub />}
@@ -75,18 +88,25 @@ function App() {
         <FamilyVisaGuidePage key={route.slug} slug={route.slug} />
       )}
       {route.name === "topic" && (
-        <FamilyVisaTopicPage key={route.topic} topic={route.topic} />
+        <FamilyVisaTopicPage key={`${activeLocale}:${route.topic}`} topic={route.topic} locale={activeLocale} />
       )}
       {route.name === "guide" && route.domain === "money" && (
         <MoneyGuidePage key={route.slug} slug={route.slug} />
       )}
       {route.name === "localized-index" && <LocalizedGuideIndex locale={route.locale} />}
-      {route.name === "localized-hub" && <LocalizedGuideIndex locale={route.locale} domain={route.domain} />}
-      {route.name === "localized-guide" && (
+      {/* Health keeps its editorial landing page and Guide look in every locale. */}
+      {route.name === "localized-hub" && route.domain === "health" && <HealthHub key={route.locale} locale={route.locale} />}
+      {route.name === "localized-hub" && route.domain === "money" && <MoneyHub key={route.locale} locale={route.locale} />}
+      {route.name === "localized-hub" && route.domain === "family-visa" && <FamilyVisaHub key={route.locale} locale={route.locale} />}
+      {route.name === "localized-guide" && route.domain === "health" && (
+        <HealthGuidePage key={`${route.locale}:${route.slug}`} slug={route.slug} locale={route.locale} />
+      )}
+      {route.name === "localized-guide" && route.domain !== "health" && (
         <GuidePage key={`${route.locale}:${route.slug}`} domain={GUIDE_DOMAINS[route.domain]} slug={route.slug} locale={route.locale} />
       )}
-      {route.name === "not-found" && <NotFoundPage />}
-      <SiteFooter />
+      {route.name === "travel" && <TravelPage key={activeLocale} locale={activeLocale} />}
+      {route.name === "not-found" && <NotFoundPage locale={activeLocale} />}
+      <SiteFooter locale={activeLocale} />
     </>
   );
 }

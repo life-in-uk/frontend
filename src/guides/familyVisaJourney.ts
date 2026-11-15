@@ -288,15 +288,15 @@ export const QUESTIONS: Readonly<Record<QuestionStep, Question>> = {
 export const JOURNEY_GUIDES = {
   routes: {
     slug: "partner-visa-routes-overview",
-    reviewedUpdatedAt: "2026-10-08T21:40:00Z",
+    reviewedUpdatedAt: "2026-11-14T02:11:25Z",
   },
   finance: {
     slug: "partner-visa-financial-requirement",
-    reviewedUpdatedAt: "2026-10-08T21:30:00Z",
+    reviewedUpdatedAt: "2026-11-14T02:11:38Z",
   },
   relationship: {
     slug: "partner-visa-relationship-evidence",
-    reviewedUpdatedAt: "2026-10-08T18:30:00Z",
+    reviewedUpdatedAt: "2026-11-14T02:11:39Z",
   },
   children: {
     slug: "partner-visa-dependent-children",
@@ -1263,6 +1263,8 @@ export type PassageState =
       status: "verified";
       evidence: GuideEvidence[];
       sources: Map<string, GuideSource>;
+      /** Display only: set when shown in Simplified Chinese as a fallback. */
+      lang?: string;
     }
   | {
       status:

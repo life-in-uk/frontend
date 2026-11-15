@@ -444,10 +444,11 @@
     justify-content: center;
     align-items: center;
     min-height: 220px;
-    margin: -32px 0 -28px 32px;
+    margin-block: -32px -28px;
+    margin-inline: 32px 0;
     overflow: hidden;
     background: rgb(255 253 249 / 0.4);
-    border-left: 1px solid var(--tone-border);
+    border-inline-start: 1px solid var(--tone-border);
   }
   /* The scene's stage leaves margin; let it fill the panel. */
   .category-card-visual .category-art {
@@ -658,7 +659,7 @@
     flex: 1 1 auto;
   }
   .health-hero-action > svg:last-child {
-    margin-left: auto;
+    margin-inline-start: auto;
   }
   .health-intents {
     margin-top: 36px;
@@ -727,4 +728,31 @@
   .category-guides a:hover svg {
     transform: none;
   }
+}
+
+/* Translated hub: Guides with no translation yet stay visible in Simplified
+   Chinese, with an explicit label (see HealthHub). */
+.hub-fallback-notice {
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+.hub-fallback-badge {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+[dir="rtl"] .category-guides a:hover svg {
+  transform: scaleX(-1) translateX(3px);
 }

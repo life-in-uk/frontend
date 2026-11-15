@@ -21,7 +21,10 @@ import type {
   ResolvedStage,
   Step,
 } from "../../../guides/familyVisaJourney";
-import { formatUkDate } from "../../../guides/format";
+import { formatUkDateFor } from "../../../guides/format";
+import { GUIDE_LOCALE_LANG } from "../../../guides/locales";
+import { useFamilyVisaLocale } from "../../../guides/familyVisaI18n";
+import type { FamilyVisaText } from "../../../guides/familyVisaI18n";
 import { EvidencePanel } from "../../guides/EvidencePanel";
 import { emphasis } from "../emphasis";
 import { AnswerSummary, JourneyStageList } from "../navigator/JourneyResults";
@@ -54,11 +57,14 @@ const KIND_LABEL = {
   supporting: "补充材料",
 } as const;
 
-function badge(task: ResolvedTask): { text: string; tone: string } {
-  if (task.status === "pending") return { text: "待核对", tone: "pending" };
+function badge(
+  task: ResolvedTask,
+  t: FamilyVisaText,
+): { text: string; tone: string } {
+  if (task.status === "pending") return { text: t("待核对"), tone: "pending" };
   if (task.status === "suggestion")
-    return { text: "常见材料 · 待核对", tone: "pending" };
-  return { text: KIND_LABEL[task.kind], tone: task.kind };
+    return { text: t("常见材料 · 待核对"), tone: "pending" };
+  return { text: t(KIND_LABEL[task.kind]), tone: task.kind };
 }
 
 /** The personalised, tick-off preparation checklist. */
@@ -78,6 +84,7 @@ export function ChecklistView({
   onSaveOnDevice,
   onDeleteSaved,
 }: Props) {
+  const { t } = useFamilyVisaLocale();
   const summary = computeProgress(sections, progress);
   const percent =
     summary.total === 0 ? 0 : Math.round((summary.done / summary.total) * 100);
@@ -89,11 +96,14 @@ export function ChecklistView({
     <div className="checklist">
       <div className="checklist-head">
         <h3 ref={headingRef} tabIndex={-1} className="checklist-title">
-          你的材料清单
+          {t("你的材料清单")}
         </h3>
         <p className="checklist-disclaimer">
-          这是根据你的回答整理的准备清单，<strong>不是签证资格判断</strong>
-          ，也不代表签证一定获批。
+          {emphasis(
+            t(
+              "这是根据你的回答整理的准备清单，**不是签证资格判断**，也不代表签证一定获批。",
+            ),
+          )}
         </p>
         <AnswerSummary answers={answers} onEdit={onEdit} />
       </div>
@@ -101,7 +111,12 @@ export function ChecklistView({
       <div className="checklist-progress-card">
         <div className="checklist-progress-row">
           <p className="checklist-progress-text" aria-live="polite">
-            已完成 <strong>{summary.done}</strong> / {summary.total} 项
+            {emphasis(
+              t("已完成 **{done}** / {total} 项", {
+                done: summary.done,
+                total: summary.total,
+              }),
+            )}
           </p>
           <span className="checklist-progress-percent" aria-hidden="true">
             {percent}%
@@ -110,7 +125,7 @@ export function ChecklistView({
         <div
           className="checklist-progress-bar"
           role="progressbar"
-          aria-label="准备进度"
+          aria-label={t("准备进度")}
           aria-valuemin={0}
           aria-valuemax={summary.total}
           aria-valuenow={summary.done}
@@ -126,7 +141,9 @@ export function ChecklistView({
 
       {listFailed && (
         <p className="checklist-alert" role="status">
-          指南暂时无法加载，清单里的具体说明会显示为“待核对”。请稍后再试。
+          {t(
+            "指南暂时无法加载，清单里的具体说明会显示为“待核对”。请稍后再试。",
+          )}
         </p>
       )}
 
@@ -134,10 +151,15 @@ export function ChecklistView({
         <div className="checklist-complete" role="status">
           <PartyPopper size={22} aria-hidden="true" />
           <div>
-            <p className="checklist-complete-title">清单上的材料都准备好了！</p>
+            <p className="checklist-complete-title">
+              {t("清单上的材料都准备好了！")}
+            </p>
             <p>
-              这表示你的<strong>准备清单</strong>
-              已经完成，不代表签证一定获批。提交前，请再对照一次官方说明。
+              {emphasis(
+                t(
+                  "这表示你的**准备清单**已经完成，不代表签证一定获批。提交前，请再对照一次官方说明。",
+                ),
+              )}
             </p>
           </div>
         </div>
@@ -164,8 +186,9 @@ export function ChecklistView({
       <p className="checklist-special-link">
         <Info size={15} aria-hidden="true" />
         <span>
-          情况比较特殊？例如和亲友同住、孩子来自上一段关系，
-          <a href="#special-circumstances">看看特殊情况</a>。
+          {t("情况比较特殊？例如和亲友同住、孩子来自上一段关系，")}
+          <a href="#special-circumstances">{t("看看特殊情况")}</a>
+          {t("。")}
         </span>
       </p>
 
@@ -181,13 +204,13 @@ export function ChecklistView({
             aria-controls="checklist-rules-panel"
             onClick={() => setRulesOpen((open) => !open)}
           >
-            想了解这些要求背后的规则？
+            {t("想了解这些要求背后的规则？")}
             <ChevronDown size={18} aria-hidden="true" />
           </button>
         </h4>
         <div id="checklist-rules-panel" hidden={!rulesOpen}>
           <p className="checklist-rules-intro">
-            按申请顺序整理的规则说明，每一步都附有法律依据。
+            {t("按申请顺序整理的规则说明，每一步都附有法律依据。")}
           </p>
           <JourneyStageList stages={stages} />
         </div>
@@ -200,7 +223,7 @@ export function ChecklistView({
           onClick={onRestart}
         >
           <RotateCcw size={16} aria-hidden="true" />
-          重新开始
+          {t("重新开始")}
         </button>
       </div>
     </div>
@@ -216,38 +239,41 @@ function SaveStatus({
   onSaveOnDevice: () => void;
   onDeleteSaved: () => void;
 }) {
+  const { locale, t } = useFamilyVisaLocale();
   if (save.choice === "device")
     return (
       <p className="checklist-save">
         <span>
-          进度保存在这台设备上，
-          <time dateTime={save.expiresAt}>{formatUkDate(save.expiresAt)}</time>
-          前有效。
+          {t("进度保存在这台设备上，{date}前有效。", {
+            date: formatUkDateFor(save.expiresAt, GUIDE_LOCALE_LANG[locale]),
+          })}
         </span>
         <button
           type="button"
           className="checklist-link-button"
           onClick={onDeleteSaved}
         >
-          删除本设备上的进度
+          {t("删除本设备上的进度")}
         </button>
       </p>
     );
   if (save.unavailable)
     return (
       <p className="checklist-save">
-        这个浏览器现在不能保存进度（可能开启了隐私模式），勾选只会保留到关闭页面。
+        {t(
+          "这个浏览器现在不能保存进度（可能开启了隐私模式），勾选只会保留到关闭页面。",
+        )}
       </p>
     );
   return (
     <p className="checklist-save">
-      <span>没有保存：关闭页面后，勾选会消失。</span>
+      <span>{t("没有保存：关闭页面后，勾选会消失。")}</span>
       <button
         type="button"
         className="checklist-link-button"
         onClick={onSaveOnDevice}
       >
-        改为保存在这台设备上（30 天）
+        {t("改为保存在这台设备上（30 天）")}
       </button>
     </p>
   );
@@ -278,6 +304,7 @@ function ChecklistSectionCard({
   stats: { done: number; total: number; complete: boolean };
   defaultOpen: boolean;
 }) {
+  const { t } = useFamilyVisaLocale();
   const [open, setOpen] = useState(defaultOpen);
   const panelId = useId();
   const checked = new Set(progress.checked);
@@ -300,7 +327,7 @@ function ChecklistSectionCard({
           </span>
           <span className="checklist-section-name">{section.title}</span>
           <span className="checklist-section-count">
-            {stats.complete ? "已完成" : `${stats.done} / ${stats.total}`}
+            {stats.complete ? t("已完成") : `${stats.done} / ${stats.total}`}
           </span>
           <ChevronDown size={18} aria-hidden="true" />
         </button>
@@ -339,6 +366,7 @@ function AccommodationChooser({
   value: Accommodation | undefined;
   onChange: (value: Accommodation) => void;
 }) {
+  const { t } = useFamilyVisaLocale();
   const id = useId();
   return (
     <fieldset
@@ -346,7 +374,7 @@ function AccommodationChooser({
       aria-labelledby={`${id}-legend`}
     >
       <p id={`${id}-legend`} className="checklist-accommodation-legend">
-        你们在英国住的地方是：
+        {t("你们在英国住的地方是：")}
       </p>
       <div className="checklist-chips">
         {ACCOMMODATION_OPTIONS.map((option) => (
@@ -358,14 +386,15 @@ function AccommodationChooser({
               checked={value === option.value}
               onChange={() => onChange(option.value)}
             />
-            <span>{option.label}</span>
+            <span>{t(option.label)}</span>
           </label>
         ))}
       </div>
       {value === "other" && (
         <p className="checklist-note">
-          和亲友同住等情况不在标准清单里，要准备的材料因情况而不同。
-          <a href="#special-circumstances">看看特殊情况</a>。
+          {t("和亲友同住等情况不在标准清单里，要准备的材料因情况而不同。")}
+          <a href="#special-circumstances">{t("看看特殊情况")}</a>
+          {t("。")}
         </p>
       )}
     </fieldset>
@@ -385,9 +414,10 @@ function TaskItem({
   onToggle: (id: string, checked: boolean) => void;
   onNotApplicable: (id: string, excluded: boolean) => void;
 }) {
+  const { t } = useFamilyVisaLocale();
   const [open, setOpen] = useState(false);
   const id = useId();
-  const { text, tone } = badge(task);
+  const { text, tone } = badge(task, t);
   return (
     <li
       className={`checklist-task${checked ? " is-done" : ""}${excluded ? " is-excluded" : ""}`}
@@ -409,7 +439,11 @@ function TaskItem({
       {(task.label || task.condition) && (
         <p className="checklist-task-condition">
           {task.label && <span>{task.label}</span>}
-          {task.condition && <span>适用于：{task.condition}</span>}
+          {task.condition && (
+            <span>
+              {t("适用于：{condition}", { condition: task.condition })}
+            </span>
+          )}
         </p>
       )}
       <div className="checklist-task-actions">
@@ -420,7 +454,7 @@ function TaskItem({
           aria-controls={`${id}-detail`}
           onClick={() => setOpen((value) => !value)}
         >
-          {open ? "收起" : "怎么准备"}
+          {open ? t("收起") : t("怎么准备")}
           <ChevronDown size={14} aria-hidden="true" />
         </button>
         {task.optional && (
@@ -429,7 +463,7 @@ function TaskItem({
             className="checklist-link-button checklist-quiet"
             onClick={() => onNotApplicable(task.id, !excluded)}
           >
-            {excluded ? "恢复这一项" : "这项不适用于我"}
+            {excluded ? t("恢复这一项") : t("这项不适用于我")}
           </button>
         )}
       </div>
@@ -448,13 +482,14 @@ export function TaskDetail({
   task: ResolvedTask;
   idPrefix: string;
 }) {
+  const { locale, t } = useFamilyVisaLocale();
   const [evidenceShown, setEvidenceShown] = useState(false);
   const id = idPrefix;
   return (
     <>
       {task.status === "pending" || !task.wording ? (
         <p className="checklist-pending">
-          这一项的具体说明还在核对，请先看官方说明。
+          {t("这一项的具体说明还在核对，请先看官方说明。")}
         </p>
       ) : (
         <>
@@ -469,7 +504,7 @@ export function TaskDetail({
           {task.wording.examples && task.wording.examples.length > 0 && (
             <div className="checklist-examples">
               <p className="checklist-examples-label">
-                常见的准备材料（举例，待核对；以官方清单为准）
+                {t("常见的准备材料（举例，待核对；以官方清单为准）")}
               </p>
               <ul>
                 {task.wording.examples.map((example) => (
@@ -486,7 +521,7 @@ export function TaskDetail({
           )}
           {task.special && (
             <p className="checklist-note">
-              <a href="#special-circumstances">看看特殊情况</a>
+              <a href="#special-circumstances">{t("看看特殊情况")}</a>
             </p>
           )}
         </>
@@ -497,7 +532,7 @@ export function TaskDetail({
             <a href={link.url} target="_blank" rel="noopener noreferrer">
               {link.label}
               <ExternalLink size={13} aria-hidden="true" />
-              <span className="sr-only">（在新窗口打开）</span>
+              <span className="sr-only">{t("（在新窗口打开）")}</span>
             </a>
           </li>
         ))}
@@ -512,16 +547,21 @@ export function TaskDetail({
             onClick={() => setEvidenceShown((value) => !value)}
           >
             <FileCheck2 size={14} aria-hidden="true" />
-            查看法律依据（{task.evidence.length} 条）
+            {t("查看法律依据（{count} 条）", { count: task.evidence.length })}
           </button>
           {evidenceShown && (
-            <div id={`${id}-evidence`} className="journey-evidence">
+            <div
+              id={`${id}-evidence`}
+              className="journey-evidence"
+              lang={task.evidenceLang}
+            >
               {task.evidence.map((item) => (
                 <EvidencePanel
                   key={item.key}
                   id={`${id}-evidence-${item.key}`}
                   evidence={item}
                   sources={task.sources!}
+                  locale={task.evidenceLang ? "zh-CN" : locale}
                 />
               ))}
             </div>

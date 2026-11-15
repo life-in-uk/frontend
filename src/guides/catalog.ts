@@ -4,6 +4,7 @@
 // shared Guide behaviour live in `domains.ts`.
 
 import type { GuideMetadata, GuideSource } from "./api";
+import { guideRoutePath, type GuideLocale } from "./locales.ts";
 
 export const HEALTH_CATEGORY = "health-nhs";
 
@@ -149,6 +150,57 @@ export function groupHealthGuides(guides: GuideMetadata[]): HubSection[] {
       guides: others,
     });
   return sections;
+}
+
+/** One Guide card on the Health hub in a given locale. */
+export type HubEntry = {
+  slug: string;
+  title: string;
+  summary: string;
+  /** Language of the title and summary shown, and of the page the link opens. */
+  locale: GuideLocale;
+  /** True when the hub locale has no published translation, so the Simplified Chinese original is shown. */
+  fallback: boolean;
+  path: string;
+};
+
+export type LocalizedHubSection = { group: HubGroup; entries: HubEntry[] };
+
+/**
+ * The editorial Health hub structure for any locale. The Simplified Chinese
+ * Guide list fixes the structure; a Guide published in `locale` is shown in
+ * that language, and any other Guide stays visible as a labelled Simplified
+ * Chinese fallback that links to the Chinese original. Translations are never
+ * assumed: only Guides present in `localized` count as available.
+ */
+export function localizedHealthSections(
+  source: GuideMetadata[],
+  localized: GuideMetadata[],
+  locale: GuideLocale,
+): LocalizedHubSection[] {
+  const translated = new Map(
+    (locale === "zh-CN" ? source : localized)
+      .filter((guide) => guide.category === HEALTH_CATEGORY)
+      .map((guide) => [guide.slug, guide]),
+  );
+  const known = new Set(source.map((guide) => guide.slug));
+  const merged = [...source, ...localized.filter((guide) => !known.has(guide.slug))];
+  return groupHealthGuides(merged).map(({ group, guides }) => ({
+    group,
+    entries: guides.map((guide) => {
+      const shown = translated.get(guide.slug);
+      const entryLocale: GuideLocale = shown ? locale : "zh-CN";
+      const item = shown ?? guide;
+      return {
+        slug: guide.slug,
+        title: item.title,
+        summary: item.summary,
+        locale: entryLocale,
+        fallback: !shown,
+        path: guideRoutePath(entryLocale, "health", guide.slug),
+      };
+    }),
+  }));
 }
 
 /**

@@ -14,6 +14,7 @@ import {
   JOURNEY_GUIDES,
 } from "../../src/guides/familyVisaJourney.ts";
 import { FAMILY_VISA_TOPICS } from "../../src/router.ts";
+import { FAMILY_VISA_PUBLISHED_WORDING } from "../../src/guides/familyVisaPublishedWording.ts";
 
 export function syntheticContent() {
   return {
@@ -45,9 +46,27 @@ export const LOCAL_CONTENT_PATH = fileURLToPath(
   new URL("../../dev/familyVisaDraftContent.ts", import.meta.url),
 );
 
-/** The local wording file's content, or null when it is not present. */
+/**
+ * The wording the local preview shows: the local draft file merged under the
+ * published wording (as src/guides/familyVisaContent.ts does), or null when
+ * the local file is not present.
+ */
 export async function localContent() {
   if (!existsSync(LOCAL_CONTENT_PATH)) return null;
   const module = await import(LOCAL_CONTENT_PATH);
-  return module.FAMILY_VISA_DRAFT_CONTENT;
+  const draft = module.FAMILY_VISA_DRAFT_CONTENT;
+  const published = FAMILY_VISA_PUBLISHED_WORDING;
+  return {
+    reviewedFor: { ...draft.reviewedFor, ...published.reviewedFor },
+    passages: { ...draft.passages, ...published.passages },
+    tasks: { ...draft.tasks, ...published.tasks },
+    sections: { ...draft.sections, ...published.sections },
+    topics: { ...draft.topics, ...published.topics },
+  };
+}
+
+/** The local draft-only wording (unpublished Guides), or null. */
+export async function localDraftContent() {
+  if (!existsSync(LOCAL_CONTENT_PATH)) return null;
+  return (await import(LOCAL_CONTENT_PATH)).FAMILY_VISA_DRAFT_CONTENT;
 }
