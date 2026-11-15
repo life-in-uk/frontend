@@ -216,6 +216,41 @@ export const GUIDE_TITLE_REFERENCES: Record<string, string> = {
   英国牙医到底怎么看: "nhs-dentist-england",
 };
 
+/**
+ * How the published translations refer to the Guides above. zh-TW quotes the
+ * converted short titles; en, ur and hi describe the Guide instead of quoting
+ * a title, so the exact descriptive phrase is linked.
+ */
+export const GUIDE_LOCALIZED_REFERENCES: Partial<Record<GuideLocale, Record<string, string>>> = {
+  "zh-TW": {
+    "剛到英國怎麼註冊 GP": "registering-with-a-gp-england",
+    突然牙疼怎麼辦: "urgent-dental-care-england",
+    "帶著中國病歷、疫苗記錄和慢性病來到英國": "chinese-medical-records-vaccinations-england",
+    英國牙醫到底怎麼看: "nhs-dentist-england",
+  },
+  en: {
+    "separate guide on registering with a GP": "registering-with-a-gp-england",
+    "separate guide on sudden toothache": "urgent-dental-care-england",
+    "guide on bringing Chinese medical records, vaccination records and long-term conditions to the UK":
+      "chinese-medical-records-vaccinations-england",
+    "separate guide on how NHS dentists work": "nhs-dentist-england",
+  },
+  ur: {
+    "GP رجسٹریشن والی الگ رہنمائی": "registering-with-a-gp-england",
+    "اچانک دانت درد والی الگ رہنمائی": "urgent-dental-care-england",
+    "چینی میڈیکل ریکارڈ، ویکسینیشن ریکارڈ اور طویل مدتی بیماریوں کے ساتھ برطانیہ آنے والی رہنمائی":
+      "chinese-medical-records-vaccinations-england",
+    "الگ رہنمائی دیکھیں کہ NHS ڈینٹسٹ کیسے کام کرتے ہیں": "nhs-dentist-england",
+  },
+  hi: {
+    "GP रजिस्ट्रेशन वाली अलग मार्गदर्शिका": "registering-with-a-gp-england",
+    "अचानक दाँत दर्द वाली अलग मार्गदर्शिका": "urgent-dental-care-england",
+    "चीनी मेडिकल रिकॉर्ड, टीकाकरण रिकॉर्ड और लंबी बीमारियों के साथ ब्रिटेन आने वाली मार्गदर्शिका":
+      "chinese-medical-records-vaccinations-england",
+    "अलग मार्गदर्शिका देखें कि NHS डेंटिस्ट कैसे काम करते हैं": "nhs-dentist-england",
+  },
+};
+
 /** Further reading shown after an article. */
 export const RELATED_GUIDES: Record<string, string[]> = {
   "registering-with-a-gp-england": [

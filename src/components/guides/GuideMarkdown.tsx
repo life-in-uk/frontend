@@ -10,15 +10,17 @@ import {
   inlineText,
 } from "../../guides/markdown";
 import type { GuideDomain } from "../../guides/domains";
-import { GUIDE_UI, type GuideLocale } from "../../guides/locales";
-import { guidePath } from "../../guides/domains";
+import { GUIDE_UI, guideRoutePath, type GuideLocale } from "../../guides/locales";
+import { NO_REFERENCES, splitTitleReferences, type TitleReferences } from "../../guides/titleReferences";
 import { Link } from "../Link";
 import { EvidencePanel } from "./EvidencePanel";
 
 type Props = {
-  /** The domain the article renders in; resolves its 《title》 references. */
+  /** The domain the article renders in; reference links stay inside it. */
   domain: GuideDomain;
   locale?: GuideLocale;
+  /** Published Guides this article may link by title (see titleReferences.ts). */
+  references?: TitleReferences;
   blocks: Block[];
   evidence: Map<string, GuideEvidence>;
   sources: Map<string, GuideSource>;
@@ -34,6 +36,7 @@ type Props = {
 export function GuideMarkdown({
   domain,
   locale = "zh-CN",
+  references = NO_REFERENCES,
   blocks,
   evidence,
   sources,
@@ -51,7 +54,7 @@ export function GuideMarkdown({
         case "text":
           return (
             <Fragment key={index}>
-              {linkTitleReferences(node.value, domain)}
+              {linkTitleReferences(node.value, references, (slug) => guideRoutePath(locale, domain.id, slug))}
             </Fragment>
           );
         case "code":
@@ -213,30 +216,20 @@ export function GuideMarkdown({
  * Turns 《title》 references to this domain's Guides into internal links under
  * the same domain; text is unchanged. Titles from other domains stay text.
  */
-function linkTitleReferences(text: string, domain: GuideDomain): ReactNode {
-  const parts: ReactNode[] = [];
-  const pattern = /《([^》]+)》/g;
-  let last = 0;
-  for (const match of text.matchAll(pattern)) {
-    const slug = Object.hasOwn(domain.titleReferences, match[1])
-      ? domain.titleReferences[match[1]]
-      : undefined;
-    if (!slug) continue;
-    const start = match.index ?? 0;
-    parts.push(text.slice(last, start), "《");
-    parts.push(
-      <Link
-        key={start}
-        to={guidePath(domain, slug)}
-        className="guide-reference"
-      >
-        {match[1]}
-      </Link>,
-    );
-    parts.push("》");
-    last = start + match[0].length;
-  }
-  if (parts.length === 0) return text;
-  parts.push(text.slice(last));
-  return parts;
+function linkTitleReferences(
+  text: string,
+  references: TitleReferences,
+  path: (slug: string) => string,
+): ReactNode {
+  const parts = splitTitleReferences(text, references);
+  if (parts.length === 1 && typeof parts[0] === "string") return text;
+  return parts.map((part, index) =>
+    typeof part === "string" ? (
+      part
+    ) : (
+      <Link key={index} to={path(part.slug)} className="guide-reference">
+        {part.text}
+      </Link>
+    ),
+  );
 }

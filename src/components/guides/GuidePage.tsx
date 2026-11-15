@@ -16,6 +16,7 @@ import { formatUkDateFor, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
 import { GuideMarkdown } from "./GuideMarkdown";
+import { titleReferencesFor } from "../../guides/titleReferences";
 import "./Guide.css";
 
 /** Optional section-specific look; the page works without any of it. */
@@ -51,6 +52,9 @@ export function GuidePage({
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [related, setRelated] = useState<GuideMetadata[]>([]);
+  // The published list for this locale; it decides which references link.
+  const [published, setPublished] = useState<GuideMetadata[] | undefined>(undefined);
+  const references = useMemo(() => titleReferencesFor(domain, locale, published, slug), [domain, locale, published, slug]);
   const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>([locale]);
   const ui = GUIDE_UI[locale];
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -89,7 +93,9 @@ export function GuidePage({
     const listRequest = locale === "zh-CN" ? getGuides(controller.signal) : getLocalizedGuides(locale, controller.signal);
     listRequest
       .then((guides) => {
-        if (active) setRelated(relatedGuidesFor(domain, slug, guides));
+        if (!active) return;
+        setRelated(relatedGuidesFor(domain, slug, guides));
+        setPublished(guides);
       })
       .catch(() => {});
     Promise.allSettled(GUIDE_LOCALES.map((candidate) =>
@@ -250,6 +256,7 @@ export function GuidePage({
             <GuideMarkdown
               domain={domain}
               locale={locale}
+              references={references}
               blocks={parsed.body}
               evidence={parsed.evidence}
               sources={parsed.sources}

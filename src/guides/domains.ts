@@ -3,7 +3,9 @@
 // Guide can only ever appear (and be linked) inside its own section.
 
 import type { GuideMetadata, GuideSource } from "./api";
+import type { GuideLocale } from "./locales.ts";
 import {
+  GUIDE_LOCALIZED_REFERENCES,
   GUIDE_TITLE_REFERENCES,
   HEALTH_CATEGORY,
   isExampleSource,
@@ -24,6 +26,11 @@ export type GuideDomain = {
   backLabel: string;
   /** 《title》 references inside articles that link to Guides of this domain. */
   titleReferences: Readonly<Record<string, string>>;
+  /**
+   * Other locales: exact phrases in the published translations that refer to
+   * one of the Guides above without quoting its full localized title.
+   */
+  localizedReferences?: Readonly<Partial<Record<GuideLocale, Readonly<Record<string, string>>>>>;
   /** Editorial further reading per Guide slug, within this domain. */
   relatedGuides: Readonly<Record<string, readonly string[]>>;
   /** Domain-specific labelling of non-official example sources, if any. */
@@ -37,6 +44,7 @@ export const HEALTH_GUIDE_DOMAIN: GuideDomain = {
   label: "健康与 NHS",
   backLabel: "回到健康与 NHS",
   titleReferences: GUIDE_TITLE_REFERENCES,
+  localizedReferences: GUIDE_LOCALIZED_REFERENCES,
   relatedGuides: RELATED_GUIDES,
   isExampleSource,
 };
