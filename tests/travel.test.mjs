@@ -12,8 +12,8 @@ import { TRAVEL_TOOLS } from "../src/travel/tools.ts";
 const OBSERVED = "2026-10-03T15:47:08.441419123Z";
 const at = (ms) => Date.parse("2026-10-03T15:47:08.441Z") + ms;
 
-test("product thresholds: Underground 10 minutes, Roads 30 minutes", () => {
-  assert.equal(UNDERGROUND_MAX_AGE_MS, 10 * 60_000);
+test("product thresholds: Underground 15 minutes, Roads 30 minutes", () => {
+  assert.equal(UNDERGROUND_MAX_AGE_MS, 15 * 60_000);
   assert.equal(ROADS_MAX_AGE_MS, 30 * 60_000);
 });
 

@@ -90,12 +90,12 @@ try {
   {
     // Real local backend. Underground follows the stored snapshot's real age:
     // with the local TfL refresh running it is fresh and must match the API
-    // exactly; otherwise it is older than 10 minutes and must be hidden. Roads
+    // exactly; otherwise it is older than 15 minutes and must be hidden. Roads
     // refresh stays off, so its snapshot is always stale here.
     const { context, page, errors, external } = await open();
     const snapshot = await (await fetch(`${baseURL}/api/travel/underground`)).json();
-    // Leave a margin so the snapshot cannot cross the 10-minute limit mid-check.
-    const fresh = Date.now() - Date.parse(snapshot.observedAt) < 9 * 60_000;
+    // Leave a margin so the snapshot cannot cross the 15-minute limit mid-check.
+    const fresh = Date.now() - Date.parse(snapshot.observedAt) < 14 * 60_000;
     await page.goto(`${baseURL}/en/travel`);
     const underground = page.locator(".travel-page .underground-card");
     if (fresh) {

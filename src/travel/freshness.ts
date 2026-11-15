@@ -7,7 +7,9 @@
 //
 // A missing, unparsable or implausibly future timestamp is treated as stale.
 
-export const UNDERGROUND_MAX_AGE_MS = 10 * 60_000;
+// Underground: the backend refreshes every 10 minutes, so 15 minutes allows one
+// late or failed refresh to pass before the snapshot is treated as stale.
+export const UNDERGROUND_MAX_AGE_MS = 15 * 60_000;
 export const ROADS_MAX_AGE_MS = 30 * 60_000;
 
 /** Tolerated clock difference between the backend and the browser. */

@@ -618,9 +618,9 @@ try {
         "PASS actual React unmount: pending request aborted; no stale rendering or runtime errors",
       );
     }
-    // Freshness: a snapshot older than 10 minutes never shows status claims.
+    // Freshness: a snapshot older than 15 minutes never shows status claims.
     for (const [name, now] of [
-      ["10 min 1 s old", Date.parse(fixture.observedAt) + 10 * 60_000 + 1000],
+      ["15 min 1 s old", Date.parse(fixture.observedAt) + 15 * 60_000 + 1000],
       ["five weeks old (real clock)", null],
     ]) {
       const { context, page, requests, errors } = await newPage(390, "reduce", {
@@ -636,7 +636,7 @@ try {
       await stale.waitFor();
       assert.equal(await stale.getAttribute("role"), "status");
       assert.match(await stale.innerText(), /暂无最新的伦敦地铁线路运行状态/);
-      assert.match(await stale.innerText(), /已超过 10 分钟/);
+      assert.match(await stale.innerText(), /已超过 15 分钟/);
       assert.equal(
         await stale.locator("time").getAttribute("datetime"),
         fixture.observedAt,
@@ -684,7 +684,12 @@ try {
       await openUnderground(page);
       const card = page.locator(".underground-card");
       await card.locator(".underground-line").first().waitFor();
-      await page.clock.runFor(9 * 60_000);
+      // Observed 2 minutes before FRESH_NOW: 12 minutes later it is 14 minutes
+      // old and still shown; 2 more minutes (16 old) cross the 15-minute limit.
+      await page.clock.runFor(12 * 60_000);
+      assert.equal(await card.locator(".travel-stale").count(), 0);
+      assert(await card.locator(".underground-line").count() > 0, "still fresh at 14 minutes");
+      await page.clock.runFor(2 * 60_000);
       await card.locator(".travel-stale").waitFor();
       assert.equal(await card.locator(".underground-line").count(), 0);
       assert(reads >= 4, `the unchanged snapshot was re-read (${reads})`);
@@ -876,7 +881,8 @@ try {
       await page.waitForTimeout(300);
       await card.locator(".underground-line").first().waitFor();
       assert(!(await card.innerText()).includes(unavailable));
-      await page.clock.runFor(7 * 60_000);
+      // About 4 minutes old now; 12 more minutes pass the 15-minute limit.
+      await page.clock.runFor(12 * 60_000);
       await card.locator(".travel-stale").waitFor();
       assert.equal(await card.locator(".underground-line").count(), 0);
       assert(!(await card.innerText()).includes(unavailable));
