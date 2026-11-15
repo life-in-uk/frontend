@@ -134,15 +134,35 @@ try {
       assert.match(await roads.locator(".travel-stale").innerText(), /more than 15 minutes ago/);
     }
     assert.equal(await roads.locator('a[href="https://nationalhighways.co.uk/travel-updates/"]').count(), 1);
-    // Rail is not released (no ?rail-preview): an explicit notice, no Rail tool.
+    // Rail is shown by default in development (no query parameter); production
+    // builds show "Not yet available" instead (travel-production-isolation).
     await page.locator('.travel-tab[data-tool="rail"]').click();
-    await page.locator(".travel-rail-unavailable").waitFor();
-    assert.equal(await page.locator(".rail-card, .rail-check").count(), 0);
-    assert.match(await page.locator(".travel-rail-unavailable").innerText(), /Not yet available/);
+    const rail = page.locator(".travel-page .rail-card");
+    await rail.waitFor();
+    assert.equal(await page.locator(".travel-rail-unavailable").count(), 0);
+    assert.equal(await page.locator('.travel-tab[data-tool="rail"] .travel-tab-badge').count(), 0);
+    // One live board for King's Cross through the local backend; the page must show
+    // exactly what the backend returned (or an honest unavailable state).
+    const railReply = page.waitForResponse((r) => r.url().includes("/api/rail/stations/KGX/disruptions"));
+    await rail.locator(".rail-search-input input").fill("KGX");
+    await rail.locator(".rail-station-results button").first().click();
+    await rail.locator(".rail-check").click();
+    const railResponse = await railReply;
+    let railState;
+    if (railResponse.status() === 200) {
+      const board = await railResponse.json();
+      await rail.locator(".rail-results").waitFor();
+      assert.equal(await rail.locator(".rail-list > li").count(), board.disruptions.length);
+      assert.match(await rail.locator(".rail-results-heading").innerText(), new RegExp(board.stationName));
+      railState = `live board, ${board.disruptions.length} disruptions`;
+    } else {
+      await rail.getByText("Rail information is unavailable. Please try again later.").waitFor();
+      railState = `backend ${railResponse.status()}, unavailable shown`;
+    }
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
     await context.close();
-    console.log(`PASS real backend: Underground ${fresh ? "fresh, matches the API" : "stale, hidden"}; Roads ${roadsFresh ? "fresh, matches the API" : "stale, hidden"}; official fallbacks; Rail shown as not yet available`);
+    console.log(`PASS real backend: Underground ${fresh ? "fresh, matches the API" : "stale, hidden"}; Roads ${roadsFresh ? "fresh, matches the API" : "stale, hidden"}; official fallbacks; Rail (no query parameter): ${railState}`);
   }
   {
     // Fresh (mocked) data is shown, localized chrome around untranslated provider text.

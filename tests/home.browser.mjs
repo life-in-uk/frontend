@@ -163,19 +163,21 @@ try {
     }
     assert.match(await holiday.innerText(), /England & Wales/);
     // Transport: entries into /travel only (no service data or requests on
-    // the homepage); Rail is not available.
+    // the homepage); Rail is shown in development (production builds show
+    // "暂未开放", see travel-production-isolation).
     const transport = p.locator(".transport-panel");
     assert.deepEqual(await transport.locator(".transport-status").allInnerTexts(), [
       "线路运行状态",
-      "暂未开放",
+      "车站延误查询",
       "按地点查附近道路异常",
     ]);
     assert.deepEqual(
       await transport.locator("a.transport-item").evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
       ["/travel#underground", "/travel#rail", "/travel#roads"],
     );
+    // The Rail tool's own label "车站延误查询" (station delay checker) is not a status.
     assert.doesNotMatch(
-      await transport.innerText(),
+      (await transport.innerText()).replace("车站延误查询", ""),
       /Good Service|Delay|延误|拥堵|畅通|正常运行/,
     );
     assert.equal(await p.locator(".underground-card, .roads-card, .rail-card").count(), 0);

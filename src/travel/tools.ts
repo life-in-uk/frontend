@@ -35,15 +35,13 @@ export const TRAVEL_TOOLS: readonly TravelTool[] = [
 ];
 
 /**
- * Rail is not released: its data licence, augmentation conditions,
- * credentials and rate limiting still need review. Production builds never
- * include the Rail tool. In development it can be previewed with
- * `?rail-preview`; Vite replaces `import.meta.env.DEV` with `false` in
- * production, so this is always false there.
+ * Rail is not released publicly: the RDM Schedule 2 policies, commercial
+ * Departure use and quota still need review. Local development shows the Rail
+ * tool by default (the backend's RAIL_ACCESS_ENABLED guard and rate limits
+ * still apply). Vite replaces `import.meta.env.DEV` with `false` in
+ * production builds, so they never include the Rail tool and always show the
+ * "not yet available" notice instead.
  */
-export function railPreviewEnabled(): boolean {
-  return (
-    import.meta.env.DEV &&
-    new URLSearchParams(window.location.search).has("rail-preview")
-  );
+export function railToolEnabled(): boolean {
+  return import.meta.env.DEV;
 }

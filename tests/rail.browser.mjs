@@ -1,5 +1,5 @@
 // Rail disruption checker on the Travel page. Rail is not released: it is
-// reachable only in development with ?rail-preview (see travel/tools.ts). The
+// shown by default in development (see travel/tools.ts). The
 // card follows the page language (/travel = zh-CN, /en/travel = English, …),
 // so each language is checked on its own localized page. APIs are mocked.
 import assert from "node:assert/strict";
@@ -34,7 +34,7 @@ async function openRail(prefix, handler) {
     assert.match(route.request().url(), /\/SHF\/disruptions\?direction=(arrivals|departures)/);
     return handler(route, new URL(route.request().url()).searchParams.get("direction"));
   });
-  await page.goto(`${baseURL}${prefix}/travel?rail-preview#rail`);
+  await page.goto(`${baseURL}${prefix}/travel#rail`);
   const card = page.locator(".travel-page .rail-card");
   await card.waitFor();
   return { page, card, state };

@@ -22,7 +22,7 @@ try {
     });
     // Development-only Rail preview on the English Travel page.
     const origin = process.env.FRONTEND_URL || "http://127.0.0.1:5199";
-    await page.goto(`${origin}/en/travel?rail-preview#rail`);
+    await page.goto(`${origin}/en/travel#rail`);
     let card = page.locator(".travel-page .rail-card");
     await card.waitFor();
     await card.getByRole("textbox", {name: "Search station"}).fill("SHF");
@@ -46,7 +46,7 @@ try {
     await card.getByRole("button", {name: "Check disruptions"}).click();
     await card.getByText("To: Leeds").first().waitFor();
     // Simplified Chinese: the same results on /travel.
-    await page.goto(`${origin}/travel?rail-preview#rail`);
+    await page.goto(`${origin}/travel#rail`);
     card = page.locator(".travel-page .rail-card");
     await card.getByRole("textbox", {name: "搜索车站"}).fill("SHF");
     await card.getByRole("button", {name: "Sheffield", exact: true}).click();

@@ -9,7 +9,7 @@ import {
 import type { GuideLocale } from "../../guides/locales";
 import { SITE_UI } from "../../guides/siteUi";
 import { Link } from "../Link";
-import { railPreviewEnabled, TRAVEL_TOOLS } from "../../travel/tools";
+import { railToolEnabled, TRAVEL_TOOLS } from "../../travel/tools";
 import type { TravelToolId } from "../../travel/tools";
 import { TRAVEL_UI } from "../../travel/i18n";
 import { travelPath } from "../../travel/routes";
@@ -40,7 +40,7 @@ export function TransportSummary({ locale = "zh-CN" }: { locale?: GuideLocale })
         {HOME_ORDER.map((id) => {
           const mode = TRAVEL_TOOLS.find((item) => item.id === id)!;
           const name = ui.tools[id].name;
-          const unavailable = id === "rail" && !railPreviewEnabled();
+          const unavailable = id === "rail" && !railToolEnabled();
           return (
             <li key={id}>
               <Link to={travelPath(locale, id)} className="transport-item" data-tool={id}>

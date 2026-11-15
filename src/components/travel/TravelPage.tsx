@@ -3,7 +3,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { ArrowUpRight, BusFront, ExternalLink, TrainFront } from "lucide-react";
 import { GUIDE_LOCALES, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo } from "../../guides/seo";
-import { railPreviewEnabled, TRAVEL_TOOLS } from "../../travel/tools";
+import { railToolEnabled, TRAVEL_TOOLS } from "../../travel/tools";
 import type { TravelToolId } from "../../travel/tools";
 import { OFFICIAL_STATUS, TRAVEL_UI } from "../../travel/i18n";
 import { travelPath } from "../../travel/routes";
@@ -16,7 +16,7 @@ const UndergroundCard = lazy(() =>
 const RoadsCard = lazy(() =>
   import("../RoadsCard").then((m) => ({ default: m.RoadsCard })),
 );
-// Production builds never contain the Rail tool (see railPreviewEnabled).
+// Production builds never contain the Rail tool (see railToolEnabled).
 const RailCard = import.meta.env.DEV
   ? lazy(() => import("../RailCard").then((m) => ({ default: m.RailCard })))
   : null;
@@ -130,7 +130,7 @@ export function TravelPage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
               onKeyDown={onTabKey}
             >
               {ui.tools[item.id].name}
-              {item.id === "rail" && !railPreviewEnabled() && (
+              {item.id === "rail" && !railToolEnabled() && (
                 <span className="travel-tab-badge">{ui.common.notReleased}</span>
               )}
             </button>
@@ -193,7 +193,7 @@ export function TravelPage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
 function toolContent(tool: TravelToolId, active: boolean, locale: GuideLocale): ReactNode {
   if (tool === "underground") return <UndergroundCard active={active} locale={locale} />;
   if (tool === "roads") return <RoadsCard locale={locale} />;
-  if (RailCard && railPreviewEnabled()) return <RailCard locale={locale} />;
+  if (RailCard && railToolEnabled()) return <RailCard locale={locale} />;
   return <RailUnavailable locale={locale} />;
 }
 
