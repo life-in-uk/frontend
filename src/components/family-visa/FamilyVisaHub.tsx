@@ -20,6 +20,7 @@ import { Link } from "../Link";
 import { FamilyVisaHeroArt, FamilyVisaNotebookArt } from "./FamilyVisaArt";
 import { FamilyVisaNavigator } from "./navigator/FamilyVisaNavigator";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
+import { SettlementCrossLink } from "../settlement/SettlementCrossLink";
 import "./FamilyVisa.css";
 
 type State =
@@ -269,6 +270,7 @@ export function FamilyVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
             )}
           </div>
         </section>
+        <SettlementCrossLink locale={locale} />
       </main>
     </FamilyVisaLocaleContext.Provider>
   );

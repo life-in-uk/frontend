@@ -10,7 +10,7 @@ import {
   RELATED_GUIDES,
 } from "./catalog.ts";
 
-export type GuideDomainId = "health" | "family-visa" | "money" | "work-visa";
+export type GuideDomainId = "health" | "family-visa" | "money" | "work-visa" | "settlement";
 
 export type GuideDomain = {
   id: GuideDomainId;
@@ -80,11 +80,41 @@ export const WORK_VISA_GUIDE_DOMAIN: GuideDomain = {
   relatedGuides: {},
 };
 
+export const SETTLEMENT_CATEGORY = "settlement";
+
+/**
+ * Settlement / ILR: published locally. 《title》 references between the
+ * Simplified Chinese Settlement Guides link within this section.
+ */
+export const SETTLEMENT_GUIDE_DOMAIN: GuideDomain = {
+  id: "settlement",
+  basePath: "/settlement",
+  category: SETTLEMENT_CATEGORY,
+  label: "永居与入籍",
+  backLabel: "回到永居与入籍",
+  titleReferences: {
+    "英国永居（ILR）入门：它是什么、和入籍有什么不同、你可能走哪条路线": "settlement-ilr-overview",
+    "配偶和伴侣申请永居：5 年路线和 10 年路线": "settlement-partner-ilr",
+    "10 年长期居住（Long Residence）申请永居": "settlement-long-residence",
+    "连续居住和离境天数：申请永居时怎么算": "settlement-continuous-residence-absences",
+    "永居的英语要求和 Life in the UK 考试": "settlement-english-life-in-uk-test",
+    "申请永居要准备哪些材料": "settlement-documents-evidence",
+    "申请永居的流程：什么时候申请、费用、等待期间和被拒以后": "settlement-application-process",
+    "孩子和家属怎么申请永居": "settlement-children-dependants",
+    "其他永居路线：UK Ancestry、Global Talent、Innovator Founder、BN(O)、EUSS、难民和私人生活": "settlement-other-routes",
+    "拿到永居以后：权利、eVisa 身份证明、出境和永居失效": "settlement-after-ilr",
+    "积分式定居（Earned Settlement）改革追踪：现行规则和改革方案对照": "settlement-earned-settlement-tracker",
+    "拿到永居以后怎么申请入籍": "settlement-british-citizenship",
+  },
+  relatedGuides: {},
+};
+
 export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   health: HEALTH_GUIDE_DOMAIN,
   "family-visa": FAMILY_VISA_GUIDE_DOMAIN,
   money: MONEY_GUIDE_DOMAIN,
   "work-visa": WORK_VISA_GUIDE_DOMAIN,
+  settlement: SETTLEMENT_GUIDE_DOMAIN,
 };
 
 export function guidePath(domain: GuideDomain, slug: string): string {

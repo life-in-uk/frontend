@@ -9,6 +9,8 @@
 //   /money/:slug        Money & Finance Guide detail
 //   /work-visa          Work Visa (Skilled Worker) hub
 //   /work-visa/:slug    Work Visa Guide detail
+//   /settlement         Settlement / ILR hub
+//   /settlement/:slug   Settlement Guide detail
 //   /travel             Travel tools (Underground, Roads, Rail); /{locale}/travel
 
 import type { GuideDomainId } from "./guides/domains";
@@ -39,6 +41,7 @@ const DOMAIN_BASES = new Map<string, GuideDomainId>([
   ["family-visa", "family-visa"],
   ["money", "money"],
   ["work-visa", "work-visa"],
+  ["settlement", "settlement"],
 ]);
 
 export function matchRoute(pathname: string): Route {

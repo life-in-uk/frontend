@@ -11,6 +11,7 @@ import {
   FAMILY_VISA_GUIDE_DOMAIN,
   HEALTH_GUIDE_DOMAIN,
   MONEY_GUIDE_DOMAIN,
+  SETTLEMENT_GUIDE_DOMAIN,
   WORK_VISA_GUIDE_DOMAIN,
 } from "../guides/domains.ts";
 import { guideRoutePath, type GuideLocale } from "../guides/locales.ts";
@@ -80,6 +81,15 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
     tone: "visa",
     icon: "id-card",
     domain: WORK_VISA_GUIDE_DOMAIN,
+  },
+  // Settlement / ILR: launched locally.
+  {
+    id: "settlement",
+    title: "永居与入籍",
+    description: "永居（ILR）各路线的条件、离境天数、英语和材料，拿到永居以后，以及入籍；改革方案单独标明。",
+    tone: "visa",
+    icon: "id-card",
+    domain: SETTLEMENT_GUIDE_DOMAIN,
   },
   {
     id: "education",

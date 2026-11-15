@@ -14,6 +14,7 @@ import {
 } from "../../guides/workVisaPlan";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
+import { SettlementCrossLink } from "../settlement/SettlementCrossLink";
 import "./WorkVisa.css";
 
 type State =
@@ -151,6 +152,7 @@ export function WorkVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
           ))}
         </ul>
       </section>
+      <SettlementCrossLink locale={locale} />
     </main>
   );
 }

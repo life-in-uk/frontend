@@ -1,0 +1,26 @@
+/* Cross-link to the Settlement section, shown on the Family Visa and Work Visa hubs. */
+.settlement-crosslink {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 1184px;
+  margin: 24px auto 0;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border, #dfe3da);
+  border-radius: 16px;
+  background: var(--color-surface, #fffdf9);
+  min-width: 0;
+}
+.settlement-crosslink p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.settlement-crosslink-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+}
+[dir="rtl"] .settlement-crosslink-link svg {
+  transform: scaleX(-1);
+}
