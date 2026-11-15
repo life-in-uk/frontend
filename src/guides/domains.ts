@@ -10,7 +10,7 @@ import {
   RELATED_GUIDES,
 } from "./catalog.ts";
 
-export type GuideDomainId = "health" | "family-visa" | "money";
+export type GuideDomainId = "health" | "family-visa" | "money" | "work-visa";
 
 export type GuideDomain = {
   id: GuideDomainId;
@@ -67,10 +67,24 @@ export const MONEY_GUIDE_DOMAIN: GuideDomain = {
   relatedGuides: {},
 };
 
+export const WORK_VISA_CATEGORY = "work-visa";
+
+/** Work Visa (Skilled Worker): published locally; no editorial cross-links yet. */
+export const WORK_VISA_GUIDE_DOMAIN: GuideDomain = {
+  id: "work-visa",
+  basePath: "/work-visa",
+  category: WORK_VISA_CATEGORY,
+  label: "工作签证",
+  backLabel: "回到工作签证",
+  titleReferences: {},
+  relatedGuides: {},
+};
+
 export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   health: HEALTH_GUIDE_DOMAIN,
   "family-visa": FAMILY_VISA_GUIDE_DOMAIN,
   money: MONEY_GUIDE_DOMAIN,
+  "work-visa": WORK_VISA_GUIDE_DOMAIN,
 };
 
 export function guidePath(domain: GuideDomain, slug: string): string {

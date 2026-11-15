@@ -60,12 +60,12 @@ const GUIDES = [
 const DOMAINS = launchedTopics().map((topic) => topic.domain);
 const ANSWERS = [{ set: MONEY_QUICK_ANSWERS, domain: MONEY_GUIDE_DOMAIN }];
 
-test("Health, Money, Family & Visa are launched (locally)", () => {
+test("Health, Money, Family & Visa and Work Visa are launched (locally)", () => {
   assert.deepEqual(
     launchedTopics().map((topic) => topic.id),
-    ["health", "money", "family-visa"],
+    ["health", "money", "family-visa", "work-visa"],
   );
-  assert.equal(HOME_TOPICS.length, 6);
+  assert.equal(HOME_TOPICS.length, 7);
   assert.ok(DOMAINS.includes(FAMILY_VISA_GUIDE_DOMAIN));
 });
 

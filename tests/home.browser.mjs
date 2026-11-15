@@ -102,22 +102,22 @@ try {
     const nav = p.getByRole("navigation", { name: "主导航" });
     assert.deepEqual(
       await nav.getByRole("link").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/health", "/money", "/family-visa", "/travel"],
+      ["/", "/health", "/money", "/family-visa", "/work-visa", "/travel"],
     );
     assert.equal(
       await nav.getByRole("link", { name: "首页" }).getAttribute("aria-current"),
       "page",
     );
-    // Topic cards: six; two upcoming without links (Travel links to /travel).
-    assert.equal(await p.locator(".topic-card").count(), 6);
-    assert.equal(await p.locator(".topic-card a").count(), 4);
+    // Topic cards: seven; two upcoming without links (Travel links to /travel).
+    assert.equal(await p.locator(".topic-card").count(), 7);
+    assert.equal(await p.locator(".topic-card a").count(), 5);
     assert.equal(await p.locator(".topic-card-soon").count(), 2);
     assert.deepEqual(
       await p.locator(".topic-card a").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/health", "/money", "/family-visa", "/travel"],
+      ["/health", "/money", "/family-visa", "/work-visa", "/travel"],
     );
     const counts = await p.locator(".topic-card-count").allInnerTexts();
-    if (!REAL) assert.deepEqual(counts, ["6 篇指南", "1 篇指南 · 12 条解答", "1 篇指南"]);
+    if (!REAL) assert.deepEqual(counts, ["6 篇指南", "1 篇指南 · 12 条解答", "1 篇指南", ""]);
     // Featured: four published Guides, preferred order.
     const featured = await p
       .locator(".featured-card-link")
@@ -269,8 +269,8 @@ try {
     await p.getByRole("searchbox").fill("牙疼");
     assert.match(await p.locator(".home-search-status").innerText(), /搜索暂时不可用/);
     // Topic navigation still works; counts are not invented.
-    assert.equal(await p.locator(".topic-card a").count(), 4);
-    assert.deepEqual(await p.locator(".topic-card-count").allInnerTexts(), ["", "", ""]);
+    assert.equal(await p.locator(".topic-card a").count(), 5);
+    assert.deepEqual(await p.locator(".topic-card-count").allInnerTexts(), ["", "", "", ""]);
     console.log("PASS unavailable Guides and Bank Holidays");
     await context.close();
   }

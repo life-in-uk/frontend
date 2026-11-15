@@ -11,6 +11,7 @@ import {
   FAMILY_VISA_GUIDE_DOMAIN,
   HEALTH_GUIDE_DOMAIN,
   MONEY_GUIDE_DOMAIN,
+  WORK_VISA_GUIDE_DOMAIN,
 } from "../guides/domains.ts";
 import { guideRoutePath, type GuideLocale } from "../guides/locales.ts";
 
@@ -70,6 +71,15 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
     tone: "visa",
     icon: "id-card",
     domain: FAMILY_VISA_GUIDE_DOMAIN,
+  },
+  // Work Visa (Skilled Worker): launched locally.
+  {
+    id: "work-visa",
+    title: "工作签证",
+    description: "技术工人签证：雇主担保、职业和工资要求、家属、换工作和永居。",
+    tone: "visa",
+    icon: "id-card",
+    domain: WORK_VISA_GUIDE_DOMAIN,
   },
   {
     id: "education",

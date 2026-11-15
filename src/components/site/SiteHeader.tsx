@@ -9,7 +9,7 @@ import "./Site.css";
 
 type SiteHeaderProps = {
   /** The launched section currently shown, for aria-current. */
-  current: "home" | "health" | "money" | "family-visa" | "travel" | undefined;
+  current: "home" | "health" | "money" | "family-visa" | "work-visa" | "travel" | undefined;
   locale?: GuideLocale;
   /**
    * Same page in another language. Given only on pages without their own
