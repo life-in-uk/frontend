@@ -1,0 +1,119 @@
+// Crawlable static pages on the built site (`npm run build:static`, then
+// `vite preview`). Three parts:
+//  1. Raw HTTP, no JavaScript: every sitemap URL (Guides and topic hubs, five
+//     locales) returns its article/hub HTML with one H1, real text, the
+//     sitemap's own canonical and exactly the sitemap's hreflang set, correct
+//     lang/dir, and internal links that resolve; zh-CN in-app aliases point
+//     their canonical at /zh-CN/…; Guides link to their section's Journey.
+//  2. With JavaScript: the app replaces the static markup without errors or
+//     duplicate head tags, the Renting Journey still works from a prerendered
+//     hub, and Journey → Guide navigation leaves no stale prerendered tags.
+//  3. Without JavaScript at 320px: Urdu RTL pages do not overflow.
+//
+//   PLAYWRIGHT_MODULE=… FRONTEND_URL=http://127.0.0.1:4173 API_BASE=http://127.0.0.1:8188 npm run test:seo:browser
+import assert from "node:assert/strict";
+
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
+const FRONTEND = (process.env.FRONTEND_URL || "http://127.0.0.1:4173").replace(/\/$/, "");
+const API = (process.env.API_BASE || "http://127.0.0.1:8188").replace(/\/$/, "");
+const JOURNEY_SECTIONS = new Set(["renting", "family-visa", "settlement", "work-visa"]);
+let checks = 0;
+const ok = (cond, msg) => { assert.ok(cond, msg); checks++; };
+const attr = (html, re) => re.exec(html)?.[1];
+
+// ---- 1. Raw HTTP against the sitemap ----
+const sitemap = await (await fetch(`${API}/sitemap.xml`)).text();
+const entries = [...sitemap.matchAll(/<url><loc>([^<]+)<\/loc>(.*?)<\/url>/g)].map(([, loc, links]) => ({
+  loc,
+  alternates: [...links.matchAll(/hreflang="([^"]+)" href="([^"]+)"/g)].map(([, lang, href]) => `${lang} ${href}`).sort(),
+}));
+ok(entries.length > 0, "sitemap has entries");
+const origin = new URL(entries[0].loc).origin;
+const sitemapPaths = new Set(entries.map((entry) => new URL(entry.loc).pathname));
+const hubs = entries.filter((entry) => new URL(entry.loc).pathname.split("/").length === 3);
+ok(hubs.length >= 6 && hubs.length < entries.length, `sitemap lists Guides and hubs (${entries.length - hubs.length} + ${hubs.length})`);
+
+const LANG = { "zh-CN": "zh-CN", "zh-TW": "zh-TW", en: "en-GB", ur: "ur", hi: "hi" };
+const homes = new Set(["/", "/zh-TW", "/en", "/ur", "/hi"]);
+const aliasPaths = new Set();
+for (const entry of entries) {
+  const path = new URL(entry.loc).pathname;
+  const [, locale, section, slug] = path.split("/");
+  const response = await fetch(FRONTEND + path);
+  ok(response.status === 200, `${path} 200`);
+  const html = await response.text();
+  const root = html.split('<div id="root">')[1] ?? "";
+  ok(root.startsWith('<header class="static-header">'), `${path} prerendered markup in the first response`);
+  ok((root.match(/<h1>/g) ?? []).length === 1, `${path} exactly one H1`);
+  const text = root.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  ok(text.length > (slug ? 1500 : 300), `${path} meaningful text (${text.length})`);
+  ok(attr(html, /rel="canonical" href="([^"]+)"/) === entry.loc, `${path} canonical = sitemap loc`);
+  const pageAlternates = [...html.matchAll(/rel="alternate" hreflang="([^"]+)" href="([^"]+)"/g)].map(([, l, h]) => `${l} ${h}`).sort();
+  ok(JSON.stringify(pageAlternates) === JSON.stringify(entry.alternates), `${path} hreflang matches sitemap`);
+  ok(html.includes(`<html lang="${LANG[locale]}" dir="${locale === "ur" ? "rtl" : "ltr"}">`), `${path} lang/dir`);
+  ok(/<title>[^<]+ · Life in UK<\/title>/.test(html) && /<meta name="description" content="[^"]{10,}"/.test(html), `${path} title and description`);
+  ok(html.includes('<script type="module"'), `${path} app still loads`);
+  if (slug && JOURNEY_SECTIONS.has(section)) ok(root.includes('class="static-journey"'), `${path} links to its section's Journey`);
+  // Internal links resolve to prerendered pages or home pages.
+  for (const [, href] of root.matchAll(/href="(\/[^"#]*)/g)) {
+    const target = href.replace(/\/$/, "") || "/";
+    const zhAlias = target.split("/").length <= 3 && !/^\/(zh-CN|zh-TW|en|ur|hi)(\/|$)/.test(target) && target !== "/";
+    if (zhAlias) aliasPaths.add(target);
+    ok(homes.has(target) || sitemapPaths.has(target) || (zhAlias && sitemapPaths.has(`/zh-CN${target}`)), `${path} link ${href} resolves`);
+  }
+}
+
+// zh-CN in-app aliases (/renting/…): same content, canonical on /zh-CN/….
+for (const alias of aliasPaths) {
+  const html = await (await fetch(FRONTEND + alias)).text();
+  ok(attr(html, /rel="canonical" href="([^"]+)"/) === `${origin}/zh-CN${alias}`, `${alias} canonical → /zh-CN${alias}`);
+}
+console.log(`PASS raw HTML: ${entries.length} sitemap URLs (${hubs.length} hubs), ${aliasPaths.size} zh-CN aliases`);
+
+// ---- 2. With JavaScript ----
+const browser = await chromium.launch({ headless: true });
+try {
+  {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e)));
+    for (const path of ["/en/renting/renting-council-tax", "/ur/family-visa/partner-visa-routes-overview", "/renting/renting-referencing-checks"]) {
+      await page.goto(FRONTEND + path);
+      await page.waitForSelector("article.guide-article");
+      ok((await page.locator(".static-page").count()) === 0, `${path} app replaced the static markup`);
+      ok((await page.locator('link[rel="canonical"]').count()) === 1, `${path} one canonical after the app loads`);
+      ok((await page.locator('meta[name="description"]').count()) === 1, `${path} one description after the app loads`);
+    }
+    // Renting hub: the Journey works from the prerendered page; Journey → Guide → no stale tags.
+    await page.goto(`${FRONTEND}/en/renting`);
+    await page.locator('input[name="renting-scope"][value="england-agent"]').check();
+    await page.locator('input[name="renting-branch"][value="student-newcomer"]').check();
+    await page.waitForSelector('[data-step="tv-licence"]');
+    ok((await page.locator(".renting-step").count()) === 16, "Journey shows 16 steps on the prerendered hub");
+    await page.locator('[data-step="council-tax"] .renting-guide-link').click();
+    await page.waitForSelector("article.guide-article");
+    ok(page.url().endsWith("/en/renting/renting-council-tax"), "Journey → Guide link");
+    ok((await page.locator('link[rel="canonical"]').getAttribute("href")) === `${origin}/en/renting/renting-council-tax` ||
+      (await page.locator('link[rel="canonical"]').getAttribute("href")).endsWith("/en/renting/renting-council-tax"), "Guide canonical after in-app navigation");
+    ok((await page.locator('[data-prerendered="true"]').count()) === 0, "no prerendered head tags remain after navigation");
+    ok(errors.length === 0, `no page errors ${errors}`);
+    await context.close();
+  }
+
+  // ---- 3. Without JavaScript, phones, Urdu RTL ----
+  for (const width of [320, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: 800 }, javaScriptEnabled: false });
+    const page = await context.newPage();
+    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks"]) {
+      await page.goto(FRONTEND + path);
+      ok((await page.locator(".static-page h1").count()) === 1, `${width}px no-JS ${path} article visible`);
+      ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px no-JS ${path} no horizontal overflow`);
+      if (path.startsWith("/ur/")) ok((await page.evaluate(() => getComputedStyle(document.querySelector(".static-page")).direction)) === "rtl", `${width}px ${path} RTL`);
+    }
+    await context.close();
+  }
+} finally {
+  await browser.close();
+}
+console.log(`seo static checks passed: ${checks}`);

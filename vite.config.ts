@@ -8,6 +8,7 @@ import {
   familyVisaPreviewBuildGuard,
   PREVIEW_MODE,
 } from "./dev/familyVisaPreview.ts";
+import { prerenderedPages } from "./dev/prerenderedPages.ts";
 
 // Keep environment-specific routing out of the browser application.
 export default defineConfig(({ mode, command, isPreview }) => {
@@ -39,6 +40,7 @@ export default defineConfig(({ mode, command, isPreview }) => {
       familyVisaDraftPreview({ draftsDir, backendTarget }),
       familyVisaDraftContentGuard(),
       familyVisaPreviewBuildGuard(),
+      prerenderedPages(),
     ],
     server: {
       proxy: {

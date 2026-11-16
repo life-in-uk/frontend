@@ -121,6 +121,11 @@ test("canary: wording at the local-only path never reaches a production build", 
       path.join(root, "dev", "familyVisaPreview.ts"),
       path.join(work, "dev", "familyVisaPreview.ts"),
     );
+    // Committed preview-only plugin imported by vite.config.ts (no content).
+    cpSync(
+      path.join(root, "dev", "prerenderedPages.ts"),
+      path.join(work, "dev", "prerenderedPages.ts"),
+    );
     writeFileSync(
       path.join(work, "dev", "familyVisaDraftContent.ts"),
       canaryModule,

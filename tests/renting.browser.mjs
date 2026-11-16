@@ -118,6 +118,8 @@ try {
       await page.waitForFunction(() => document.querySelectorAll(".evidence-toggle").length > 5);
       const h1 = await page.locator("h1").first().innerText();
       ok(h1.length > 5 && !/找不到|没有找到|not found/i.test(h1), `${locale} ${slug} h1 "${h1}"`);
+      // Translated pages link titles once the published list has loaded.
+      if (slug !== "renting-council-tax") await page.waitForSelector("a.guide-reference", { timeout: 10000 }).catch(() => {});
       const refs = await page.locator("a.guide-reference").count();
       // The Council Tax Guide refers to no other Guide in its text.
       if (slug !== "renting-council-tax") ok(refs >= 1, `${locale} ${slug} in-text Guide references linked (${refs})`);

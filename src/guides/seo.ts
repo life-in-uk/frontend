@@ -28,6 +28,11 @@ export function guideAlternates(
   }));
 }
 
+/** A topic hub in every locale (/{locale}/{domain}); hubs exist in all five. */
+export function hubAlternates(origin: string, domain: string): AlternatePage[] {
+  return GUIDE_LOCALES.map((locale) => ({ locale, href: new URL(localizedGuidePath(locale, domain), origin).href }));
+}
+
 export function localizedIndexAlternates(
   origin: string,
   available: readonly GuideLocale[],

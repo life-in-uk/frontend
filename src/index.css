@@ -89,3 +89,46 @@ svg {
 .skip-link:focus {
   top: 16px;
 }
+
+/* Prerendered pages (scripts/prerender.mjs): readable before or without
+   JavaScript; the app replaces this markup when it starts. */
+.static-header,
+.static-page {
+  width: min(100% - 32px, 760px);
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+}
+.static-header {
+  padding-block: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.static-header ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.static-brand {
+  font-weight: 700;
+}
+.static-page {
+  padding-block: 24px 48px;
+}
+.static-page h1 {
+  margin-block: 12px;
+}
+.static-page h2,
+.static-page h3 {
+  margin-top: 24px;
+}
+.static-page p,
+.static-page ul,
+.static-page ol,
+.static-page blockquote {
+  margin-block: 10px;
+}
+.static-summary {
+  color: var(--color-muted);
+}

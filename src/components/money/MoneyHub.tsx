@@ -22,7 +22,7 @@ import {
 import { moneyQuickAnswersFor } from "../../guides/moneyQuickAnswersLocales";
 import { GUIDE_LOCALE_LANG, GUIDE_UI, guideRoutePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { MONEY_COPY, type MoneyCopy } from "./moneyCopy";
-import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates } from "../../guides/seo";
+import { applyGuideSeo, clearGuideSeo, hubAlternates } from "../../guides/seo";
 import type { ResolvedQuickAnswer } from "../../guides/moneyQuickAnswers";
 import { Link } from "../Link";
 import { EvidencePanel } from "../guides/EvidencePanel";
@@ -124,7 +124,7 @@ export function MoneyHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       canonical: new URL(guideRoutePath(locale, MONEY_GUIDE_DOMAIN.id), window.location.origin).href,
       title: `${GUIDE_UI[locale].domain.money} · Life in UK`,
       description: c.lead,
-      alternates: localizedIndexAlternates(window.location.origin, [locale]),
+      alternates: hubAlternates(window.location.origin, MONEY_GUIDE_DOMAIN.id),
     });
     return () => clearGuideSeo();
   }, [locale, translatedPage, c]);

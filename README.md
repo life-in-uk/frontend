@@ -193,3 +193,29 @@ npm run test:roads:browser
 npm run test:browser                     # Bank Holidays (homepage summary)
 npm run test:rail:browser                # via /?rail-preview
 ```
+
+## Crawlable Guide pages (static prerendering)
+
+The interactive app is unchanged. In addition, `npm run build:static` builds the
+app and then writes a static HTML page for every published Guide and topic hub
+(health, money, family-visa, work-visa, settlement, renting) in each locale it
+is published in, so search engines and readers without JavaScript get the full
+article in the first response:
+
+```
+API_BASE=http://127.0.0.1:8188 npm run build:static   # needs the local backend
+npx vite preview --host 127.0.0.1 --port 4173          # serves dist/<path>/index.html
+```
+
+- One content source: `scripts/prerender.mjs` reads the published Guide API and
+  renders it with the app's own Markdown parser, title-reference and path
+  helpers (`src/seo/staticPages.ts`). No article text is written by hand.
+- Each page is the built `index.html` with the article inside `#root`; the app
+  still loads and replaces it. Head tags (title, description, canonical,
+  hreflang, x-default) match the backend sitemap, which lists Guides and hubs.
+- Only published translations are prerendered (no Simplified Chinese fallback
+  copies). zh-CN in-app paths (`/renting/…`) carry the `/zh-CN/…` canonical.
+- Re-run `npm run build:static` after publishing; a plain `npm run build`
+  produces the app without static pages.
+- `npm run test:seo:browser` checks every sitemap URL as raw HTML, the app
+  taking over with JavaScript, and no-JS phone layouts (Urdu RTL).
