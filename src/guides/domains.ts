@@ -73,7 +73,11 @@ export const FAMILY_VISA_GUIDE_DOMAIN: GuideDomain = {
 
 export const MONEY_CATEGORY = "money";
 
-/** Money & Finance: no editorial cross-links until more Guides exist. */
+/**
+ * Money & Finance: no in-text title links. The first bank account Guide
+ * mentions applying for a National Insurance number, so the two Guides are
+ * each other's next step.
+ */
 export const MONEY_GUIDE_DOMAIN: GuideDomain = {
   id: "money",
   basePath: "/money",
@@ -81,7 +85,10 @@ export const MONEY_GUIDE_DOMAIN: GuideDomain = {
   label: "金钱与财务",
   backLabel: "回到金钱与财务",
   titleReferences: {},
-  relatedGuides: {},
+  relatedGuides: {
+    "open-uk-bank-account-new-arrival": ["national-insurance-number-newcomers"],
+    "national-insurance-number-newcomers": ["open-uk-bank-account-new-arrival"],
+  },
 };
 
 export const WORK_VISA_CATEGORY = "work-visa";

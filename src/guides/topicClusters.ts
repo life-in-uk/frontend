@@ -170,7 +170,9 @@ const m = (slug: string): ClusterGuideRef => ({ slug, domain: "money" });
  * states the Immigration Health Surcharge links to the IHS Guide; Skilled
  * Worker and Settlement Guides that name each other by title link both ways;
  * tenant referencing ("no UK bank account yet") and the first bank account
- * Guide (tenancy agreements as proof of address) link both ways.
+ * Guide (tenancy agreements as proof of address) link both ways; the Skilled
+ * Worker salary Guide (National Insurance contributions) links to the NI
+ * number Guide, which links on to the Skilled Worker overview.
  */
 export const CROSS_SECTION_RELATED: Readonly<Record<string, readonly ClusterGuideRef[]>> = {
   "partner-visa-application-process": [st("settlement-partner-ilr"), h("nhs-ihs-costs-england")],
@@ -182,6 +184,8 @@ export const CROSS_SECTION_RELATED: Readonly<Record<string, readonly ClusterGuid
   "settlement-children-dependants": [w("skilled-worker-dependants")],
   "renting-referencing-checks": [m("open-uk-bank-account-new-arrival")],
   "open-uk-bank-account-new-arrival": [r("renting-referencing-checks")],
+  "skilled-worker-occupations-salary": [m("national-insurance-number-newcomers")],
+  "national-insurance-number-newcomers": [w("skilled-worker-overview")],
 };
 
 /**

@@ -108,6 +108,7 @@ because the Family Visa Guides were frozen when that workstream closed.
 - **Existing Guides**: mentioned in five Guides (`partner-visa-financial-requirement`, `partner-visa-application-process`, `settlement-after-ilr`, `skilled-worker-occupations-salary`, `open-uk-bank-account-new-arrival`) but explained in none.
 - **Classification**: NEW GUIDE CANDIDATE.
 - **Evidence**: B (an official GOV.UK application process exists and is a standard newcomer step).
+- **Status**: implemented 2026-11-16 (Phase 3B): Money Guide `national-insurance-number-newcomers`, published locally in five locales; listed on the Money hub; related links with the bank account Guide, from the Skilled Worker salary Guide and on to the Skilled Worker overview.
 - **Recommended action**: one Money Guide: who needs one, whether you may already have one, how to apply, starting work before it arrives, what it is not (not proof of right to work). Also strengthens the one-Guide Money section.
 - **Score 79**: need 26 · gap 24 · verifiability 19 · fit 10 (Money section is thin; also linked from Work Visa) · affiliate 0.
 - **Official sources**: ✓ https://www.gov.uk/apply-national-insurance-number · ✓ https://www.gov.uk/national-insurance

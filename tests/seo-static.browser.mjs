@@ -159,7 +159,7 @@ try {
   for (const width of [320, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 800 }, javaScriptEnabled: false });
     const page = await context.newPage();
-    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks", "/ur/work-visa/skilled-worker-settlement-ilr", "/ur/renting/renting-moving-out-deposit", "/hi/renting/renting-moving-out-deposit"]) {
+    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks", "/ur/work-visa/skilled-worker-settlement-ilr", "/ur/renting/renting-moving-out-deposit", "/hi/renting/renting-moving-out-deposit", "/ur/money/national-insurance-number-newcomers", "/zh-CN/money/national-insurance-number-newcomers"]) {
       await page.goto(FRONTEND + path);
       ok((await page.locator(".static-page h1").count()) === 1, `${width}px no-JS ${path} article visible`);
       ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px no-JS ${path} no horizontal overflow`);

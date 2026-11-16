@@ -193,7 +193,14 @@ test("Money Guides belong only to the Money domain", () => {
     ["m", "m2"],
   );
   assert.deepEqual(MONEY_GUIDE_DOMAIN.titleReferences, {});
-  assert.deepEqual(MONEY_GUIDE_DOMAIN.relatedGuides, {});
+  // The two Money Guides are each other's next step (M1); nothing else is configured.
+  assert.deepEqual(MONEY_GUIDE_DOMAIN.relatedGuides, {
+    "open-uk-bank-account-new-arrival": ["national-insurance-number-newcomers"],
+    "national-insurance-number-newcomers": ["open-uk-bank-account-new-arrival"],
+  });
+  const both = [meta("open-uk-bank-account-new-arrival", "money"), meta("national-insurance-number-newcomers", "money"), meta("x", "health-nhs")];
+  assert.deepEqual(relatedGuidesFor(MONEY_GUIDE_DOMAIN, "open-uk-bank-account-new-arrival", both).map((g) => g.slug), ["national-insurance-number-newcomers"]);
+  assert.deepEqual(relatedGuidesFor(MONEY_GUIDE_DOMAIN, "open-uk-bank-account-new-arrival", both.slice(0, 1)), [], "unpublished target is dropped");
   // No source classification: Money has no example-source rule.
   assert.equal(MONEY_GUIDE_DOMAIN.isExampleSource, undefined);
   assert.deepEqual(relatedGuidesFor(MONEY_GUIDE_DOMAIN, "m", list), []);

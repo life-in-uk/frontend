@@ -95,7 +95,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     translationNotice: "",
     topics: {
       health: { title: "健康与 NHS", description: "看病、注册 GP、看牙、处方药等 NHS 实用信息。" },
-      money: { title: "金钱与财务", description: "开第一个银行账户、存款保障等常见问题。" },
+      money: { title: "金钱与财务", description: "开第一个银行账户、存款保障、查找或申请 National Insurance number 等常见问题。" },
       "family-visa": { title: "签证与家庭", description: "配偶/伴侣签证的路线、收入和关系要求，以及按你情况生成的材料清单。" },
       "work-visa": { title: "工作签证", description: "技术工人签证：雇主担保、职业和工资要求、家属、换工作和永居。" },
       settlement: { title: "永居与入籍", description: "永居（ILR）各路线的条件、离境天数、英语和材料，拿到永居以后，以及入籍；改革方案单独标明。" },
@@ -199,7 +199,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     translationNotice: "指南由簡體中文原文翻譯而來。尚未翻譯的內容會標示「尚未翻譯」並開啟簡體中文原文。",
     topics: {
       health: { title: "健康與 NHS", description: "看病、註冊 GP、看牙、處方藥等 NHS 實用資訊。" },
-      money: { title: "金錢與財務", description: "開第一個銀行帳戶、存款保障等常見問題。" },
+      money: { title: "金錢與財務", description: "開第一個銀行帳戶、存款保障、查找或申請 National Insurance number 等常見問題。" },
       "family-visa": { title: "簽證與家庭", description: "配偶／伴侶簽證的路線、收入和關係要求，以及依你的情況產生的材料清單。" },
       "work-visa": { title: "工作簽證", description: "技術工人簽證：僱主擔保、職業和薪資要求、家屬、換工作和永居。" },
       settlement: { title: "永居與入籍", description: "永居（ILR）各路線的條件、離境天數、英語和材料，拿到永居以後，以及入籍；改革方案單獨標明。" },
@@ -303,7 +303,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     translationNotice: "Guides are translated from the Simplified Chinese originals. Anything not yet translated is marked “Not yet translated” and opens the Chinese original.",
     topics: {
       health: { title: "Health and NHS", description: "Practical NHS information: seeing a doctor, registering with a GP, dentists and prescriptions." },
-      money: { title: "Money and finance", description: "Common questions such as opening your first bank account and how your savings are protected." },
+      money: { title: "Money and finance", description: "Common questions such as opening your first bank account, how your savings are protected, and finding or applying for a National Insurance number." },
       "family-visa": { title: "Visas and family", description: "Spouse and partner visa routes, income and relationship requirements, and a document checklist built for your situation." },
       "work-visa": { title: "Work visas", description: "The Skilled Worker visa: employer sponsorship, occupation and salary rules, family members, changing jobs and settlement." },
       settlement: { title: "Settlement and citizenship", description: "Indefinite leave to remain on each route, days outside the UK, English and documents, life after ILR, and citizenship; reform proposals are clearly marked." },
@@ -407,7 +407,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     translationNotice: "رہنمائی سادہ چینی اصل سے ترجمہ کی گئی ہے۔ جو حصہ ابھی ترجمہ نہیں ہوا، اس پر \"ابھی ترجمہ نہیں ہوا\" لکھا ہوتا ہے اور وہ چینی اصل کھولتا ہے۔",
     topics: {
       health: { title: "صحت اور NHS", description: "ڈاکٹر کو دکھانا، GP کے ساتھ رجسٹریشن، دانتوں کا علاج اور نسخے کی دوائیں: NHS کی عملی معلومات۔" },
-      money: { title: "رقم اور مالیات", description: "پہلا بینک اکاؤنٹ کھولنا، جمع رقم کا تحفظ اور ایسے دوسرے عام سوالات۔" },
+      money: { title: "رقم اور مالیات", description: "پہلا بینک اکاؤنٹ کھولنا، جمع رقم کا تحفظ، National Insurance number تلاش کرنا یا اس کی درخواست، اور ایسے دوسرے عام سوالات۔" },
       "family-visa": { title: "ویزا اور خاندان", description: "شریکِ حیات اور پارٹنر ویزا کے راستے، آمدنی اور رشتے کی شرائط، اور آپ کی صورتحال کے مطابق کاغذات کی فہرست۔" },
       "work-visa": { title: "ورک ویزا", description: "اسکلڈ ورکر ویزا: آجر کی اسپانسرشپ، پیشے اور تنخواہ کے تقاضے، اہلِ خانہ، ملازمت کی تبدیلی اور مستقل رہائش۔" },
       settlement: { title: "مستقل رہائش اور شہریت", description: "ہر راستے پر مستقل رہائش (ILR) کی شرائط، برطانیہ سے باہر کے دن، انگریزی اور دستاویزات، ILR کے بعد کی زندگی، اور شہریت؛ اصلاحاتی تجاویز الگ سے نشان زد ہیں۔" },
@@ -511,7 +511,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     translationNotice: "मार्गदर्शिकाएँ सरलीकृत चीनी मूल से अनूदित हैं। जो हिस्सा अभी अनूदित नहीं है, उस पर \"अभी अनुवाद नहीं हुआ\" लिखा होता है और वह चीनी मूल खोलता है।",
     topics: {
       health: { title: "स्वास्थ्य और NHS", description: "डॉक्टर को दिखाना, GP के साथ रजिस्ट्रेशन, दाँतों का इलाज और पर्चे वाली दवाइयाँ: NHS की काम की जानकारी।" },
-      money: { title: "धन और वित्त", description: "पहला बैंक खाता खोलना, जमा राशि की सुरक्षा जैसे आम सवाल।" },
+      money: { title: "धन और वित्त", description: "पहला बैंक खाता खोलना, जमा राशि की सुरक्षा, National Insurance number ढूँढना या उसके लिए आवेदन करना जैसे आम सवाल।" },
       "family-visa": { title: "वीज़ा और परिवार", description: "पति/पत्नी और पार्टनर वीज़ा के रास्ते, आय और रिश्ते की शर्तें, और आपकी स्थिति के अनुसार दस्तावेज़ों की सूची।" },
       "work-visa": { title: "वर्क वीज़ा", description: "स्किल्ड वर्कर वीज़ा: नियोक्ता प्रायोजन, व्यवसाय और वेतन की शर्तें, परिवार, नौकरी बदलना और स्थायी निवास।" },
       settlement: { title: "स्थायी निवास और नागरिकता", description: "हर रास्ते पर स्थायी निवास (ILR) की शर्तें, ब्रिटेन से बाहर के दिन, अंग्रेज़ी और दस्तावेज़, ILR के बाद का जीवन, और नागरिकता; सुधार प्रस्ताव अलग से चिह्नित हैं।" },

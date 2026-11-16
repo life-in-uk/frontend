@@ -26,7 +26,7 @@ const SECTION_SLUGS = {
   "work-visa": Object.values(GUIDE_DOMAINS["work-visa"].titleReferences),
 };
 // Cross-section targets outside the curated sections: published Guides only.
-const OTHER_TARGETS = { health: ["nhs-ihs-costs-england"], money: ["open-uk-bank-account-new-arrival"] };
+const OTHER_TARGETS = { health: ["nhs-ihs-costs-england"], money: ["open-uk-bank-account-new-arrival", "national-insurance-number-newcomers"] };
 const TARGETS = { ...SECTION_SLUGS, ...OTHER_TARGETS };
 const KNOWN = new Set(Object.values(TARGETS).flat());
 const meta = (slug, category) => ({ slug, category, title: `${slug} title`, summary: "s", publishedAt: "", updatedAt: "" });
@@ -82,8 +82,12 @@ test("Work Visa and newcomer cross-links (W1, X1) resolve per locale to publishe
   ]);
   assert.ok(links("settlement", "settlement-children-dependants").includes("work-visa/skilled-worker-dependants"));
   assert.ok(links("family-visa", "partner-visa-application-process").includes("health/nhs-ihs-costs-england"));
-  assert.deepEqual(links("money", "open-uk-bank-account-new-arrival"), ["renting/renting-referencing-checks"]);
+  assert.deepEqual(links("money", "open-uk-bank-account-new-arrival"), ["money/national-insurance-number-newcomers", "renting/renting-referencing-checks"]);
   assert.ok(links("renting", "renting-referencing-checks").includes("money/open-uk-bank-account-new-arrival"));
+  // M1: the NI number Guide links the bank account Guide and the Skilled Worker overview; the salary Guide links to it.
+  assert.deepEqual(links("money", "national-insurance-number-newcomers"), ["money/open-uk-bank-account-new-arrival", "work-visa/skilled-worker-overview"]);
+  assert.ok(links("money", "open-uk-bank-account-new-arrival").includes("money/national-insurance-number-newcomers"));
+  assert.ok(links("work-visa", "skilled-worker-occupations-salary").includes("money/national-insurance-number-newcomers"));
   // The IHS Guide unpublished in a locale: the link is dropped, not broken.
   const noIhs = all.filter((g) => g.slug !== "nhs-ihs-costs-england");
   assert.deepEqual(links("work-visa", "skilled-worker-overview", noIhs).filter((x) => x.startsWith("health/")), []);
