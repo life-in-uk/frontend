@@ -13,12 +13,13 @@ import {
   RENTING_BRANCHES,
   RENTING_COPY,
   RENTING_FACT_KINDS,
+  RENTING_MOVE_OUT_STEPS,
   RENTING_SCOPES,
   RENTING_STEPS,
   stepFacts,
   stepTasks,
 } from "../../guides/rentingJourney";
-import type { RentingAnswers, RentingBranchId, RentingScopeId } from "../../guides/rentingJourney";
+import type { RentingAnswers, RentingBranchId, RentingScopeId, RentingStep } from "../../guides/rentingJourney";
 import { Link } from "../Link";
 import { RENTING_STEP_RECOMMENDATIONS } from "../../guides/recommendations";
 import { RecommendationSlot } from "./RecommendationSlot";
@@ -30,7 +31,10 @@ type DetailState = "loading" | "error" | GuideDetail;
  * to the household bills after moving in, with their Guide links, key points
  * read from the published Guides, and a checklist held in page memory only.
  * When every task that applies is ticked, the move-in checklist is complete.
+ * A separate later stage follows for moving out, with its own progress.
  */
+const ALL_STEPS: readonly RentingStep[] = [...RENTING_STEPS, ...RENTING_MOVE_OUT_STEPS];
+
 export function RentingJourney({
   locale,
   published,
@@ -49,7 +53,7 @@ export function RentingJourney({
 
   useEffect(() => {
     if (!showSteps || !published) return;
-    const wanted = guidesFor(RENTING_STEPS).filter((slug) => published.has(slug) && !requested.current.has(slug));
+    const wanted = guidesFor(ALL_STEPS).filter((slug) => published.has(slug) && !requested.current.has(slug));
     if (wanted.length === 0) return;
     const controller = new AbortController();
     for (const slug of wanted) {
@@ -73,6 +77,10 @@ export function RentingJourney({
     () => (outcome.status === "steps" ? progressFor(outcome.branch, checked) : null),
     [outcome, checked],
   );
+  const moveOutProgress = useMemo(
+    () => (outcome.status === "steps" ? progressFor(outcome.branch, checked, RENTING_MOVE_OUT_STEPS) : null),
+    [outcome, checked],
+  );
 
   const toggle = (id: string) =>
     setChecked((current) => {
@@ -81,6 +89,59 @@ export function RentingJourney({
       else next.add(id);
       return next;
     });
+
+  const renderStep = (step: RentingStep, number: number, branch: RentingBranchId) => {
+    const meta = published?.get(step.guide);
+    const facts = stepFacts(step, branch);
+    const tasks = stepTasks(step, branch);
+    return (
+      <li key={step.id} className="renting-step" data-step={step.id}>
+        <header className="renting-step-head">
+          <span className="renting-step-number">{fill(copy.step[locale], { n: number })}</span>
+          <h3>{step.title[locale]}</h3>
+        </header>
+        <p className="renting-step-action">{step.action[locale]}</p>
+
+        {meta && facts.length > 0 && (
+          <div className="renting-facts">
+            <h4>{copy.factsLabel[locale]}</h4>
+            <FactList facts={facts} details={details} locale={locale} />
+          </div>
+        )}
+
+        {tasks.length > 0 && (
+          <fieldset className="renting-tasks">
+            <legend>{copy.tasksLabel[locale]}</legend>
+            {tasks.map((task) => (
+              <label key={task.id} className="renting-task">
+                <input
+                  type="checkbox"
+                  checked={checked.has(task.id)}
+                  onChange={() => toggle(task.id)}
+                  data-task={task.id}
+                />
+                <span>{task.label[locale]}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+
+        {RENTING_STEP_RECOMMENDATIONS[step.id] && (
+          <RecommendationSlot context={RENTING_STEP_RECOMMENDATIONS[step.id]} locale={locale} />
+        )}
+        {meta ? (
+          <Link to={guideRoutePath(locale, "renting", step.guide)} className="renting-guide-link" data-guide={step.guide}>
+            <span>
+              {copy.readGuide[locale]}: {meta.title}
+            </span>
+            <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        ) : (
+          published && <p className="renting-unpublished">{copy.notPublished[locale]}</p>
+        )}
+      </li>
+    );
+  };
 
   const reset = () => setAnswers({});
   const overview = guideRoutePath(locale, "renting", "renting-letting-agent-overview");
@@ -155,58 +216,7 @@ export function RentingJourney({
             </p>
           </div>
           <ol className="renting-step-list">
-            {RENTING_STEPS.map((step, index) => {
-              const meta = published?.get(step.guide);
-              const facts = stepFacts(step, outcome.branch);
-              const tasks = stepTasks(step, outcome.branch);
-              return (
-                <li key={step.id} className="renting-step" data-step={step.id}>
-                  <header className="renting-step-head">
-                    <span className="renting-step-number">{fill(copy.step[locale], { n: index + 1 })}</span>
-                    <h3>{step.title[locale]}</h3>
-                  </header>
-                  <p className="renting-step-action">{step.action[locale]}</p>
-
-                  {meta && facts.length > 0 && (
-                    <div className="renting-facts">
-                      <h4>{copy.factsLabel[locale]}</h4>
-                      <FactList facts={facts} details={details} locale={locale} />
-                    </div>
-                  )}
-
-                  {tasks.length > 0 && (
-                    <fieldset className="renting-tasks">
-                      <legend>{copy.tasksLabel[locale]}</legend>
-                      {tasks.map((task) => (
-                        <label key={task.id} className="renting-task">
-                          <input
-                            type="checkbox"
-                            checked={checked.has(task.id)}
-                            onChange={() => toggle(task.id)}
-                            data-task={task.id}
-                          />
-                          <span>{task.label[locale]}</span>
-                        </label>
-                      ))}
-                    </fieldset>
-                  )}
-
-                  {RENTING_STEP_RECOMMENDATIONS[step.id] && (
-                    <RecommendationSlot context={RENTING_STEP_RECOMMENDATIONS[step.id]} locale={locale} />
-                  )}
-                  {meta ? (
-                    <Link to={guideRoutePath(locale, "renting", step.guide)} className="renting-guide-link" data-guide={step.guide}>
-                      <span>
-                        {copy.readGuide[locale]}: {meta.title}
-                      </span>
-                      <ArrowRight size={14} aria-hidden="true" />
-                    </Link>
-                  ) : (
-                    published && <p className="renting-unpublished">{copy.notPublished[locale]}</p>
-                  )}
-                </li>
-              );
-            })}
+            {RENTING_STEPS.map((step, index) => renderStep(step, index + 1, outcome.branch))}
           </ol>
           {progress.total > 0 && progress.done === progress.total && (
             <div className="renting-complete" role="status" data-complete="true">
@@ -216,6 +226,18 @@ export function RentingJourney({
               </h3>
               <p>{copy.completeText[locale]}</p>
             </div>
+          )}
+          {moveOutProgress && moveOutProgress.total > 0 && (
+            <section className="renting-move-out" aria-labelledby="renting-move-out-title" data-stage="move-out">
+              <h3 id="renting-move-out-title">{copy.moveOutTitle[locale]}</h3>
+              <p>{copy.moveOutLead[locale]}</p>
+              <p className="renting-progress" aria-live="polite">
+                {fill(copy.progress[locale], { done: moveOutProgress.done, total: moveOutProgress.total })}
+              </p>
+              <ol className="renting-step-list" start={RENTING_STEPS.length + 1}>
+                {RENTING_MOVE_OUT_STEPS.map((step, index) => renderStep(step, RENTING_STEPS.length + index + 1, outcome.branch))}
+              </ol>
+            </section>
           )}
           <button type="button" className="renting-reset" onClick={reset}>
             <RotateCcw size={14} aria-hidden="true" />

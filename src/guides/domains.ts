@@ -166,7 +166,7 @@ export const RENTING_CATEGORY = "renting";
 
 /**
  * Renting & Moving In (England, letting-agency lets, tenant perspective):
- * published locally. 《title》 references between the Simplified Chinese
+ * published locally, from finding a home to moving out. 《title》 references between the Simplified Chinese
  * Renting Guides link within this section.
  */
 export const RENTING_GUIDE_DOMAIN: GuideDomain = {
@@ -188,20 +188,22 @@ export const RENTING_GUIDE_DOMAIN: GuideDomain = {
     "水费和污水费：找到供水公司、登记新住户、水表和账单": "renting-water",
     "宽带和上网：查可用性、速度保证、合约期、安装和搬家": "renting-broadband",
     "TV Licence（电视许可证）：什么时候需要、合租和学生怎么办": "renting-tv-licence",
+    "退租和拿回押金：通知、退房检查、交钥匙和结清账单": "renting-moving-out-deposit",
   },
   relatedGuides: {
     "renting-letting-agent-overview": ["renting-finding-viewing", "renting-deposits-fees", "renting-tenancy-agreement"],
     "renting-finding-viewing": ["renting-referencing-checks", "renting-letting-agent-overview"],
     "renting-referencing-checks": ["renting-guarantors", "renting-deposits-fees"],
     "renting-guarantors": ["renting-referencing-checks", "renting-tenancy-agreement"],
-    "renting-deposits-fees": ["renting-tenancy-agreement", "renting-moving-in-inventory"],
+    "renting-deposits-fees": ["renting-tenancy-agreement", "renting-moving-in-inventory", "renting-moving-out-deposit"],
     "renting-tenancy-agreement": ["renting-deposits-fees", "renting-moving-in-inventory"],
-    "renting-moving-in-inventory": ["renting-council-tax", "renting-energy", "renting-deposits-fees"],
+    "renting-moving-in-inventory": ["renting-council-tax", "renting-energy", "renting-moving-out-deposit"],
     "renting-council-tax": ["renting-energy", "renting-water"],
     "renting-energy": ["renting-water", "renting-council-tax"],
     "renting-water": ["renting-energy", "renting-council-tax"],
     "renting-broadband": ["renting-tv-licence", "renting-energy"],
     "renting-tv-licence": ["renting-broadband", "renting-council-tax"],
+    "renting-moving-out-deposit": ["renting-deposits-fees", "renting-moving-in-inventory", "renting-tenancy-agreement"],
   },
 };
 

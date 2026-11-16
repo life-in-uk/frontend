@@ -311,6 +311,21 @@
   margin-top: 6px;
 }
 
+/* ---------- Later stage: moving out ---------- */
+.renting-move-out {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+}
+.renting-move-out > h3 {
+  font-size: 1.15rem;
+  color: var(--work-ink);
+}
+.renting-move-out > p {
+  margin-top: 6px;
+  line-height: 1.75;
+}
+
 @media (max-width: 480px) {
   .renting-question,
   .renting-step,

@@ -37,18 +37,18 @@ const st = (slug: string): ClusterGuideRef => ({ slug, domain: "settlement" });
 const RENTING: TopicCluster = {
   domain: "renting",
   seoTitle: {
-    "zh-CN": "在英格兰通过中介租房：找房、审查、押金、签约、入住和账单",
-    "zh-TW": "在英格蘭通過中介租房：找房、審查、押金、簽約、入住和帳單",
-    en: "Renting through a letting agent in England: finding, checks, deposits, signing, moving in and bills",
-    ur: "انگلینڈ میں لیٹنگ ایجنٹ کے ذریعے کرایہ داری: تلاش، جانچ، ڈپازٹ، دستخط، منتقلی اور بل",
-    hi: "इंग्लैंड में लेटिंग एजेंट के ज़रिए किराए पर घर: खोज, जाँच, डिपॉज़िट, हस्ताक्षर, रहने आना और बिल",
+    "zh-CN": "在英格兰通过中介租房：找房、审查、押金、签约、入住、账单和退租",
+    "zh-TW": "在英格蘭通過中介租房：找房、審查、押金、簽約、入住、帳單和退租",
+    en: "Renting through a letting agent in England: finding, checks, deposits, signing, moving in, bills and moving out",
+    ur: "انگلینڈ میں لیٹنگ ایجنٹ کے ذریعے کرایہ داری: تلاش، جانچ، ڈپازٹ، دستخط، منتقلی، بل اور گھر چھوڑنا",
+    hi: "इंग्लैंड में लेटिंग एजेंट के ज़रिए किराए पर घर: खोज, जाँच, डिपॉज़िट, हस्ताक्षर, रहने आना, बिल और घर छोड़ना",
   },
   seoDescription: {
-    "zh-CN": "英格兰中介租房的分主题指南：找房看房、租客审查和担保人、押金费用和租约、入住清单，以及 Council Tax、水电燃气、宽带和 TV Licence，并附分步骤租房清单。一般信息，不是法律意见。",
-    "zh-TW": "英格蘭中介租房的分主題指南：找房看房、租客審查和擔保人、押金費用和租約、入住清單，以及 Council Tax、水電燃氣、寬頻和 TV Licence，並附分步驟租房清單。一般資訊，不是法律意見。",
-    en: "Guides by topic for renting through a letting agent in England: finding and viewing, referencing and guarantors, deposits, fees and agreements, the move-in inventory, and Council Tax, energy, water, broadband and the TV Licence, with a step-by-step renting checklist. General information, not legal advice.",
-    ur: "انگلینڈ میں لیٹنگ ایجنٹ کے ذریعے کرایہ داری کی موضوع وار رہنمائیاں: تلاش اور دیکھنا، جانچ اور ضامن، ڈپازٹ، فیس اور معاہدے، منتقلی کی inventory، اور Council Tax، توانائی، پانی، براڈ بینڈ اور TV Licence، ساتھ مرحلہ وار چیک لسٹ۔ عمومی معلومات، قانونی مشورہ نہیں۔",
-    hi: "इंग्लैंड में लेटिंग एजेंट के ज़रिए किराए पर घर की विषय-वार मार्गदर्शिकाएँ: खोजना और देखना, जाँच और गारंटर, डिपॉज़िट, फ़ीस और अनुबंध, रहने आने की inventory, और Council Tax, ऊर्जा, पानी, ब्रॉडबैंड और TV Licence, साथ में चरण-दर-चरण चेकलिस्ट। सामान्य जानकारी, क़ानूनी सलाह नहीं।",
+    "zh-CN": "英格兰中介租房的分主题指南：找房看房、租客审查和担保人、押金费用和租约、入住清单，Council Tax、水电燃气、宽带和 TV Licence，以及退租和拿回押金，并附分步骤租房清单。一般信息，不是法律意见。",
+    "zh-TW": "英格蘭中介租房的分主題指南：找房看房、租客審查和擔保人、押金費用和租約、入住清單，Council Tax、水電燃氣、寬頻和 TV Licence，以及退租和拿回押金，並附分步驟租房清單。一般資訊，不是法律意見。",
+    en: "Guides by topic for renting through a letting agent in England: finding and viewing, referencing and guarantors, deposits, fees and agreements, the move-in inventory, Council Tax, energy, water, broadband and the TV Licence, and moving out and getting your deposit back, with a step-by-step renting checklist. General information, not legal advice.",
+    ur: "انگلینڈ میں لیٹنگ ایجنٹ کے ذریعے کرایہ داری کی موضوع وار رہنمائیاں: تلاش اور دیکھنا، جانچ اور ضامن، ڈپازٹ، فیس اور معاہدے، منتقلی کی inventory، Council Tax، توانائی، پانی، براڈ بینڈ اور TV Licence، اور گھر چھوڑنا اور ڈپازٹ واپس لینا، ساتھ مرحلہ وار چیک لسٹ۔ عمومی معلومات، قانونی مشورہ نہیں۔",
+    hi: "इंग्लैंड में लेटिंग एजेंट के ज़रिए किराए पर घर की विषय-वार मार्गदर्शिकाएँ: खोजना और देखना, जाँच और गारंटर, डिपॉज़िट, फ़ीस और अनुबंध, रहने आने की inventory, Council Tax, ऊर्जा, पानी, ब्रॉडबैंड और TV Licence, और घर छोड़ना और डिपॉज़िट वापस पाना, साथ में चरण-दर-चरण चेकलिस्ट। सामान्य जानकारी, क़ानूनी सलाह नहीं।",
   },
   groups: [
     {
@@ -80,6 +80,11 @@ const RENTING: TopicCluster = {
       id: "home-services",
       title: { "zh-CN": "宽带和 TV Licence", "zh-TW": "寬頻和 TV Licence", en: "Broadband and the TV Licence", ur: "براڈ بینڈ اور TV Licence", hi: "ब्रॉडबैंड और TV Licence" },
       guides: [r("renting-broadband"), r("renting-tv-licence")],
+    },
+    {
+      id: "moving-out",
+      title: { "zh-CN": "退租和拿回押金", "zh-TW": "退租和拿回押金", en: "Moving out and your deposit", ur: "گھر چھوڑنا اور ڈپازٹ", hi: "घर छोड़ना और डिपॉज़िट" },
+      guides: [r("renting-moving-out-deposit")],
     },
   ],
 };

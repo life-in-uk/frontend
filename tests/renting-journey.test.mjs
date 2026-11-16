@@ -1,6 +1,7 @@
-// Renting & Moving In (Phases 1 and 2): the journey follows the fixed renting
-// sequence from listings to keys and on to the household bills after moving
-// in, every step links to one of the twelve Renting Guides, branches only
+// Renting & Moving In (Phases 1 and 2, and R1 moving out): the journey follows
+// the fixed renting sequence from listings to keys and on to the household
+// bills after moving in, then a separate later stage for moving out; every
+// step links to one of the thirteen Renting Guides, branches only
 // filter (never add rules), out-of-scope answers end in a scope notice with a
 // way on, all copy exists in five locales, and no rule is restated as journey
 // copy. The section is a normal localized Guide domain in the navigation.
@@ -17,6 +18,8 @@ import {
   RENTING_COPY,
   RENTING_FACT_KINDS,
   RENTING_GUIDE_SLUGS,
+  RENTING_MOVE_OUT_STEP_ORDER,
+  RENTING_MOVE_OUT_STEPS,
   RENTING_SCOPES,
   RENTING_STEP_ORDER,
   RENTING_STEPS,
@@ -31,6 +34,7 @@ import { HOME_TOPICS, topicHref } from "../src/home/topics.ts";
 import { SITE_UI } from "../src/guides/siteUi.ts";
 
 const BRANCHES = RENTING_BRANCHES.map((branch) => branch.id);
+const ALL_STEPS = [...RENTING_STEPS, ...RENTING_MOVE_OUT_STEPS];
 
 test("the journey runs listing → … → sign → keys, then inventory → Council Tax → energy → water → broadband → TV Licence", () => {
   assert.deepEqual(RENTING_STEP_ORDER, [
@@ -40,7 +44,7 @@ test("the journey runs listing → … → sign → keys, then inventory → Cou
   ]);
 });
 
-test("there are exactly twelve Renting Guides, each owned by the renting domain and used by a step", () => {
+test("there are exactly thirteen Renting Guides, each owned by the renting domain and used by a step", () => {
   assert.deepEqual([...RENTING_GUIDE_SLUGS], [
     "renting-letting-agent-overview",
     "renting-finding-viewing",
@@ -54,10 +58,12 @@ test("there are exactly twelve Renting Guides, each owned by the renting domain 
     "renting-water",
     "renting-broadband",
     "renting-tv-licence",
+    "renting-moving-out-deposit",
   ]);
   assert.deepEqual(new Set(Object.values(RENTING_GUIDE_DOMAIN.titleReferences)), new Set(RENTING_GUIDE_SLUGS));
-  assert.deepEqual(guidesFor(RENTING_STEPS), [...RENTING_GUIDE_SLUGS]);
-  for (const step of RENTING_STEPS) {
+  assert.deepEqual(guidesFor(ALL_STEPS), [...RENTING_GUIDE_SLUGS]);
+  assert.deepEqual(guidesFor(RENTING_STEPS), RENTING_GUIDE_SLUGS.slice(0, 12), "the move-in steps are unchanged");
+  for (const step of ALL_STEPS) {
     assert.ok(RENTING_GUIDE_SLUGS.includes(step.guide), step.id);
     for (const fact of step.facts) assert.ok(RENTING_GUIDE_SLUGS.includes(fact.guide), `${step.id}:${fact.key}`);
   }
@@ -153,7 +159,7 @@ test("key points come only from the published Guide's own evidence", () => {
 
 test("journey copy restates no amounts, caps or time limits (those come from the Guides)", () => {
   const texts = [
-    ...RENTING_STEPS.flatMap((step) => [step.title, step.action, ...step.tasks.map((task) => task.label)]),
+    ...ALL_STEPS.flatMap((step) => [step.title, step.action, ...step.tasks.map((task) => task.label)]),
     ...RENTING_BRANCHES.flatMap((branch) => [branch.label, branch.hint, branch.note]),
   ];
   for (const text of texts)
@@ -166,7 +172,7 @@ test("all journey copy exists in all five locales", () => {
     ...Object.values(RENTING_COPY), ...Object.values(RENTING_FACT_KINDS),
     ...RENTING_SCOPES.map((scope) => scope.label),
     ...RENTING_BRANCHES.flatMap((branch) => [branch.label, branch.hint, branch.note]),
-    ...RENTING_STEPS.flatMap((step) => [step.title, step.action, ...step.tasks.map((task) => task.label)]),
+    ...ALL_STEPS.flatMap((step) => [step.title, step.action, ...step.tasks.map((task) => task.label)]),
   ];
   for (const text of all) {
     for (const locale of GUIDE_LOCALES) assert.ok(text[locale]?.trim(), `${locale} missing in ${text["zh-CN"]}`);
@@ -218,4 +224,33 @@ test("the renting section is a localized Guide domain linked from the navigation
     assert.equal(topicHref(topic, locale), locale === "zh-CN" ? "/renting" : `/${locale}/renting`);
     assert.doesNotMatch(SITE_UI[locale].topics["daily-life"].description, /租房|租屋|renting|کرائے|किराये/u);
   }
+});
+
+test("R1: moving out is a separate later stage; the move-in checklist and its completion are unchanged", () => {
+  assert.deepEqual(RENTING_MOVE_OUT_STEP_ORDER, ["moving-out"]);
+  assert.equal(RENTING_STEP_ORDER.length, 16);
+  const moveOut = RENTING_MOVE_OUT_STEPS[0];
+  assert.equal(moveOut.guide, "renting-moving-out-deposit");
+  for (const branch of BRANCHES) {
+    // Move-in progress ignores move-out ticks, so finishing the move-in steps still completes that checklist.
+    const moveIn = applicableTaskIds(branch);
+    const out = applicableTaskIds(branch, RENTING_MOVE_OUT_STEPS);
+    assert.ok(out.length >= 5 && out.every((id) => id.startsWith("moveout-")), branch);
+    assert.ok(out.every((id) => !moveIn.includes(id)), "no task shared between stages");
+    assert.deepEqual(progressFor(branch, new Set(moveIn)), { done: moveIn.length, total: moveIn.length });
+    assert.deepEqual(progressFor(branch, new Set(out)), { done: 0, total: moveIn.length });
+    assert.deepEqual(progressFor(branch, new Set(["moveout-notice"]), RENTING_MOVE_OUT_STEPS), { done: 1, total: out.length });
+    assert.ok(stepFacts(moveOut, branch).length > 0);
+  }
+  const ids = ALL_STEPS.flatMap((step) => step.tasks.map((task) => task.id));
+  assert.equal(new Set(ids).size, ids.length, "task ids are unique across stages");
+  // Legal points are evidence keys of the published Guide, never restated here.
+  assert.deepEqual(moveOut.facts.filter((fact) => fact.kind === "legal").map((fact) => fact.key),
+    ["notice-length", "notice-end-day", "notice-writing", "joint-notice", "no-professional-clean", "ten-days"]);
+  for (const locale of GUIDE_LOCALES) {
+    assert.doesNotMatch(moveOut.action[locale], /\d/u, `${locale}: no notice periods or time limits in journey copy`);
+    assert.ok(RENTING_COPY.moveOutTitle[locale] && RENTING_COPY.moveOutLead[locale]);
+  }
+  // The stage asks for nothing personal: tasks are ticks only.
+  assert.match(RENTING_COPY.moveOutLead.en, /stay on this page only/);
 });

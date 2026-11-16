@@ -13,6 +13,10 @@
 // After "keys", Phase 2 continues with inventory and condition, Council Tax,
 // electricity and gas, water, broadband and the TV Licence. A step whose Guide
 // is not published shows no key points and no Guide link.
+//
+// R1 adds a separate, later stage for moving out (ending the tenancy, the
+// check-out and the deposit). It has its own checklist and progress, so the
+// move-in checklist is complete exactly as before.
 
 import type { GuideDetail, GuideEvidence } from "./api.ts";
 import type { GuideLocale } from "./locales.ts";
@@ -20,6 +24,7 @@ import {
   RENTING_BRANCHES,
   RENTING_FACT_KINDS,
   RENTING_GUIDE_SLUGS,
+  RENTING_MOVE_OUT_STEPS,
   RENTING_SCOPES,
   RENTING_STEPS,
 } from "./rentingJourneyData.ts";
@@ -29,6 +34,7 @@ export {
   RENTING_COPY,
   RENTING_FACT_KINDS,
   RENTING_GUIDE_SLUGS,
+  RENTING_MOVE_OUT_STEPS,
   RENTING_SCOPES,
   RENTING_STEPS,
 } from "./rentingJourneyData.ts";
@@ -36,7 +42,7 @@ export {
 export type RentingGuideSlug = (typeof RENTING_GUIDE_SLUGS)[number];
 export type RentingBranchId = (typeof RENTING_BRANCHES)[number]["id"];
 export type RentingScopeId = (typeof RENTING_SCOPES)[number]["id"];
-export type RentingStep = (typeof RENTING_STEPS)[number];
+export type RentingStep = (typeof RENTING_STEPS)[number] | (typeof RENTING_MOVE_OUT_STEPS)[number];
 export type RentingStepId = RentingStep["id"];
 export type FactKind = keyof typeof RENTING_FACT_KINDS;
 export type Localized = Readonly<Record<GuideLocale, string>>;
@@ -65,6 +71,9 @@ export type RentingAnswers = {
  * energy → water → broadband → TV Licence.
  */
 export const RENTING_STEP_ORDER: readonly RentingStepId[] = RENTING_STEPS.map((step) => step.id);
+
+/** The later stage, shown after the move-in steps: moving out. */
+export const RENTING_MOVE_OUT_STEP_ORDER: readonly RentingStepId[] = RENTING_MOVE_OUT_STEPS.map((step) => step.id);
 
 const SCOPE_IDS = new Set<string>(RENTING_SCOPES.map((scope) => scope.id));
 const BRANCH_IDS = new Set<string>(RENTING_BRANCHES.map((branch) => branch.id));
@@ -107,14 +116,18 @@ export function stepTasks(step: RentingStep, branch: RentingBranchId): RentingTa
   return forBranch(step.tasks as readonly RentingTask[], branch);
 }
 
-/** Every task id that applies to a branch, in journey order. */
-export function applicableTaskIds(branch: RentingBranchId): string[] {
-  return RENTING_STEPS.flatMap((step) => stepTasks(step, branch).map((task) => task.id));
+/** Every task id of a stage (move-in by default) that applies to a branch, in journey order. */
+export function applicableTaskIds(branch: RentingBranchId, steps: readonly RentingStep[] = RENTING_STEPS): string[] {
+  return steps.flatMap((step) => stepTasks(step, branch).map((task) => task.id));
 }
 
-/** Ticked tasks that still apply (a branch change never counts stale ticks). */
-export function progressFor(branch: RentingBranchId, checked: ReadonlySet<string>): { done: number; total: number } {
-  const ids = applicableTaskIds(branch);
+/** Ticked tasks of a stage that still apply (a branch change never counts stale ticks). */
+export function progressFor(
+  branch: RentingBranchId,
+  checked: ReadonlySet<string>,
+  steps: readonly RentingStep[] = RENTING_STEPS,
+): { done: number; total: number } {
+  const ids = applicableTaskIds(branch, steps);
   return { done: ids.filter((id) => checked.has(id)).length, total: ids.length };
 }
 

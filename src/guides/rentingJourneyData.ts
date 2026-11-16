@@ -1,4 +1,4 @@
-// GENERATED from the Renting journey copy (Phase 1 and Phase 2) (zh-CN source; zh-TW by OpenCC cn→tw with the
+// GENERATED from the Renting journey copy (Phase 1, Phase 2 and R1 moving out) (zh-CN source; zh-TW by OpenCC cn→tw with the
 // same corrections as the Guides; en/ur/hi translated from zh-CN). Edit the generator, not this file.
 // Practical wording only: rule statements are never restated here. Each step names evidence keys,
 // and the page shows those statements from the published Guide in the reader's locale.
@@ -15,7 +15,8 @@ export const RENTING_GUIDE_SLUGS = [
   "renting-energy",
   "renting-water",
   "renting-broadband",
-  "renting-tv-licence"
+  "renting-tv-licence",
+  "renting-moving-out-deposit"
 ] as const;
 
 export const RENTING_SCOPES = [
@@ -1380,6 +1381,131 @@ export const RENTING_STEPS = [
   }
 ] as const;
 
+export const RENTING_MOVE_OUT_STEPS = [
+  {
+    "id": "moving-out",
+    "guide": "renting-moving-out-deposit",
+    "title": {
+      "zh-CN": "退租、退房检查和押金",
+      "zh-TW": "退租、退房檢查和押金",
+      "en": "Moving out, the check-out and your deposit",
+      "ur": "گھر چھوڑنا، check-out اور ڈپازٹ",
+      "hi": "घर छोड़ना, check-out और डिपॉज़िट"
+    },
+    "action": {
+      "zh-CN": "准备搬走时，先和房东书面商定结束日期，或发出书面通知；打扫并恢复到入住时的样子，约好退房检查并在最后一天交还钥匙；搬走当天抄表、通知供应商和市政府，再书面跟进押金。",
+      "zh-TW": "準備搬走時，先和房東書面商定結束日期，或發出書面通知；打掃並恢復到入住時的樣子，約好退房檢查並在最後一天交還鑰匙；搬走當天抄表、通知供應商和市政府，再書面跟進押金。",
+      "en": "When you are ready to leave, agree an end date with your landlord in writing or send written notice; clean and put things back as they were at move-in, book the check-out and hand back the keys on the last day; read the meters on moving-out day, tell your suppliers and the council, then follow up your deposit in writing.",
+      "ur": "جب آپ جانے کے لیے تیار ہوں تو مالک مکان سے تحریری طور پر آخری تاریخ طے کریں یا تحریری نوٹس بھیجیں؛ صفائی کریں اور چیزیں منتقلی کے وقت جیسی کر دیں، check-out طے کریں اور آخری دن چابیاں واپس کریں؛ جانے کے دن میٹر پڑھیں، سپلائرز اور کونسل کو بتائیں، پھر تحریری طور پر ڈپازٹ کی پیروی کریں۔",
+      "hi": "जब आप जाने के लिए तैयार हों, तो मकान मालिक से लिखित रूप में अंतिम तारीख़ तय करें या लिखित नोटिस भेजें; सफ़ाई करें और चीज़ें रहने आने के समय जैसी कर दें, check-out तय करें और आख़िरी दिन चाबियाँ लौटाएँ; जाने के दिन मीटर पढ़ें, सप्लायरों और काउंसिल को बताएँ, फिर लिखित रूप में डिपॉज़िट की पैरवी करें।"
+    },
+    "facts": [
+      {
+        "guide": "renting-moving-out-deposit",
+        "key": "notice-length",
+        "kind": "legal"
+      },
+      {
+        "guide": "renting-moving-out-deposit",
+        "key": "notice-end-day",
+        "kind": "legal"
+      },
+      {
+        "guide": "renting-moving-out-deposit",
+        "key": "notice-writing",
+        "kind": "legal"
+      },
+      {
+        "guide": "renting-moving-out-deposit",
+        "key": "joint-notice",
+        "kind": "legal"
+      },
+      {
+        "guide": "renting-moving-out-deposit",
+        "key": "no-professional-clean",
+        "kind": "legal"
+      },
+      {
+        "guide": "renting-moving-out-deposit",
+        "key": "keys-last-day",
+        "kind": "help"
+      },
+      {
+        "guide": "renting-moving-out-deposit",
+        "key": "ten-days",
+        "kind": "legal"
+      },
+      {
+        "guide": "renting-moving-out-deposit",
+        "key": "adr",
+        "kind": "help"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "moveout-notice",
+        "label": {
+          "zh-CN": "已书面商定结束日期或发出书面通知，并保留了副本",
+          "zh-TW": "已書面商定結束日期或發出書面通知，並保留了副本",
+          "en": "I agreed an end date in writing or sent written notice, and kept a copy",
+          "ur": "میں نے تحریری طور پر آخری تاریخ طے کی یا تحریری نوٹس بھیجا، اور کاپی رکھی",
+          "hi": "मैंने लिखित रूप में अंतिम तारीख़ तय की या लिखित नोटिस भेजा, और कॉपी रखी"
+        }
+      },
+      {
+        "id": "moveout-end-date",
+        "label": {
+          "zh-CN": "确认了结束日期落在交租日或交租日前一天",
+          "zh-TW": "確認了結束日期落在交租日或交租日前一天",
+          "en": "I checked the end date falls on a rent day or the day before",
+          "ur": "میں نے دیکھا کہ آخری تاریخ کرایہ کے دن یا اس سے ایک دن پہلے ہے",
+          "hi": "मैंने जाँचा कि अंतिम तारीख़ किराए के दिन या उससे एक दिन पहले है"
+        }
+      },
+      {
+        "id": "moveout-clean",
+        "label": {
+          "zh-CN": "打扫干净并恢复到入住时的状态",
+          "zh-TW": "打掃乾淨並恢復到入住時的狀態",
+          "en": "I cleaned and put the property back as it was at move-in",
+          "ur": "میں نے صفائی کی اور گھر منتقلی کے وقت جیسا کر دیا",
+          "hi": "मैंने सफ़ाई की और घर रहने आने के समय जैसा कर दिया"
+        }
+      },
+      {
+        "id": "moveout-checkout",
+        "label": {
+          "zh-CN": "约好了退房检查，并在最后一天交还钥匙",
+          "zh-TW": "約好了退房檢查，並在最後一天交還鑰匙",
+          "en": "I booked the check-out and hand back the keys on the last day",
+          "ur": "میں نے check-out طے کیا اور آخری دن چابیاں واپس کرتا/کرتی ہوں",
+          "hi": "मैंने check-out तय किया और आख़िरी दिन चाबियाँ लौटाता/लौटाती हूँ"
+        }
+      },
+      {
+        "id": "moveout-meters",
+        "label": {
+          "zh-CN": "搬走当天抄了表，并通知了供应商和市政府",
+          "zh-TW": "搬走當天抄了表，並通知了供應商和市政府",
+          "en": "I read the meters on moving-out day and told my suppliers and the council",
+          "ur": "میں نے جانے کے دن میٹر پڑھے اور سپلائرز اور کونسل کو بتایا",
+          "hi": "मैंने जाने के दिन मीटर पढ़े और सप्लायरों और काउंसिल को बताया"
+        }
+      },
+      {
+        "id": "moveout-deposit",
+        "label": {
+          "zh-CN": "书面告诉中介新地址，并问清押金退还时间",
+          "zh-TW": "書面告訴中介新地址，並問清押金退還時間",
+          "en": "I gave the agent my new address in writing and asked when the deposit will be returned",
+          "ur": "میں نے ایجنٹ کو تحریری طور پر نیا پتہ دیا اور پوچھا کہ ڈپازٹ کب واپس ہوگا",
+          "hi": "मैंने एजेंट को लिखित रूप में नया पता दिया और पूछा कि डिपॉज़िट कब लौटेगा"
+        }
+      }
+    ]
+  }
+] as const;
+
 export const RENTING_FACT_KINDS = {
   "legal": {
     "zh-CN": "法律要求",
@@ -1427,11 +1553,11 @@ export const RENTING_COPY = {
     "hi": "इंग्लैंड में लेटिंग एजेंट के ज़रिए किराए पर घर"
   },
   "lead": {
-    "zh-CN": "从看房源、拿钥匙到入住后的各项账单，一步一步：每一步做什么、哪些是法律要求、哪些是中介的做法、哪些服务可以不用，以及遇到问题找谁。",
-    "zh-TW": "從看房源、拿鑰匙到入住後的各項帳單，一步一步：每一步做什麼、哪些是法律要求、哪些是中介的做法、哪些服務可以不用，以及遇到問題找誰。",
-    "en": "From listings to keys and the household bills after you move in, step by step: what to do at each stage, what the law requires, what is the agent's own practice, which services are optional, and where to get help.",
-    "ur": "اشتہارات سے چابیوں اور منتقلی کے بعد کے گھریلو بلوں تک، مرحلہ وار: ہر مرحلے پر کیا کریں، قانون کیا تقاضا کرتا ہے، ایجنٹ کا اپنا طریقہ کیا ہے، کون سی خدمات اختیاری ہیں، اور مدد کہاں سے لیں۔",
-    "hi": "विज्ञापनों से चाबियों और रहने आने के बाद के घरेलू बिलों तक, चरण-दर-चरण: हर चरण में क्या करें, क़ानून क्या माँगता है, एजेंट का अपना तरीक़ा क्या है, कौन सी सेवाएँ वैकल्पिक हैं, और मदद कहाँ से लें।"
+    "zh-CN": "从看房源、拿钥匙、入住后的各项账单，到以后搬走和拿回押金，一步一步：每一步做什么、哪些是法律要求、哪些是中介的做法、哪些服务可以不用，以及遇到问题找谁。",
+    "zh-TW": "從看房源、拿鑰匙、入住後的各項帳單，到以後搬走和拿回押金，一步一步：每一步做什麼、哪些是法律要求、哪些是中介的做法、哪些服務可以不用，以及遇到問題找誰。",
+    "en": "From listings to keys, the household bills after you move in, and later moving out and getting your deposit back, step by step: what to do at each stage, what the law requires, what is the agent's own practice, which services are optional, and where to get help.",
+    "ur": "اشتہارات سے چابیوں، منتقلی کے بعد کے گھریلو بلوں، اور بعد میں گھر چھوڑنے اور ڈپازٹ واپس لینے تک، مرحلہ وار: ہر مرحلے پر کیا کریں، قانون کیا تقاضا کرتا ہے، ایجنٹ کا اپنا طریقہ کیا ہے، کون سی خدمات اختیاری ہیں، اور مدد کہاں سے لیں۔",
+    "hi": "विज्ञापनों से चाबियों, रहने आने के बाद के घरेलू बिलों, और बाद में घर छोड़ने और डिपॉज़िट वापस पाने तक, चरण-दर-चरण: हर चरण में क्या करें, क़ानून क्या माँगता है, एजेंट का अपना तरीक़ा क्या है, कौन सी सेवाएँ वैकल्पिक हैं, और मदद कहाँ से लें।"
   },
   "noticeTitle": {
     "zh-CN": "适用范围",
@@ -1441,11 +1567,11 @@ export const RENTING_COPY = {
     "hi": "दायरा"
   },
   "notice": {
-    "zh-CN": "只适用于在英格兰通过中介租私人住房的租客；签约前的规则核对到 2026 年 11 月 15 日，入住和账单部分核对到 2026 年 11 月 16 日。这是一般信息，不是法律或财务意见，也不推荐任何公司。",
-    "zh-TW": "只適用於在英格蘭通過中介租私人住房的租客；簽約前的規則核對到 2026 年 11 月 15 日，入住和帳單部分核對到 2026 年 11 月 16 日。這是一般資訊，不是法律或財務意見，也不推薦任何公司。",
-    "en": "Only for tenants renting a private home in England through a letting agent; rules up to signing checked as at 15 November 2026, moving in and bills as at 16 November 2026. General information, not legal or financial advice, and no company is recommended.",
-    "ur": "صرف ان کرایہ داروں کے لیے جو انگلینڈ میں لیٹنگ ایجنٹ کے ذریعے نجی گھر کرائے پر لیتے ہیں؛ دستخط تک کے قواعد 15 نومبر 2026 تک اور منتقلی اور بلوں کا حصہ 16 نومبر 2026 تک جانچا گیا۔ عمومی معلومات، قانونی یا مالی مشورہ نہیں، اور کسی کمپنی کی سفارش نہیں۔",
-    "hi": "सिर्फ़ उन किरायेदारों के लिए जो इंग्लैंड में लेटिंग एजेंट के ज़रिए निजी घर किराए पर लेते हैं; हस्ताक्षर तक के नियम 15 नवंबर 2026 तक और रहने आने और बिलों का हिस्सा 16 नवंबर 2026 तक जाँचा गया। सामान्य जानकारी, क़ानूनी या वित्तीय सलाह नहीं, और किसी कंपनी की सिफ़ारिश नहीं।"
+    "zh-CN": "只适用于在英格兰通过中介租私人住房的租客；签约前的规则核对到 2026 年 11 月 15 日，入住、账单和搬走部分核对到 2026 年 11 月 16 日。这是一般信息，不是法律或财务意见，也不推荐任何公司。",
+    "zh-TW": "只適用於在英格蘭通過中介租私人住房的租客；簽約前的規則核對到 2026 年 11 月 15 日，入住、帳單和搬走部分核對到 2026 年 11 月 16 日。這是一般資訊，不是法律或財務意見，也不推薦任何公司。",
+    "en": "Only for tenants renting a private home in England through a letting agent; rules up to signing checked as at 15 November 2026, moving in, bills and moving out as at 16 November 2026. General information, not legal or financial advice, and no company is recommended.",
+    "ur": "صرف ان کرایہ داروں کے لیے جو انگلینڈ میں لیٹنگ ایجنٹ کے ذریعے نجی گھر کرائے پر لیتے ہیں؛ دستخط تک کے قواعد 15 نومبر 2026 تک اور منتقلی، بلوں اور گھر چھوڑنے کا حصہ 16 نومبر 2026 تک جانچا گیا۔ عمومی معلومات، قانونی یا مالی مشورہ نہیں، اور کسی کمپنی کی سفارش نہیں۔",
+    "hi": "सिर्फ़ उन किरायेदारों के लिए जो इंग्लैंड में लेटिंग एजेंट के ज़रिए निजी घर किराए पर लेते हैं; हस्ताक्षर तक के नियम 15 नवंबर 2026 तक और रहने आने, बिलों और घर छोड़ने का हिस्सा 16 नवंबर 2026 तक जाँचा गया। सामान्य जानकारी, क़ानूनी या वित्तीय सलाह नहीं, और किसी कंपनी की सिफ़ारिश नहीं।"
   },
   "help": {
     "zh-CN": "遇到问题可以联系当地市政府（council），或免费咨询 Shelter 和 Citizens Advice。",
@@ -1614,5 +1740,19 @@ export const RENTING_COPY = {
     "en": "Updated",
     "ur": "تازہ کاری",
     "hi": "अपडेट"
+  },
+  "moveOutTitle": {
+    "zh-CN": "以后：准备搬走时",
+    "zh-TW": "以後：準備搬走時",
+    "en": "Later: when you move out",
+    "ur": "بعد میں: جب آپ گھر چھوڑیں",
+    "hi": "बाद में: जब आप घर छोड़ें"
+  },
+  "moveOutLead": {
+    "zh-CN": "入住以后，这一步留到你准备搬走时再看：怎样结束租约、退房检查和拿回押金。这里的勾选同样只保存在这个页面里。",
+    "zh-TW": "入住以後，這一步留到你準備搬走時再看：怎樣結束租約、退房檢查和拿回押金。這裡的勾選同樣只保存在這個頁面裡。",
+    "en": "Once you have moved in, keep this step for when you are ready to leave: ending the tenancy, the check-out and getting your deposit back. Ticks here also stay on this page only.",
+    "ur": "منتقلی کے بعد یہ مرحلہ اُس وقت کے لیے رکھیں جب آپ جانے کے لیے تیار ہوں: کرایہ داری ختم کرنا، check-out اور ڈپازٹ واپس لینا۔ یہاں کے نشانات بھی صرف اسی صفحے پر رہتے ہیں۔",
+    "hi": "रहने आने के बाद यह चरण उस समय के लिए रखें जब आप जाने के लिए तैयार हों: किरायेदारी ख़त्म करना, check-out और डिपॉज़िट वापस पाना। यहाँ के निशान भी सिर्फ़ इसी पेज पर रहते हैं।"
   }
 } as const;

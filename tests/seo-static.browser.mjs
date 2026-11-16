@@ -63,6 +63,10 @@ for (const entry of entries) {
     ok(html.includes(`<title>${cluster.seoTitle[locale].replace(/&/g, "&amp;")} · Life in UK</title>`), `${path} cluster title`);
     ok(root.includes('class="static-journey"'), `${path} Journey entry point`);
   }
+  if (section === "renting" && !slug) {
+    const later = root.split('id="renting-move-out-title"')[1] ?? "";
+    ok(later.includes(`/renting/renting-moving-out-deposit"`), `${path} moving-out stage as crawlable text, linked to its Guide`);
+  }
   if (slug && CURATED_RELATED_SECTIONS.has(section)) {
     const related = root.split('class="static-related"')[1]?.split("</section>")[0] ?? "";
     ok((related.match(/<a href="/g) ?? []).length >= 1, `${path} curated related Guides`);
@@ -139,7 +143,8 @@ try {
     await page.locator('input[name="renting-scope"][value="england-agent"]').check();
     await page.locator('input[name="renting-branch"][value="student-newcomer"]').check();
     await page.waitForSelector('[data-step="tv-licence"]');
-    ok((await page.locator(".renting-step").count()) === 16, "Journey shows 16 steps on the prerendered hub");
+    ok((await page.locator(".renting-steps > .renting-step-list > .renting-step").count()) === 16, "Journey shows 16 move-in steps on the prerendered hub");
+    ok((await page.locator('.renting-move-out [data-step="moving-out"]').count()) === 1, "and the later moving-out stage");
     await page.locator('[data-step="council-tax"] .renting-guide-link').click();
     await page.waitForSelector("article.guide-article");
     ok(page.url().endsWith("/en/renting/renting-council-tax"), "Journey → Guide link");
@@ -154,7 +159,7 @@ try {
   for (const width of [320, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 800 }, javaScriptEnabled: false });
     const page = await context.newPage();
-    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks", "/ur/work-visa/skilled-worker-settlement-ilr"]) {
+    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks", "/ur/work-visa/skilled-worker-settlement-ilr", "/ur/renting/renting-moving-out-deposit", "/hi/renting/renting-moving-out-deposit"]) {
       await page.goto(FRONTEND + path);
       ok((await page.locator(".static-page h1").count()) === 1, `${width}px no-JS ${path} article visible`);
       ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px no-JS ${path} no horizontal overflow`);

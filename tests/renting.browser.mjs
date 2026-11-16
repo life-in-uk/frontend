@@ -1,14 +1,16 @@
-// Renting & Moving In (Phases 1 and 2) on the normal local site (FRONTEND_URL,
-// default http://127.0.0.1:5173) against the real local backend. Covers: hub
-// in five locales with the twelve Guides linked; the journey (scope question,
-// out-of-scope notice with a way on, three branches, sixteen steps from
-// listings to the household bills, key points read from the published Guides,
-// checklist progress and completion, nothing written to storage, no
-// commercial slot shown); every Guide in five locales with evidence and
+// Renting & Moving In (Phases 1 and 2, R1 moving out) on the normal local site
+// (FRONTEND_URL, default http://127.0.0.1:5173) against the real local
+// backend. Covers: hub in five locales with the thirteen Guides linked; the
+// journey (scope question, out-of-scope notice with a way on, three branches,
+// sixteen move-in steps from listings to the household bills, then a separate
+// moving-out stage, key points read from the published Guides, checklist
+// progress per stage and move-in completion unchanged, nothing written to
+// storage, no commercial slot shown); every Guide in five locales with evidence and
 // in-text links; navigation from Home, header and footer; Urdu RTL; 320px
 // and 390px.
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
+import { applicableTaskIds, fill, RENTING_COPY, RENTING_MOVE_OUT_STEPS } from "../src/guides/rentingJourney.ts";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const baseURL = process.env.FRONTEND_URL || "http://127.0.0.1:5173";
 const screenshots = process.env.SCREENSHOT_DIR || "/tmp/life-uk-renting";
@@ -20,7 +22,10 @@ const SLUGS = [
   "renting-guarantors", "renting-deposits-fees", "renting-tenancy-agreement",
   "renting-moving-in-inventory", "renting-council-tax", "renting-energy",
   "renting-water", "renting-broadband", "renting-tv-licence",
+  "renting-moving-out-deposit",
 ];
+const MOVE_IN = ".renting-steps > .renting-step-list";
+const MOVE_OUT = '.renting-move-out[data-stage="move-out"]';
 const ORDER = "listing,contact,viewing,apply,referencing,guarantor,agreement,payments,sign,keys," +
   "inventory,council-tax,energy,water,broadband,tv-licence";
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
@@ -50,8 +55,10 @@ try {
     await page.goto(`${baseURL}${prefix}/renting`);
     await page.waitForSelector(".work-guide-link");
     ok((await page.locator("html").getAttribute("dir")) === dir, `${locale} dir`);
-    ok((await page.locator(".work-guide-card").count()) === 12, `${locale} 12 cards`);
-    ok((await page.locator(".work-guide-link").count()) === 12, `${locale} 12 linked Guides`);
+    ok((await page.locator(".work-guide-card").count()) === 13, `${locale} 13 cards`);
+    ok((await page.locator(".work-guide-link").count()) === 13, `${locale} 13 linked Guides`);
+    ok((await page.locator('.renting-topic[data-topic="moving-out"] a[href$="/renting/renting-moving-out-deposit"]').count()) === 1,
+      `${locale} moving-out topic group links the Guide`);
     ok((await page.locator(".renting-later, .renting-later-list").count()) === 0, `${locale} no "in preparation" list remains`);
     ok((await page.locator(".renting-step").count()) === 0, `${locale} steps wait for answers`);
 
@@ -66,10 +73,15 @@ try {
 
     for (const branch of ["student-newcomer", "employed-family", "other"]) {
       await answer(page, branch);
-      ok((await page.locator(".renting-step").count()) === 16, `${locale} ${branch} 16 steps`);
-      const order = await page.locator(".renting-step").evaluateAll((els) => els.map((el) => el.dataset.step));
+      ok((await page.locator(`${MOVE_IN} > .renting-step`).count()) === 16, `${locale} ${branch} 16 move-in steps`);
+      const order = await page.locator(`${MOVE_IN} > .renting-step`).evaluateAll((els) => els.map((el) => el.dataset.step));
       ok(order.join() === ORDER, `${locale} order ${order}`);
-      ok((await page.locator(".renting-guide-link").count()) === 16, `${locale} ${branch} every step links its Guide`);
+      ok((await page.locator(`${MOVE_OUT} .renting-step[data-step="moving-out"]`).count()) === 1, `${locale} ${branch} moving-out stage after the move-in steps`);
+      ok((await page.locator(".renting-step").count()) === 17, `${locale} ${branch} 17 steps in all`);
+      ok((await page.locator(".renting-guide-link").count()) === 17, `${locale} ${branch} every step links its Guide`);
+      ok((await page.locator(`${MOVE_OUT} .renting-step-number`).innerText()).includes("17"), `${locale} ${branch} moving-out step numbered 17`);
+      ok((await page.locator(`${MOVE_OUT} [data-evidence="notice-length"][data-kind="legal"]`).count()) === 1,
+        `${locale} ${branch} moving-out key point read from the Guide`);
       ok((await page.locator(".renting-unpublished").count()) === 0, `${locale} ${branch} no unpublished steps`);
       const facts = await page.locator(".renting-fact-list li").count();
       ok(facts >= 55, `${locale} ${branch} key points from Guides (${facts})`);
@@ -86,18 +98,32 @@ try {
         `${locale} ${branch} switching supplier shown as optional`);
       ok((await page.locator(".renting-recommendation, [data-recommendation]").count()) === 0, `${locale} ${branch} no commercial slot shown`);
     }
-    // Checklist progress, held in memory only.
-    const before = await page.locator(".renting-progress").innerText();
+    // Checklist progress per stage, held in memory only.
+    const moveInProgress = page.locator(".renting-branch-note .renting-progress");
+    const moveOutProgress = page.locator(`${MOVE_OUT} .renting-progress`);
+    const before = await moveInProgress.innerText();
     await page.locator('[data-task="listing-rent-stated"]').check();
     await page.locator('[data-task="keys-date"]').check();
-    const after = await page.locator(".renting-progress").innerText();
+    const after = await moveInProgress.innerText();
     ok(before !== after && /2/.test(after), `${locale} progress updates (${before} → ${after})`);
     ok((await page.locator(".renting-complete").count()) === 0, `${locale} not complete yet`);
-    const unticked = page.locator(".renting-task input:not(:checked)");
+    // Ticking only the move-in tasks completes the move-in checklist, as before R1.
+    const unticked = page.locator(`${MOVE_IN} .renting-task input:not(:checked)`);
     while ((await unticked.count()) > 0) await unticked.first().check();
     await page.waitForSelector(".renting-complete[role=status]");
-    const nums = (await page.locator(".renting-progress").innerText()).match(/\d+/g);
+    const nums = (await moveInProgress.innerText()).match(/\d+/g);
     ok(nums?.length === 2 && nums[0] === nums[1], `${locale} progress shows all done (${nums})`);
+    const outTotal = applicableTaskIds("other", RENTING_MOVE_OUT_STEPS).length;
+    const outText = (done) => fill(RENTING_COPY.progress[locale], { done, total: outTotal });
+    ok((await moveOutProgress.innerText()).trim() === outText(0), `${locale} moving-out stage still open`);
+    ok(await page.evaluate(() => {
+      const done = document.querySelector(".renting-complete");
+      const later = document.querySelector(".renting-move-out");
+      return Boolean(done && later && done.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING);
+    }), `${locale} the moving-out stage follows the move-in completion`);
+    await page.locator('[data-task="moveout-notice"]').check();
+    ok((await moveOutProgress.innerText()).trim() === outText(1), `${locale} moving-out progress updates`);
+    ok((await page.locator(".renting-complete").count()) === 1, `${locale} move-in completion unaffected by moving-out ticks`);
     ok((await page.evaluate(() => localStorage.length + sessionStorage.length)) === 0, `${locale} journey stores nothing`);
     ok((await page.locator('main input[type="text"], main input[type="file"], main textarea').count()) === 0, `${locale} no personal-data inputs`);
     // A step link opens the Guide in the same locale.
@@ -166,7 +192,8 @@ try {
     for (const path of ["/renting/renting-deposits-fees", "/ur/renting/renting-tenancy-agreement", "/hi/renting/renting-referencing-checks",
       "/en/renting/renting-guarantors", "/zh-TW/renting/renting-finding-viewing",
       "/renting/renting-moving-in-inventory", "/ur/renting/renting-council-tax", "/ur/renting/renting-energy",
-      "/hi/renting/renting-water", "/en/renting/renting-broadband", "/zh-TW/renting/renting-tv-licence", "/ur/renting/renting-tv-licence"]) {
+      "/hi/renting/renting-water", "/en/renting/renting-broadband", "/zh-TW/renting/renting-tv-licence", "/ur/renting/renting-tv-licence",
+      "/renting/renting-moving-out-deposit", "/ur/renting/renting-moving-out-deposit", "/hi/renting/renting-moving-out-deposit"]) {
       await page.goto(`${baseURL}${path}`);
       await page.waitForSelector("h1");
       await page.waitForTimeout(300);

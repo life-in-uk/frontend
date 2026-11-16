@@ -32,7 +32,7 @@ import { EVIDENCE_PREFIX, inlineText, parseMarkdown } from "../guides/markdown.t
 import type { Block, Inline, ListBlock } from "../guides/markdown.ts";
 import { resolveQuickAnswers } from "../guides/moneyQuickAnswers.ts";
 import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales.ts";
-import { RENTING_COPY, RENTING_STEPS } from "../guides/rentingJourneyData.ts";
+import { RENTING_COPY, RENTING_MOVE_OUT_STEPS, RENTING_STEPS } from "../guides/rentingJourneyData.ts";
 import { SITE_UI } from "../guides/siteUi.ts";
 import { splitTitleReferences, titleReferencesFor } from "../guides/titleReferences.ts";
 import { CLUSTER_COPY, clusterGroupsFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
@@ -368,15 +368,17 @@ function renderOfficialSources(details: readonly GuideDetail[], locale: GuideLoc
   return `<section class="static-official" aria-labelledby="static-official-title"><h2 id="static-official-title">${escapeHtml(CLUSTER_COPY.official[locale])}</h2><ul>${items}</ul></section>`;
 }
 
-/** The Renting Journey's steps as crawlable text, each linked to its Guide. */
+/** The Renting Journey's steps as crawlable text, each linked to its Guide; the later moving-out stage follows. */
 function renderRentingSteps(locale: GuideLocale, live: ReadonlySet<string>, titles: ReadonlyMap<string, string>): string {
-  const steps = RENTING_STEPS.map((step) => {
+  const item = (step: (typeof RENTING_STEPS)[number] | (typeof RENTING_MOVE_OUT_STEPS)[number]) => {
     const link = live.has(step.guide)
       ? `<p><a href="${escapeHtml(guideRoutePath(locale, "renting", step.guide))}">${escapeHtml(titles.get(step.guide) ?? step.title[locale])}</a></p>`
       : "";
     return `<li><h3>${escapeHtml(step.title[locale])}</h3><p>${escapeHtml(step.action[locale])}</p>${link}</li>`;
-  }).join("");
-  return `<section id="renting-journey-title" class="static-journey-steps"><h2>${escapeHtml(RENTING_COPY.journeyTitle[locale])}</h2><ol>${steps}</ol></section>`;
+  };
+  const later = `<h2 id="renting-move-out-title">${escapeHtml(RENTING_COPY.moveOutTitle[locale])}</h2><p>${escapeHtml(RENTING_COPY.moveOutLead[locale])}</p>`
+    + `<ol start="${RENTING_STEPS.length + 1}">${RENTING_MOVE_OUT_STEPS.map(item).join("")}</ol>`;
+  return `<section id="renting-journey-title" class="static-journey-steps"><h2>${escapeHtml(RENTING_COPY.journeyTitle[locale])}</h2><ol>${RENTING_STEPS.map(item).join("")}</ol>${later}</section>`;
 }
 
 /** A topic hub as a static page: what the section covers and its published Guides. */
