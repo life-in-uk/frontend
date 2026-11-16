@@ -155,11 +155,38 @@ export const TOPIC_CLUSTERS: Readonly<Partial<Record<GuideDomainId, TopicCluster
   settlement: SETTLEMENT,
 };
 
-/** Next-step links between sections, shown with the in-section related Guides. */
+const w = (slug: string): ClusterGuideRef => ({ slug, domain: "work-visa" });
+const h = (slug: string): ClusterGuideRef => ({ slug, domain: "health" });
+const m = (slug: string): ClusterGuideRef => ({ slug, domain: "money" });
+
+/**
+ * Next-step links between sections, shown with the in-section related Guides.
+ * Each one is backed by the source Guide's published text: a visa Guide that
+ * states the Immigration Health Surcharge links to the IHS Guide; Skilled
+ * Worker and Settlement Guides that name each other by title link both ways;
+ * tenant referencing ("no UK bank account yet") and the first bank account
+ * Guide (tenancy agreements as proof of address) link both ways.
+ */
 export const CROSS_SECTION_RELATED: Readonly<Record<string, readonly ClusterGuideRef[]>> = {
-  "partner-visa-application-process": [st("settlement-partner-ilr")],
+  "partner-visa-application-process": [st("settlement-partner-ilr"), h("nhs-ihs-costs-england")],
   "settlement-partner-ilr": [f("partner-visa-routes-overview")],
+  "skilled-worker-overview": [h("nhs-ihs-costs-england")],
+  "skilled-worker-dependants": [st("settlement-children-dependants"), h("nhs-ihs-costs-england")],
+  "skilled-worker-settlement-ilr": [st("settlement-ilr-overview"), st("settlement-continuous-residence-absences")],
+  "settlement-ilr-overview": [w("skilled-worker-settlement-ilr")],
+  "settlement-children-dependants": [w("skilled-worker-dependants")],
+  "renting-referencing-checks": [m("open-uk-bank-account-new-arrival")],
+  "open-uk-bank-account-new-arrival": [r("renting-referencing-checks")],
 };
+
+/**
+ * Sections whose Guide pages show the curated related list (in the app and
+ * in prerendered HTML) instead of every Guide in the section. Health keeps
+ * its section-wide list in static pages.
+ */
+export const CURATED_RELATED_SECTIONS: ReadonlySet<GuideDomainId> = new Set<GuideDomainId>([
+  "renting", "family-visa", "settlement", "work-visa", "money",
+]);
 
 export type ResolvedGuide = { guide: GuideMetadata; domain: GuideDomainId };
 export type ResolvedGroup = { id: string; title: string; guides: ResolvedGuide[] };

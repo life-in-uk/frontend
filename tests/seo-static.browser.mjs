@@ -12,7 +12,7 @@
 //
 //   PLAYWRIGHT_MODULE=… FRONTEND_URL=http://127.0.0.1:4173 API_BASE=http://127.0.0.1:8188 npm run test:seo:browser
 import assert from "node:assert/strict";
-import { TOPIC_CLUSTERS } from "../src/guides/topicClusters.ts";
+import { CURATED_RELATED_SECTIONS, TOPIC_CLUSTERS } from "../src/guides/topicClusters.ts";
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const FRONTEND = (process.env.FRONTEND_URL || "http://127.0.0.1:4173").replace(/\/$/, "");
@@ -63,7 +63,7 @@ for (const entry of entries) {
     ok(html.includes(`<title>${cluster.seoTitle[locale].replace(/&/g, "&amp;")} · Life in UK</title>`), `${path} cluster title`);
     ok(root.includes('class="static-journey"'), `${path} Journey entry point`);
   }
-  if (cluster && slug) {
+  if (slug && CURATED_RELATED_SECTIONS.has(section)) {
     const related = root.split('class="static-related"')[1]?.split("</section>")[0] ?? "";
     ok((related.match(/<a href="/g) ?? []).length >= 1, `${path} curated related Guides`);
     ok(!root.includes('class="static-guides"'), `${path} no section-wide link list`);
@@ -120,6 +120,20 @@ try {
     await page.waitForSelector('.related-guides a[href="/ur/family-visa/partner-visa-routes-overview"]', { timeout: 10000 });
     ok(true, "and links back");
 
+    // Work Visa (W1, X1): an in-text "Related Guides" title link and a cross-section next step, locale kept.
+    await page.goto(`${FRONTEND}/hi/work-visa/skilled-worker-overview`);
+    await page.locator('article.guide-article a[href="/hi/work-visa/skilled-worker-sponsorship-cos"]').first().click();
+    await page.waitForSelector("article.guide-article");
+    ok(page.url().endsWith("/hi/work-visa/skilled-worker-sponsorship-cos"), "Work Visa in-text title link keeps the locale");
+    await page.goto(`${FRONTEND}/ur/work-visa/skilled-worker-overview`);
+    await page.locator('.related-guides a[href="/ur/health/nhs-ihs-costs-england"]').click();
+    await page.waitForSelector("article.guide-article");
+    ok(page.url().endsWith("/ur/health/nhs-ihs-costs-england"), "Work Visa → IHS Guide keeps the locale");
+    await page.goto(`${FRONTEND}/zh-TW/money/open-uk-bank-account-new-arrival`);
+    await page.locator('.related-guides a[href="/zh-TW/renting/renting-referencing-checks"]').click();
+    await page.waitForSelector('.related-guides a[href="/zh-TW/money/open-uk-bank-account-new-arrival"]', { timeout: 10000 });
+    ok(true, "bank account ↔ tenant referencing both ways");
+
     // Renting hub: the Journey works from the prerendered page; Journey → Guide → no stale tags.
     await page.goto(`${FRONTEND}/en/renting`);
     await page.locator('input[name="renting-scope"][value="england-agent"]').check();
@@ -140,7 +154,7 @@ try {
   for (const width of [320, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 800 }, javaScriptEnabled: false });
     const page = await context.newPage();
-    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks"]) {
+    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks", "/ur/work-visa/skilled-worker-settlement-ilr"]) {
       await page.goto(FRONTEND + path);
       ok((await page.locator(".static-page h1").count()) === 1, `${width}px no-JS ${path} article visible`);
       ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px no-JS ${path} no horizontal overflow`);

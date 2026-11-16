@@ -23,14 +23,18 @@ const SECTION_SLUGS = {
   renting: Object.values(GUIDE_DOMAINS.renting.titleReferences),
   settlement: Object.values(GUIDE_DOMAINS.settlement.titleReferences),
   "family-visa": FAMILY_VISA_SLUGS,
+  "work-visa": Object.values(GUIDE_DOMAINS["work-visa"].titleReferences),
 };
-const KNOWN = new Set([...Object.values(SECTION_SLUGS).flat(), "skilled-worker-settlement-ilr"]);
+// Cross-section targets outside the curated sections: published Guides only.
+const OTHER_TARGETS = { health: ["nhs-ihs-costs-england"], money: ["open-uk-bank-account-new-arrival"] };
+const TARGETS = { ...SECTION_SLUGS, ...OTHER_TARGETS };
+const KNOWN = new Set(Object.values(TARGETS).flat());
 const meta = (slug, category) => ({ slug, category, title: `${slug} title`, summary: "s", publishedAt: "", updatedAt: "" });
-const publishedAll = Object.entries(SECTION_SLUGS).flatMap(([domain, slugs]) => slugs.map((slug) => meta(slug, GUIDE_DOMAINS[domain].category)));
+const publishedAll = Object.entries({ renting: SECTION_SLUGS.renting, settlement: SECTION_SLUGS.settlement, "family-visa": FAMILY_VISA_SLUGS }).flatMap(([domain, slugs]) => slugs.map((slug) => meta(slug, GUIDE_DOMAINS[domain].category)));
 
 test("the three clusters exist and every section Guide is in exactly one subtopic", () => {
   assert.deepEqual(Object.keys(TOPIC_CLUSTERS).sort(), ["family-visa", "renting", "settlement"]);
-  for (const [domain, slugs] of Object.entries(SECTION_SLUGS)) {
+  for (const [domain, slugs] of Object.entries(SECTION_SLUGS).filter(([domain]) => TOPIC_CLUSTERS[domain])) {
     const inSection = TOPIC_CLUSTERS[domain].groups.flatMap((group) => group.guides).filter((ref) => ref.domain === domain).map((ref) => ref.slug);
     assert.deepEqual([...inSection].sort(), [...slugs].sort(), domain);
     assert.equal(new Set(inSection).size, inSection.length, `${domain}: a Guide in two subtopics`);
@@ -52,9 +56,37 @@ test("related Guides are curated: in-section, at most three, never the Guide its
     for (const key of Object.keys(related)) assert.ok(slugs.includes(key), `${domain}: related for unknown ${key}`);
   }
   for (const [from, refs] of Object.entries(CROSS_SECTION_RELATED)) {
-    assert.ok(KNOWN.has(from));
-    for (const ref of refs) assert.ok(SECTION_SLUGS[ref.domain]?.includes(ref.slug), `${from} → ${ref.domain}/${ref.slug}`);
+    assert.ok(KNOWN.has(from), `cross-section links from unknown ${from}`);
+    const own = Object.entries(TARGETS).find(([, slugs]) => slugs.includes(from))[0];
+    for (const ref of refs) {
+      assert.ok(TARGETS[ref.domain]?.includes(ref.slug), `${from} → ${ref.domain}/${ref.slug}`);
+      assert.notEqual(ref.domain, own, `${from} → ${ref.slug} is not cross-section`);
+    }
+    // Small lists: curated in-section plus cross-section next steps stay at four or fewer.
+    const inSection = GUIDE_DOMAINS[own].relatedGuides[from] ?? [];
+    assert.ok(inSection.length + refs.length <= 4, `${from}: ${inSection.length + refs.length} related links`);
+    assert.equal(new Set(refs.map((ref) => ref.slug)).size, refs.length, `${from}: repeated cross-section link`);
   }
+});
+
+test("Work Visa and newcomer cross-links (W1, X1) resolve per locale to published Guides", () => {
+  const all = Object.entries(TARGETS).flatMap(([domain, slugs]) => slugs.map((slug) => meta(slug, GUIDE_DOMAINS[domain].category)));
+  const links = (domain, slug, list = all) => relatedLinksFor(GUIDE_DOMAINS[domain], slug, list).map((row) => `${row.domain}/${row.guide.slug}`);
+  assert.deepEqual(links("work-visa", "skilled-worker-overview"), [
+    "work-visa/skilled-worker-sponsorship-cos", "work-visa/skilled-worker-occupations-salary",
+    "work-visa/skilled-worker-english-documents", "health/nhs-ihs-costs-england",
+  ]);
+  assert.deepEqual(links("work-visa", "skilled-worker-settlement-ilr"), [
+    "work-visa/skilled-worker-dependants", "work-visa/skilled-worker-job-loss-sponsorship-ends",
+    "settlement/settlement-ilr-overview", "settlement/settlement-continuous-residence-absences",
+  ]);
+  assert.ok(links("settlement", "settlement-children-dependants").includes("work-visa/skilled-worker-dependants"));
+  assert.ok(links("family-visa", "partner-visa-application-process").includes("health/nhs-ihs-costs-england"));
+  assert.deepEqual(links("money", "open-uk-bank-account-new-arrival"), ["renting/renting-referencing-checks"]);
+  assert.ok(links("renting", "renting-referencing-checks").includes("money/open-uk-bank-account-new-arrival"));
+  // The IHS Guide unpublished in a locale: the link is dropped, not broken.
+  const noIhs = all.filter((g) => g.slug !== "nhs-ihs-costs-england");
+  assert.deepEqual(links("work-visa", "skilled-worker-overview", noIhs).filter((x) => x.startsWith("health/")), []);
 });
 
 test("related links: published only, in the target's own section, cross-section next steps included", () => {

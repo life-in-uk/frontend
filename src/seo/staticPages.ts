@@ -35,7 +35,7 @@ import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales.ts";
 import { RENTING_COPY, RENTING_STEPS } from "../guides/rentingJourneyData.ts";
 import { SITE_UI } from "../guides/siteUi.ts";
 import { splitTitleReferences, titleReferencesFor } from "../guides/titleReferences.ts";
-import { CLUSTER_COPY, clusterGroupsFor, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
+import { CLUSTER_COPY, clusterGroupsFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
 import type { ResolvedGroup } from "../guides/topicClusters.ts";
 import type { TitleReferences } from "../guides/titleReferences.ts";
 
@@ -268,7 +268,7 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
   // The page header shows the title; drop a leading H1 that repeats it (as the app does).
   const body = blocks[0]?.type === "heading" && blocks[0].level === 1 ? blocks.slice(1) : blocks;
   const others = domainGuides([...input.published], domain).filter((item) => item.slug !== guide.slug);
-  const clustered = TOPIC_CLUSTERS[domain.id] !== undefined;
+  const curated = CURATED_RELATED_SECTIONS.has(domain.id);
   const hubHref = guideRoutePath(locale, domain.id);
   const html = [
     renderSiteNav(locale, input.published),
@@ -282,7 +282,7 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
     renderBlocks(body, { locale, domain, references }),
     renderEvidence(guide, locale),
     `</article>`,
-    clustered ? renderRelated(relatedLinksFor(domain, guide.slug, input.published), locale) : renderGuideList(others, locale, domain),
+    curated ? renderRelated(relatedLinksFor(domain, guide.slug, input.published), locale) : renderGuideList(others, locale, domain),
     `</main>`,
   ].join("\n");
   const head: PageHead = {

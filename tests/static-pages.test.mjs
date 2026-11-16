@@ -93,3 +93,40 @@ test("hubs with no published Guide in a locale are not generated (no thin pages)
 test("Journey entry points exist only for sections with an interactive tool", () => {
   assert.deepEqual(Object.keys(JOURNEY_LINKS).sort(), ["family-visa", "renting", "settlement", "work-visa"]);
 });
+
+test("Work Visa Guides: quoted Related Guides become links, curated next steps include cross-section links (W1, X1)", () => {
+  const wv = (slug, title) => meta(slug, title, "work-visa");
+  const published = [
+    wv("skilled-worker-overview", "نظرة عامة"),
+    wv("skilled-worker-sponsorship-cos", "آجر کی اسپانسرشپ"),
+    wv("skilled-worker-occupations-salary", "پیشہ اور تنخواہ"),
+    wv("skilled-worker-english-documents", "انگریزی اور دستاویزات"),
+    meta("nhs-ihs-costs-england", "IHS اور NHS", "health-nhs"),
+    meta("where-to-go-when-ill-england", "بیمار ہوں تو کہاں جائیں", "health-nhs"),
+  ];
+  const guide = {
+    ...published[0],
+    content: ["# نظرة عامة", "", "## متعلقہ رہنمائیاں", "", "- \"آجر کی اسپانسرشپ\"", "- \"Not a published title\""].join("\n"),
+    sources: [], evidence: [],
+  };
+  const page = staticGuidePage({ origin: ORIGIN, locale: "ur", domainId: "work-visa", guide, published, availableLocales: ["ur"] });
+  assert.match(page.body, /&quot;<a href="\/ur\/work-visa\/skilled-worker-sponsorship-cos">آجر کی اسپانسرشپ<\/a>&quot;/);
+  assert.match(page.body, /&quot;Not a published title&quot;<\/li>/, "unknown titles stay plain text");
+  const related = page.body.split('class="static-related"')[1].split("</section>")[0];
+  assert.deepEqual([...related.matchAll(/href="([^"]+)"/g)].map((x) => x[1]), [
+    "/ur/work-visa/skilled-worker-sponsorship-cos",
+    "/ur/work-visa/skilled-worker-occupations-salary",
+    "/ur/work-visa/skilled-worker-english-documents",
+    "/ur/health/nhs-ihs-costs-england",
+  ]);
+  assert.doesNotMatch(page.body, /class="static-guides"/, "curated list replaces the section-wide list");
+  assert.match(fillTemplate(TEMPLATE, page), /<html lang="ur" dir="rtl">/);
+});
+
+test("Health Guide pages keep their section-wide list in static HTML", () => {
+  const published = [meta("nhs-ihs-costs-england", "IHS", "health-nhs"), meta("where-to-go-when-ill-england", "Where to go", "health-nhs")];
+  const guide = { ...published[0], content: "# IHS\n\nText.", sources: [], evidence: [] };
+  const page = staticGuidePage({ origin: ORIGIN, locale: "en", domainId: "health", guide, published, availableLocales: ["en"] });
+  assert.match(page.body, /class="static-guides"/);
+  assert.doesNotMatch(page.body, /class="static-related"/);
+});

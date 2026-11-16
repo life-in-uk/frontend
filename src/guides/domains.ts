@@ -86,15 +86,38 @@ export const MONEY_GUIDE_DOMAIN: GuideDomain = {
 
 export const WORK_VISA_CATEGORY = "work-visa";
 
-/** Work Visa (Skilled Worker): published locally; no editorial cross-links yet. */
+/**
+ * Work Visa (Skilled Worker): published locally. Every Guide ends with a
+ * "Related Guides" list of quoted titles; the 《title》 references below turn
+ * those (and in-text references) into links within this section. Related
+ * Guides follow the hub's reading order (workVisaPlan.ts).
+ */
 export const WORK_VISA_GUIDE_DOMAIN: GuideDomain = {
   id: "work-visa",
   basePath: "/work-visa",
   category: WORK_VISA_CATEGORY,
   label: "工作签证",
   backLabel: "回到工作签证",
-  titleReferences: {},
-  relatedGuides: {},
+  titleReferences: {
+    "英国技术工人签证（Skilled Worker）：整体要求和申请流程": "skilled-worker-overview",
+    "雇主担保：担保执照、CoS 和雇主的责任": "skilled-worker-sponsorship-cos",
+    "职业代码（SOC）和工资要求：这份工作够不够格": "skilled-worker-occupations-salary",
+    "Skilled Worker 的英语要求和申请材料": "skilled-worker-english-documents",
+    "转签、续签和换雇主": "skilled-worker-switch-extend-change-employer",
+    "丢了工作或担保被撤销：对签证有什么影响": "skilled-worker-job-loss-sponsorship-ends",
+    "带配偶和孩子：Skilled Worker 的家属签证": "skilled-worker-dependants",
+    "Skilled Worker 永居（ILR）：现行 5 年规则和已公布的改革": "skilled-worker-settlement-ilr",
+  },
+  relatedGuides: {
+    "skilled-worker-overview": ["skilled-worker-sponsorship-cos", "skilled-worker-occupations-salary", "skilled-worker-english-documents"],
+    "skilled-worker-sponsorship-cos": ["skilled-worker-occupations-salary", "skilled-worker-job-loss-sponsorship-ends"],
+    "skilled-worker-occupations-salary": ["skilled-worker-sponsorship-cos", "skilled-worker-english-documents"],
+    "skilled-worker-english-documents": ["skilled-worker-switch-extend-change-employer", "skilled-worker-dependants"],
+    "skilled-worker-switch-extend-change-employer": ["skilled-worker-english-documents", "skilled-worker-job-loss-sponsorship-ends"],
+    "skilled-worker-job-loss-sponsorship-ends": ["skilled-worker-switch-extend-change-employer", "skilled-worker-settlement-ilr"],
+    "skilled-worker-dependants": ["skilled-worker-occupations-salary", "skilled-worker-settlement-ilr"],
+    "skilled-worker-settlement-ilr": ["skilled-worker-dependants", "skilled-worker-job-loss-sponsorship-ends"],
+  },
 };
 
 export const SETTLEMENT_CATEGORY = "settlement";

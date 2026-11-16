@@ -94,6 +94,7 @@ because the Family Visa Guides were frozen when that workstream closed.
 - **Existing Guides**: all eight Work Visa Guides. Each ends with a "Related Guides" list naming the others by title, but the section has no title-reference or related-Guide configuration, so none of these are links (0 in-text links, 0 related links). `skilled-worker-settlement-ilr` and `skilled-worker-dependants` overlap with Settlement Guides and do not link to them.
 - **Classification**: DISCOVERABILITY GAP.
 - **Evidence**: B (observed in the published content and `src/guides/domains.ts`; demand itself is not measured).
+- **Status**: implemented 2026-11-16 (Phase 3A): Work Visa title references and curated related Guides in `src/guides/domains.ts`; Skilled Worker ↔ Settlement links in `CROSS_SECTION_RELATED`. Work Visa was not made a topic cluster (hub unchanged).
 - **Recommended action**: add the Work Visa title references (as for Renting and Settlement) so the existing lists become links, curated `relatedGuides`, and cross-section links: `skilled-worker-settlement-ilr` ↔ `settlement-ilr-overview` / `settlement-continuous-residence-absences`; `skilled-worker-dependants` ↔ `settlement-children-dependants`. Optionally make Work Visa a topic cluster. No content change.
 - **Score 79**: need 24 · gap 20 · verifiability 20 (no new claims) · fit 15 · affiliate 0.
 - **Official sources**: none needed (navigation only).
@@ -178,6 +179,7 @@ because the Family Visa Guides were frozen when that workstream closed.
 - **Existing Guides**: `partner-visa-application-process` and `skilled-worker-overview` mention the immigration health surcharge; `nhs-ihs-costs-england` explains it but is not linked. `renting-referencing-checks` and `open-uk-bank-account-new-arrival` both deal with having no UK history, without linking each other.
 - **Classification**: DISCOVERABILITY GAP.
 - **Evidence**: B (observed in content).
+- **Status**: implemented 2026-11-16 (Phase 3A): `skilled-worker-overview`, `skilled-worker-dependants` and `partner-visa-application-process` → `nhs-ihs-costs-england`; `renting-referencing-checks` ↔ `open-uk-bank-account-new-arrival`.
 - **Recommended action**: add these as cross-section related links (`CROSS_SECTION_RELATED` in `src/guides/topicClusters.ts`), with W1. No content change.
 - **Score 65**: need 18 · gap 15 · verifiability 20 · fit 12 · affiliate 0.
 - **Official sources**: none needed.
