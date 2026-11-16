@@ -196,7 +196,7 @@ npm run test:rail:browser                # via /?rail-preview
 
 ## Crawlable Guide pages (static prerendering)
 
-The interactive app is unchanged. In addition, `npm run build:static` builds the
+The interactive app is unchanged. In addition, `npm run build:static` (local) builds the
 app and then writes a static HTML page for every published Guide and topic hub
 (health, money, family-visa, work-visa, settlement, renting) in each locale it
 is published in, so search engines and readers without JavaScript get the full
@@ -215,7 +215,13 @@ npx vite preview --host 127.0.0.1 --port 4173          # serves dist/<path>/inde
   hreflang, x-default) match the backend sitemap, which lists Guides and hubs.
 - Only published translations are prerendered (no Simplified Chinese fallback
   copies). zh-CN in-app paths (`/renting/…`) carry the `/zh-CN/…` canonical.
-- Re-run `npm run build:static` after publishing; a plain `npm run build`
-  produces the app without static pages.
+- Re-run the build after publishing; a plain `npm run build` produces the app
+  without static pages and is for development only.
+- **Release builds:** `PUBLIC_ORIGIN=https://lifeinuk.info npm run build:release`
+  is the only deployable build. It requires a public https origin, prerenders
+  with the same pipeline (`scripts/seo/`), writes `dist/seo-redirects.json`
+  (zh-CN short URLs → 301 → `/zh-CN/…`), validates every page against the
+  published inventory and the backend sitemap, and exits nonzero on any
+  problem. Hosting requirements: `docs/seo-hosting.md`.
 - `npm run test:seo:browser` checks every sitemap URL as raw HTML, the app
   taking over with JavaScript, and no-JS phone layouts (Urdu RTL).

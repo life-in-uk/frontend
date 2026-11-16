@@ -218,10 +218,11 @@ export function renderHead(head: PageHead): string {
   return lines.join("\n    ");
 }
 
-/** Site-wide navigation in the static page: home and every topic hub. */
-function renderSiteNav(locale: GuideLocale): string {
+/** Site-wide navigation in the static page: home and every hub with a published Guide in this locale. */
+function renderSiteNav(locale: GuideLocale, published: readonly GuideMetadata[]): string {
   const ui = SITE_UI[locale];
-  const hubs = STATIC_HUB_DOMAINS.map(
+  const live = STATIC_HUB_DOMAINS.filter((id) => published.some((guide) => guide.category === GUIDE_DOMAINS[id].category));
+  const hubs = live.map(
     (id) => `<li><a href="${escapeHtml(guideRoutePath(locale, id))}">${escapeHtml(ui.topics[id]?.title ?? id)}</a></li>`,
   ).join("");
   return `<header class="static-header"><a class="static-brand" href="${guideHomePath(locale)}" lang="en" dir="ltr">Life in UK</a><nav aria-label="${escapeHtml(ui.mainNav)}"><ul><li><a href="${guideHomePath(locale)}">${escapeHtml(GUIDE_UI[locale].home)}</a></li>${hubs}</ul></nav></header>`;
@@ -267,7 +268,7 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
   const others = domainGuides([...input.published], domain).filter((item) => item.slug !== guide.slug);
   const hubHref = guideRoutePath(locale, domain.id);
   const html = [
-    renderSiteNav(locale),
+    renderSiteNav(locale, input.published),
     `<main id="main" class="static-page static-guide">`,
     `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><a href="${guideHomePath(locale)}">${escapeHtml(ui.home)}</a> › <a href="${escapeHtml(hubHref)}">${escapeHtml(ui.domain[domain.id])}</a></nav>`,
     `<article>`,
@@ -354,7 +355,7 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
   const live = new Set(guides.map((guide) => guide.slug));
   const titles = new Map(guides.map((guide) => [guide.slug, guide.title]));
   const html = [
-    renderSiteNav(locale),
+    renderSiteNav(locale, input.published),
     `<main id="main" class="static-page static-hub">`,
     `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><a href="${guideHomePath(locale)}">${escapeHtml(GUIDE_UI[locale].home)}</a></nav>`,
     `<h1>${escapeHtml(title)}</h1>`,
