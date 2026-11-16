@@ -11,6 +11,7 @@ import {
   FAMILY_VISA_GUIDE_DOMAIN,
   HEALTH_GUIDE_DOMAIN,
   MONEY_GUIDE_DOMAIN,
+  RENTING_GUIDE_DOMAIN,
   SETTLEMENT_GUIDE_DOMAIN,
   WORK_VISA_GUIDE_DOMAIN,
 } from "../guides/domains.ts";
@@ -91,6 +92,15 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
     icon: "id-card",
     domain: SETTLEMENT_GUIDE_DOMAIN,
   },
+  // Renting & Moving In (England, letting-agency lets): launched locally.
+  {
+    id: "renting",
+    title: "租房与入住",
+    description: "在英格兰通过中介租房：找房看房、审查和担保人、定金押金和费用、签约前检查，以及分步骤的租房清单。",
+    tone: "daily",
+    icon: "house",
+    domain: RENTING_GUIDE_DOMAIN,
+  },
   {
     id: "education",
     title: "教育与学习",
@@ -101,7 +111,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   {
     id: "daily-life",
     title: "日常生活",
-    description: "住房、租房、账单与通信等内容正在规划中。",
+    description: "账单与通信等内容正在规划中。",
     tone: "daily",
     icon: "house",
   },

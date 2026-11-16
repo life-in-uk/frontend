@@ -102,22 +102,22 @@ try {
     const nav = p.getByRole("navigation", { name: "主导航" });
     assert.deepEqual(
       await nav.getByRole("link").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/health", "/money", "/family-visa", "/work-visa", "/settlement", "/travel"],
+      ["/", "/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
     );
     assert.equal(
       await nav.getByRole("link", { name: "首页" }).getAttribute("aria-current"),
       "page",
     );
-    // Topic cards: eight; two upcoming without links (Travel links to /travel).
-    assert.equal(await p.locator(".topic-card").count(), 8);
-    assert.equal(await p.locator(".topic-card a").count(), 6);
+    // Topic cards: nine; two upcoming without links (Travel links to /travel).
+    assert.equal(await p.locator(".topic-card").count(), 9);
+    assert.equal(await p.locator(".topic-card a").count(), 7);
     assert.equal(await p.locator(".topic-card-soon").count(), 2);
     assert.deepEqual(
       await p.locator(".topic-card a").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/health", "/money", "/family-visa", "/work-visa", "/settlement", "/travel"],
+      ["/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
     );
     const counts = await p.locator(".topic-card-count").allInnerTexts();
-    if (!REAL) assert.deepEqual(counts, ["6 篇指南", "1 篇指南 · 12 条解答", "1 篇指南", "", ""]);
+    if (!REAL) assert.deepEqual(counts, ["6 篇指南", "1 篇指南 · 12 条解答", "1 篇指南", "", "", ""]);
     // Featured: four published Guides, preferred order.
     const featured = await p
       .locator(".featured-card-link")
@@ -271,8 +271,8 @@ try {
     await p.getByRole("searchbox").fill("牙疼");
     assert.match(await p.locator(".home-search-status").innerText(), /搜索暂时不可用/);
     // Topic navigation still works; counts are not invented.
-    assert.equal(await p.locator(".topic-card a").count(), 6);
-    assert.deepEqual(await p.locator(".topic-card-count").allInnerTexts(), ["", "", "", "", ""]);
+    assert.equal(await p.locator(".topic-card a").count(), 7);
+    assert.deepEqual(await p.locator(".topic-card-count").allInnerTexts(), ["", "", "", "", "", ""]);
     console.log("PASS unavailable Guides and Bank Holidays");
     await context.close();
   }
@@ -296,7 +296,7 @@ try {
     const topicColumns = await p
       .locator(".topic-card")
       .evaluateAll((els) => new Set(els.map((el) => el.getBoundingClientRect().top)).size);
-    if (width >= 1280) assert.ok(topicColumns <= 2, "seven topics in at most two rows (4 + 3)");
+    if (width >= 1280) assert.ok(topicColumns === 3, "nine topics in three even rows (3 + 3 + 3)");
     if (width <= 390) assert.ok(topicColumns >= 3, "topics reflow on mobile");
     await p.screenshot({ path: `${screenshots}/home-${width}.png`, fullPage: true });
     await context.close();

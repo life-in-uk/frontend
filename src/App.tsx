@@ -12,6 +12,7 @@ import { MoneyHub } from "./components/money/MoneyHub";
 import { MoneyGuidePage } from "./components/money/MoneyGuidePage";
 import { WorkVisaHub } from "./components/work-visa/WorkVisaHub";
 import { SettlementHub } from "./components/settlement/SettlementHub";
+import { RentingHub } from "./components/renting/RentingHub";
 import { TravelPage } from "./components/travel/TravelPage";
 import { LocalizedGuideIndex } from "./components/guides/LocalizedGuideIndex";
 import { GuidePage } from "./components/guides/GuidePage";
@@ -31,7 +32,7 @@ function App() {
     route.name === "home" || route.name === "localized-home"
       ? "home"
       : (route.name === "hub" || route.name === "guide" || route.name === "localized-hub" || route.name === "localized-guide") &&
-          (route.domain === "health" || route.domain === "money" || route.domain === "family-visa" || route.domain === "work-visa" || route.domain === "settlement")
+          (route.domain === "health" || route.domain === "money" || route.domain === "family-visa" || route.domain === "work-visa" || route.domain === "settlement" || route.domain === "renting")
         ? route.domain
         : route.name === "travel"
           ? "travel"
@@ -43,6 +44,8 @@ function App() {
     hubDomain === "work-visa" || (route.name === "localized-hub" && route.domain === "work-visa");
   const settlementHub =
     hubDomain === "settlement" || (route.name === "localized-hub" && route.domain === "settlement");
+  const rentingHub =
+    hubDomain === "renting" || (route.name === "localized-hub" && route.domain === "renting");
   const activeLocale = routeLocale(route);
   // Pages with their own language selector (hubs, Guides, the Guide index)
   // don't get a second one in the header.
@@ -65,13 +68,15 @@ function App() {
       document.title = `${GUIDE_UI[activeLocale].domain["work-visa"]} · Life in UK`;
     else if (settlementHub)
       document.title = `${GUIDE_UI[activeLocale].domain.settlement} · Life in UK`;
+    else if (rentingHub)
+      document.title = `${GUIDE_UI[activeLocale].domain.renting} · Life in UK`;
     else if (familyVisaHub)
       document.title = `${GUIDE_UI[activeLocale].domain["family-visa"]} · Life in UK`;
     else if (route.name === "not-found")
       document.title = `${SITE_UI[activeLocale].notFound.title} · Life in UK`;
     else if (route.name === "owner-editorial")
       document.title = "Owner editorial · Life in UK";
-  }, [route.name, hubDomain, familyVisaHub, workVisaHub, settlementHub, activeLocale]);
+  }, [route.name, hubDomain, familyVisaHub, workVisaHub, settlementHub, rentingHub, activeLocale]);
 
   useEffect(() => {
     if (route.name !== "owner-editorial") return;
@@ -93,6 +98,7 @@ function App() {
       {hubDomain === "money" && <MoneyHub />}
       {hubDomain === "work-visa" && <WorkVisaHub />}
       {hubDomain === "settlement" && <SettlementHub />}
+      {hubDomain === "renting" && <RentingHub />}
       {route.name === "guide" && route.domain === "health" && (
         <HealthGuidePage key={route.slug} slug={route.slug} />
       )}
@@ -111,12 +117,16 @@ function App() {
       {route.name === "guide" && route.domain === "settlement" && (
         <GuidePage key={route.slug} domain={GUIDE_DOMAINS.settlement} slug={route.slug} />
       )}
+      {route.name === "guide" && route.domain === "renting" && (
+        <GuidePage key={route.slug} domain={GUIDE_DOMAINS.renting} slug={route.slug} />
+      )}
       {route.name === "localized-index" && <LocalizedGuideIndex locale={route.locale} />}
       {/* Health keeps its editorial landing page and Guide look in every locale. */}
       {route.name === "localized-hub" && route.domain === "health" && <HealthHub key={route.locale} locale={route.locale} />}
       {route.name === "localized-hub" && route.domain === "money" && <MoneyHub key={route.locale} locale={route.locale} />}
       {route.name === "localized-hub" && route.domain === "work-visa" && <WorkVisaHub key={route.locale} locale={route.locale} />}
       {route.name === "localized-hub" && route.domain === "settlement" && <SettlementHub key={route.locale} locale={route.locale} />}
+      {route.name === "localized-hub" && route.domain === "renting" && <RentingHub key={route.locale} locale={route.locale} />}
       {route.name === "localized-hub" && route.domain === "family-visa" && <FamilyVisaHub key={route.locale} locale={route.locale} />}
       {route.name === "localized-guide" && route.domain === "health" && (
         <HealthGuidePage key={`${route.locale}:${route.slug}`} slug={route.slug} locale={route.locale} />

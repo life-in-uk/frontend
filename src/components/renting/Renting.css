@@ -1,0 +1,285 @@
+/* Renting & Moving In hub: the Work Visa hub layout plus the journey and
+   checklist. Logical properties only, so Urdu (RTL) mirrors cleanly. */
+
+.renting-hub {
+  --renting-legal: #2f5563;
+  --renting-legal-soft: #e4eef0;
+  --renting-agent: #5b4a7a;
+  --renting-agent-soft: #ece8f3;
+  --renting-optional: #38634b;
+  --renting-optional-soft: #eaf0e6;
+  --renting-help: #805b18;
+  --renting-help-soft: #f7eedb;
+}
+
+.renting-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Journey ---------- */
+.renting-journey,
+.renting-later {
+  margin-top: 44px;
+  min-width: 0;
+}
+.renting-question {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--work-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  min-width: 0;
+}
+.renting-question legend {
+  padding-inline: 6px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.renting-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  cursor: pointer;
+  line-height: 1.6;
+  min-width: 0;
+}
+.renting-option:hover,
+.renting-option:has(input:checked) {
+  border-color: var(--work-line);
+  background: var(--work-ink-soft);
+}
+.renting-option input,
+.renting-task input {
+  flex: none;
+  margin-top: 0.35em;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--work-ink);
+}
+.renting-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.renting-option small {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.renting-scope-notice {
+  margin-top: 16px;
+  padding: 18px 20px;
+  border-radius: var(--radius-card);
+  border: 1px solid #ead9b5;
+  background: var(--color-warning-soft);
+  line-height: 1.75;
+}
+.renting-scope-notice h3 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--color-warning);
+}
+.renting-scope-notice p {
+  margin-top: 6px;
+}
+.renting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: center;
+  margin-top: 12px;
+}
+.renting-action-link,
+.renting-guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--work-ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.renting-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 8px 14px;
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--work-line);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+.renting-actions .renting-reset {
+  margin-top: 0;
+}
+[dir="rtl"] .renting-action-link svg,
+[dir="rtl"] .renting-guide-link svg {
+  transform: scaleX(-1);
+}
+
+.renting-branch-note {
+  margin-top: 18px;
+  padding: 16px 20px;
+  border-radius: var(--radius-card);
+  background: var(--work-ink-soft);
+  line-height: 1.75;
+}
+.renting-progress {
+  margin-top: 6px;
+  font-weight: 700;
+  color: var(--work-ink);
+}
+
+.renting-step-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  list-style: none;
+  padding: 0;
+}
+.renting-step {
+  padding: 18px 20px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--work-line);
+  background: var(--color-surface);
+  min-width: 0;
+}
+.renting-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.renting-step-number {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--work-ink);
+}
+.renting-step-head h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.renting-step-action {
+  margin-top: 8px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.renting-facts {
+  margin-top: 12px;
+}
+.renting-facts h4,
+.renting-tasks legend {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+.renting-fact-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  list-style: none;
+  padding: 0;
+}
+.renting-fact-list li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  border-inline-start: 4px solid var(--renting-legal);
+  background: var(--renting-legal-soft);
+  line-height: 1.7;
+  min-width: 0;
+}
+.renting-fact-list li[data-kind="agent"] {
+  border-inline-start-color: var(--renting-agent);
+  background: var(--renting-agent-soft);
+}
+.renting-fact-list li[data-kind="optional"] {
+  border-inline-start-color: var(--renting-optional);
+  background: var(--renting-optional-soft);
+}
+.renting-fact-list li[data-kind="help"] {
+  border-inline-start-color: var(--renting-help);
+  background: var(--renting-help-soft);
+}
+.renting-fact-kind {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.renting-fact-text {
+  overflow-wrap: anywhere;
+}
+.renting-facts-status,
+.renting-unpublished {
+  margin-top: 8px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+.renting-tasks {
+  margin-top: 12px;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.renting-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+  line-height: 1.6;
+  cursor: pointer;
+  min-width: 0;
+}
+.renting-task span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.renting-guide-link {
+  margin-top: 14px;
+}
+
+/* ---------- After the keys (Phase 2, in preparation) ---------- */
+.renting-later-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  list-style: none;
+  padding: 0;
+}
+.renting-later-list li {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px dashed var(--work-line);
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .renting-question,
+  .renting-step,
+  .renting-scope-notice,
+  .renting-branch-note {
+    padding: 14px 14px;
+  }
+  .renting-option {
+    padding: 8px 6px;
+  }
+}

@@ -701,7 +701,7 @@ async function mocked() {
       await p
         .locator(".topic-card a")
         .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/health", "/money", "/family-visa", "/work-visa", "/settlement", "/travel"],
+      ["/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
     );
     assert.doesNotMatch(await entry.textContent(), /官方/);
     const nav = p.getByRole("navigation", { name: "主导航" });
@@ -709,7 +709,7 @@ async function mocked() {
       await nav
         .getByRole("link")
         .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/health", "/money", "/family-visa", "/work-visa", "/settlement", "/travel"],
+      ["/", "/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
     );
     await p.evaluate(() => (window.__noReload = true));
     await entry.click();

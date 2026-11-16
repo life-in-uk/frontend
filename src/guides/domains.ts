@@ -12,7 +12,7 @@ import {
   RELATED_GUIDES,
 } from "./catalog.ts";
 
-export type GuideDomainId = "health" | "family-visa" | "money" | "work-visa" | "settlement";
+export type GuideDomainId = "health" | "family-visa" | "money" | "work-visa" | "settlement" | "renting";
 
 export type GuideDomain = {
   id: GuideDomainId;
@@ -117,12 +117,37 @@ export const SETTLEMENT_GUIDE_DOMAIN: GuideDomain = {
   relatedGuides: {},
 };
 
+export const RENTING_CATEGORY = "renting";
+
+/**
+ * Renting & Moving In (England, letting-agency lets, tenant perspective):
+ * published locally. 《title》 references between the Simplified Chinese
+ * Renting Guides link within this section.
+ */
+export const RENTING_GUIDE_DOMAIN: GuideDomain = {
+  id: "renting",
+  basePath: "/renting",
+  category: RENTING_CATEGORY,
+  label: "租房与入住",
+  backLabel: "回到租房与入住",
+  titleReferences: {
+    "在英格兰通过中介租房：从找房到签约的完整流程": "renting-letting-agent-overview",
+    "找房、联系中介和看房：英格兰租房第一步": "renting-finding-viewing",
+    "租客审查：身份、收入、信用和租房记录": "renting-referencing-checks",
+    "担保人：学生、刚到英国和没有英国信用记录的人怎么办": "renting-guarantors",
+    "定金、押金和允许收取的费用：英格兰租房要付哪些钱": "renting-deposits-fees",
+    "签租约前要检查什么：英格兰租约和书面信息": "renting-tenancy-agreement",
+  },
+  relatedGuides: {},
+};
+
 export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   health: HEALTH_GUIDE_DOMAIN,
   "family-visa": FAMILY_VISA_GUIDE_DOMAIN,
   money: MONEY_GUIDE_DOMAIN,
   "work-visa": WORK_VISA_GUIDE_DOMAIN,
   settlement: SETTLEMENT_GUIDE_DOMAIN,
+  renting: RENTING_GUIDE_DOMAIN,
 };
 
 export function guidePath(domain: GuideDomain, slug: string): string {

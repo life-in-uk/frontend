@@ -216,8 +216,8 @@
   margin: 0;
   padding: 0;
   display: grid;
-  /* Seven topics: a balanced 4 + 3 layout on desktop. */
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Nine topics: a balanced 3 + 3 + 3 layout on desktop, as on tablets. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 .topic-card {

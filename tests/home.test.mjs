@@ -60,12 +60,12 @@ const GUIDES = [
 const DOMAINS = launchedTopics().map((topic) => topic.domain);
 const ANSWERS = [{ set: MONEY_QUICK_ANSWERS, domain: MONEY_GUIDE_DOMAIN }];
 
-test("Health, Money, Family & Visa, Work Visa and Settlement are launched (locally)", () => {
+test("Health, Money, Family & Visa, Work Visa, Settlement and Renting are launched (locally)", () => {
   assert.deepEqual(
     launchedTopics().map((topic) => topic.id),
-    ["health", "money", "family-visa", "work-visa", "settlement"],
+    ["health", "money", "family-visa", "work-visa", "settlement", "renting"],
   );
-  assert.equal(HOME_TOPICS.length, 8);
+  assert.equal(HOME_TOPICS.length, 9);
   assert.ok(DOMAINS.includes(FAMILY_VISA_GUIDE_DOMAIN));
 });
 
