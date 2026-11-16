@@ -12,6 +12,7 @@
 //
 //   PLAYWRIGHT_MODULE=… FRONTEND_URL=http://127.0.0.1:4173 API_BASE=http://127.0.0.1:8188 npm run test:seo:browser
 import assert from "node:assert/strict";
+import { TOPIC_CLUSTERS } from "../src/guides/topicClusters.ts";
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const FRONTEND = (process.env.FRONTEND_URL || "http://127.0.0.1:4173").replace(/\/$/, "");
@@ -54,6 +55,19 @@ for (const entry of entries) {
   ok(/<title>[^<]+ · Life in UK<\/title>/.test(html) && /<meta name="description" content="[^"]{10,}"/.test(html), `${path} title and description`);
   ok(html.includes('<script type="module"'), `${path} app still loads`);
   if (slug && JOURNEY_SECTIONS.has(section)) ok(root.includes('class="static-journey"'), `${path} links to its section's Journey`);
+  // Topic clusters: grouped hubs with official sources and their own title; curated related links on Guides.
+  const cluster = TOPIC_CLUSTERS[section];
+  if (cluster && !slug) {
+    ok((root.match(/class="static-topic"/g) ?? []).length >= 4, `${path} Guides grouped by subtopic`);
+    ok(root.includes('class="static-official"') && !/[\u3400-\u9fff]/.test(locale === "en" || locale === "ur" || locale === "hi" ? root.split('class="static-official"')[1].split("</section>")[0] : ""), `${path} official sources`);
+    ok(html.includes(`<title>${cluster.seoTitle[locale].replace(/&/g, "&amp;")} · Life in UK</title>`), `${path} cluster title`);
+    ok(root.includes('class="static-journey"'), `${path} Journey entry point`);
+  }
+  if (cluster && slug) {
+    const related = root.split('class="static-related"')[1]?.split("</section>")[0] ?? "";
+    ok((related.match(/<a href="/g) ?? []).length >= 1, `${path} curated related Guides`);
+    ok(!root.includes('class="static-guides"'), `${path} no section-wide link list`);
+  }
   // Internal links resolve to prerendered pages or home pages.
   for (const [, href] of root.matchAll(/href="(\/[^"#]*)/g)) {
     const target = href.replace(/\/$/, "") || "/";
@@ -85,6 +99,27 @@ try {
       ok((await page.locator('link[rel="canonical"]').count()) === 1, `${path} one canonical after the app loads`);
       ok((await page.locator('meta[name="description"]').count()) === 1, `${path} one description after the app loads`);
     }
+    // Cluster hubs in the app: same groups, sources and title as the static page.
+    for (const [path, groups, title] of [
+      ["/hi/renting", ".renting-topic", TOPIC_CLUSTERS.renting.seoTitle.hi],
+      ["/ur/family-visa", ".family-guide-group", TOPIC_CLUSTERS["family-visa"].seoTitle.ur],
+      ["/en/settlement", ".work-plan .work-guide-list", TOPIC_CLUSTERS.settlement.seoTitle.en],
+    ]) {
+      await page.goto(FRONTEND + path);
+      await page.waitForSelector(".cluster-official li", { timeout: 15000 });
+      ok((await page.locator(groups).count()) >= 4, `${path} app groups Guides by subtopic`);
+      ok((await page.title()) === `${title} · Life in UK`, `${path} app title = cluster title`);
+      ok((await page.locator('link[rel="canonical"]').count()) === 1, `${path} one canonical`);
+      ok((await page.locator('link[rel="alternate"][hreflang]').count()) === 6, `${path} hub hreflang (5 + x-default)`);
+    }
+    // Guide → related next step in another section, locale kept.
+    await page.goto(`${FRONTEND}/ur/family-visa/partner-visa-application-process`);
+    await page.locator('.related-guides a[href="/ur/settlement/settlement-partner-ilr"]').click();
+    await page.waitForSelector("article.guide-article");
+    ok(page.url().endsWith("/ur/settlement/settlement-partner-ilr"), "cross-section related link keeps the locale");
+    await page.waitForSelector('.related-guides a[href="/ur/family-visa/partner-visa-routes-overview"]', { timeout: 10000 });
+    ok(true, "and links back");
+
     // Renting hub: the Journey works from the prerendered page; Journey → Guide → no stale tags.
     await page.goto(`${FRONTEND}/en/renting`);
     await page.locator('input[name="renting-scope"][value="england-agent"]').check();
@@ -105,11 +140,22 @@ try {
   for (const width of [320, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 800 }, javaScriptEnabled: false });
     const page = await context.newPage();
-    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks"]) {
+    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks"]) {
       await page.goto(FRONTEND + path);
       ok((await page.locator(".static-page h1").count()) === 1, `${width}px no-JS ${path} article visible`);
       ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px no-JS ${path} no horizontal overflow`);
       if (path.startsWith("/ur/")) ok((await page.evaluate(() => getComputedStyle(document.querySelector(".static-page")).direction)) === "rtl", `${width}px ${path} RTL`);
+    }
+    await context.close();
+  }
+  // With JavaScript on phones: the grouped app hubs in Urdu RTL do not overflow.
+  for (const width of [320, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: 800 } });
+    const page = await context.newPage();
+    for (const path of ["/ur/renting", "/ur/family-visa", "/ur/settlement"]) {
+      await page.goto(FRONTEND + path);
+      await page.waitForSelector(".cluster-official li", { timeout: 15000 });
+      ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px app ${path} no horizontal overflow`);
     }
     await context.close();
   }

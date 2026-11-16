@@ -35,6 +35,8 @@ import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales.ts";
 import { RENTING_COPY, RENTING_STEPS } from "../guides/rentingJourneyData.ts";
 import { SITE_UI } from "../guides/siteUi.ts";
 import { splitTitleReferences, titleReferencesFor } from "../guides/titleReferences.ts";
+import { CLUSTER_COPY, clusterGroupsFor, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
+import type { ResolvedGroup } from "../guides/topicClusters.ts";
 import type { TitleReferences } from "../guides/titleReferences.ts";
 
 /** Hubs that are crawlable topic pages, in navigation order. */
@@ -266,6 +268,7 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
   // The page header shows the title; drop a leading H1 that repeats it (as the app does).
   const body = blocks[0]?.type === "heading" && blocks[0].level === 1 ? blocks.slice(1) : blocks;
   const others = domainGuides([...input.published], domain).filter((item) => item.slug !== guide.slug);
+  const clustered = TOPIC_CLUSTERS[domain.id] !== undefined;
   const hubHref = guideRoutePath(locale, domain.id);
   const html = [
     renderSiteNav(locale, input.published),
@@ -279,7 +282,7 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
     renderBlocks(body, { locale, domain, references }),
     renderEvidence(guide, locale),
     `</article>`,
-    renderGuideList(others, locale, domain),
+    clustered ? renderRelated(relatedLinksFor(domain, guide.slug, input.published), locale) : renderGuideList(others, locale, domain),
     `</main>`,
   ].join("\n");
   const head: PageHead = {
@@ -332,6 +335,39 @@ function renderMoneyAnswers(locale: GuideLocale, details: readonly GuideDetail[]
   return `<section class="static-answers" aria-labelledby="static-answers-title"><h2 id="static-answers-title">${escapeHtml(QUICK_ANSWERS_TITLE[locale])}</h2><ul>${items}</ul>${link}</section>`;
 }
 
+/** Curated related Guides (the same list the app shows under the article). */
+function renderRelated(links: ReturnType<typeof relatedLinksFor>, locale: GuideLocale): string {
+  if (links.length === 0) return "";
+  const items = links
+    .map(({ guide, domain }) => `<li><a href="${escapeHtml(guideRoutePath(locale, domain, guide.slug))}">${escapeHtml(guide.title)}</a></li>`)
+    .join("");
+  return `<section class="static-related" aria-labelledby="static-related-title"><h2 id="static-related-title">${escapeHtml(GUIDE_UI[locale].related)}</h2><ul>${items}</ul></section>`;
+}
+
+/** A hub's Guides grouped by subtopic, with their published summaries. */
+function renderClusterGroups(groups: readonly ResolvedGroup[], locale: GuideLocale): string {
+  if (groups.length === 0) return "";
+  const sections = groups
+    .map((group) => {
+      const items = group.guides
+        .map(({ guide, domain }) => `<li><a href="${escapeHtml(guideRoutePath(locale, domain, guide.slug))}">${escapeHtml(guide.title)}</a><p>${escapeHtml(guide.summary)}</p></li>`)
+        .join("");
+      return `<section class="static-topic" data-topic="${escapeHtml(group.id)}"><h3>${escapeHtml(group.title)}</h3><ul>${items}</ul></section>`;
+    })
+    .join("");
+  return `<section class="static-guides" aria-labelledby="static-guides-title"><h2 id="static-guides-title">${escapeHtml(CLUSTER_COPY.topics[locale])}</h2>${sections}</section>`;
+}
+
+/** The GOV.UK pages the section's published Guides cite most. */
+function renderOfficialSources(details: readonly GuideDetail[], locale: GuideLocale): string {
+  const sources = officialSourcesFor(details);
+  if (sources.length === 0) return "";
+  const items = sources
+    .map((source) => `<li><a href="${escapeHtml(source.url)}" rel="noopener noreferrer" lang="en" dir="ltr">${escapeHtml(source.title)}</a></li>`)
+    .join("");
+  return `<section class="static-official" aria-labelledby="static-official-title"><h2 id="static-official-title">${escapeHtml(CLUSTER_COPY.official[locale])}</h2><ul>${items}</ul></section>`;
+}
+
 /** The Renting Journey's steps as crawlable text, each linked to its Guide. */
 function renderRentingSteps(locale: GuideLocale, live: ReadonlySet<string>, titles: ReadonlyMap<string, string>): string {
   const steps = RENTING_STEPS.map((step) => {
@@ -350,25 +386,30 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
   const guides = domainGuides([...input.published], domain);
   if (guides.length === 0) return null;
   const topic = SITE_UI[locale].topics[domain.id];
+  const cluster = TOPIC_CLUSTERS[domain.id];
   const title = domain.id === "renting" ? RENTING_COPY.title[locale] : topic?.title ?? GUIDE_UI[locale].domain[domain.id];
   const lead = domain.id === "renting" ? RENTING_COPY.lead[locale] : topic?.description ?? "";
   const live = new Set(guides.map((guide) => guide.slug));
   const titles = new Map(guides.map((guide) => [guide.slug, guide.title]));
+  const sectionDetails = (input.details ?? []).filter((detail) => live.has(detail.slug) && detail.category === domain.category);
   const html = [
     renderSiteNav(locale, input.published),
     `<main id="main" class="static-page static-hub">`,
     `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><a href="${guideHomePath(locale)}">${escapeHtml(GUIDE_UI[locale].home)}</a></nav>`,
     `<h1>${escapeHtml(title)}</h1>`,
     lead ? `<p class="static-summary">${escapeHtml(lead)}</p>` : "",
+    cluster ? journeyLink(locale, domain) : "",
     domain.id === "renting" ? renderRentingSteps(locale, live, titles) : "",
     domain.id === "money" ? renderMoneyAnswers(locale, input.details ?? []) : "",
-    renderGuideList(guides, locale, domain),
+    cluster
+      ? renderClusterGroups(clusterGroupsFor(domain.id, locale, input.published, CLUSTER_COPY.other[locale]), locale) + renderOfficialSources(sectionDetails, locale)
+      : renderGuideList(guides, locale, domain),
     `</main>`,
   ].join("\n");
   const head: PageHead = {
     locale,
-    title: `${title} · Life in UK`,
-    description: lead || title,
+    title: `${cluster ? cluster.seoTitle[locale] : title} · Life in UK`,
+    description: cluster ? cluster.seoDescription[locale] : lead || title,
     canonical: absolute(origin, localizedGuidePath(locale, domain.id)),
     alternates: GUIDE_LOCALES.filter((candidate) => input.availableLocales.includes(candidate)).map((candidate) => ({
       locale: candidate,

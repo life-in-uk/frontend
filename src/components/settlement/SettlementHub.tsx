@@ -14,6 +14,8 @@ import {
 } from "../../guides/settlementPlan";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
+import { ClusterOfficialSources } from "../guides/TopicCluster";
+import { useClusterHubSeo } from "../guides/useClusterHubSeo";
 import "../work-visa/WorkVisa.css";
 
 type State =
@@ -32,6 +34,7 @@ const key = (domain: string, slug: string) => `${domain}/${slug}`;
 export function SettlementHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   const copy = SETTLEMENT_COPY[locale];
   const [state, setState] = useState<State>({ status: "loading" });
+  useClusterHubSeo("settlement", locale);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -141,6 +144,13 @@ export function SettlementHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
             </section>
           ))}
       </section>
+
+      {state.status === "ready" && (
+        <ClusterOfficialSources
+          guides={[...state.guides.values()].filter((guide) => guide.category === GUIDE_DOMAINS.settlement.category)}
+          locale={locale}
+        />
+      )}
 
       <section className="work-dates" aria-labelledby="settlement-dates-title">
         <div className="work-section-heading">

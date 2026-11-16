@@ -8,10 +8,9 @@ import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo"
 import { inlineText, parseMarkdown } from "../../guides/markdown";
 import type { Block } from "../../guides/markdown";
 import type { GuideDomain } from "../../guides/domains";
-import {
-  belongsToDomain,
-  relatedGuidesFor,
-} from "../../guides/domains";
+import { belongsToDomain } from "../../guides/domains";
+import { relatedLinksFor } from "../../guides/topicClusters";
+import type { ResolvedGuide } from "../../guides/topicClusters";
 import { formatUkDateFor, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
@@ -51,7 +50,7 @@ export function GuidePage({
   presentation?: GuidePresentation;
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
-  const [related, setRelated] = useState<GuideMetadata[]>([]);
+  const [related, setRelated] = useState<ResolvedGuide[]>([]);
   // The published list for this locale; it decides which references link.
   const [published, setPublished] = useState<GuideMetadata[] | undefined>(undefined);
   const references = useMemo(() => titleReferencesFor(domain, locale, published, slug), [domain, locale, published, slug]);
@@ -94,7 +93,7 @@ export function GuidePage({
     listRequest
       .then((guides) => {
         if (!active) return;
-        setRelated(relatedGuidesFor(domain, slug, guides));
+        setRelated(relatedLinksFor(domain, slug, guides));
         setPublished(guides);
       })
       .catch(() => {});
@@ -268,13 +267,13 @@ export function GuidePage({
             <aside className="related-guides" aria-labelledby="related-title">
               <h2 id="related-title">{ui.related}</h2>
               <ul>
-                {related.map((guide) => (
+                {related.map(({ guide, domain: target }) => (
                   <li
                     key={guide.slug}
                     className={tone(guide.slug) || undefined}
                   >
                     <Link
-                      to={guideRoutePath(locale, domain.id, guide.slug)}
+                      to={guideRoutePath(locale, target, guide.slug)}
                       title={guide.title}
                     >
                       <span>{shortGuideTitle(guide.title)}</span>

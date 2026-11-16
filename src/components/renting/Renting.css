@@ -254,6 +254,15 @@
   margin-top: 14px;
 }
 
+/* ---------- Guides by topic ---------- */
+.renting-topic + .renting-topic,
+.renting-topics .cluster-official {
+  margin-top: 26px;
+}
+.renting-topic > h3 {
+  font-size: 1.05rem;
+}
+
 /* ---------- Optional commercial slot (inactive; see guides/recommendations.ts) ---------- */
 .renting-recommendation {
   margin-top: 14px;

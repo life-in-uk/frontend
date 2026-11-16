@@ -10,6 +10,9 @@ import { RENTING_COPY, RENTING_GUIDE_SLUGS } from "../../guides/rentingJourney";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import { RentingJourney } from "./RentingJourney";
+import { CLUSTER_COPY, clusterGroupsFor } from "../../guides/topicClusters";
+import { ClusterOfficialSources } from "../guides/TopicCluster";
+import { useClusterHubSeo } from "../guides/useClusterHubSeo";
 import "../work-visa/WorkVisa.css";
 import "./Renting.css";
 
@@ -27,6 +30,8 @@ type State =
 export function RentingHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   const copy = RENTING_COPY;
   const [state, setState] = useState<State>({ status: "loading" });
+  useClusterHubSeo("renting", locale);
+  const position = (slug: string) => RENTING_GUIDE_SLUGS.indexOf(slug as (typeof RENTING_GUIDE_SLUGS)[number]) + 1;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -82,20 +87,20 @@ export function RentingHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
         {state.status === "loading" && <p className="work-plan-status" role="status">{copy.loading[locale]}</p>}
         {state.status === "error" && <p className="work-plan-status" role="status">{copy.unavailable[locale]}</p>}
         {state.status === "ready" && (
-          <ol className="work-guide-list">
-            {RENTING_GUIDE_SLUGS.map((slug, index) => {
-              const guide = state.guides.get(slug);
-              return (
-                <li key={slug} className="work-guide-card" data-slug={slug}>
-                  <span className="work-guide-number" aria-hidden="true">{index + 1}</span>
-                  <div className="work-guide-body">
-                    {guide ? (
-                      <>
-                        <h3 className="renting-card-title">
-                          <Link to={guideRoutePath(locale, "renting", slug)} className="work-guide-link">
+          <div className="renting-topics">
+            {clusterGroupsFor("renting", locale, [...state.guides.values()], CLUSTER_COPY.other[locale]).map((group) => (
+              <section key={group.id} className="renting-topic" data-topic={group.id}>
+                <h3>{group.title}</h3>
+                <ol className="work-guide-list">
+                  {group.guides.map(({ guide, domain }) => (
+                    <li key={guide.slug} className="work-guide-card" data-slug={guide.slug}>
+                      <span className="work-guide-number" aria-hidden="true">{position(guide.slug)}</span>
+                      <div className="work-guide-body">
+                        <h4 className="renting-card-title">
+                          <Link to={guideRoutePath(locale, domain, guide.slug)} className="work-guide-link">
                             {guide.title}
                           </Link>
-                        </h3>
+                        </h4>
                         <p className="work-guide-covers">{guide.summary}</p>
                         <span className="work-guide-meta">
                           <CalendarDays size={13} aria-hidden="true" />
@@ -103,15 +108,14 @@ export function RentingHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
                           <time dateTime={guide.updatedAt}>{formatUkDateFor(guide.updatedAt, GUIDE_LOCALE_LANG[locale])}</time>
                           <ArrowRight size={14} aria-hidden="true" />
                         </span>
-                      </>
-                    ) : (
-                      <p className="work-guide-covers">{copy.notPublished[locale]}</p>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+            <ClusterOfficialSources guides={[...state.guides.values()]} locale={locale} />
+          </div>
         )}
       </section>
     </main>

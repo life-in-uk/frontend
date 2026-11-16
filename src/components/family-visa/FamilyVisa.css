@@ -157,6 +157,13 @@
 }
 
 /* Published Guides: content-driven cards, two per row on desktop. */
+.family-guide-group + .family-guide-group {
+  margin-top: 28px;
+}
+.family-guide-group > h3 {
+  margin-bottom: 12px;
+  font-size: 1.05rem;
+}
 .family-guide-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -207,7 +214,7 @@
   box-shadow: 0 12px 30px rgb(63 72 80 / 0.08);
   transform: translateY(-2px);
 }
-.family-guide-link h3 {
+.family-guide-link h4 {
   font-size: 1.1875rem;
   font-weight: 700;
   line-height: 1.5;

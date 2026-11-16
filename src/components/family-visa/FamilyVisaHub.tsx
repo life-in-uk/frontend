@@ -21,17 +21,20 @@ import { FamilyVisaHeroArt, FamilyVisaNotebookArt } from "./FamilyVisaArt";
 import { FamilyVisaNavigator } from "./navigator/FamilyVisaNavigator";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import { SettlementCrossLink } from "../settlement/SettlementCrossLink";
+import { CLUSTER_COPY, clusterGroupsFor } from "../../guides/topicClusters";
+import { useClusterHubSeo } from "../guides/useClusterHubSeo";
+import { ClusterOfficialSources } from "../guides/TopicCluster";
 import "./FamilyVisa.css";
 
 type State =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; guides: GuideMetadata[] };
+  | { status: "ready"; guides: GuideMetadata[]; all: GuideMetadata[] };
 
 const REQUEST_DEADLINE_MS = 10_000;
 
-// Cards cycle through the section palette; there is no editorial grouping
-// until the Family & Visa content structure is agreed.
+// Cards cycle through the section palette and are grouped by subtopic
+// (guides/topicClusters.ts), the same groups as the prerendered hub.
 const CARD_TONES = ["slate", "clay", "sage", "sand"];
 
 /**
@@ -48,6 +51,7 @@ export function FamilyVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   const [listOpen, setListOpen] = useState(false);
   const t = useMemo(() => familyVisaText(locale), [locale]);
   const fvLocale = useMemo(() => ({ locale, t }), [locale, t]);
+  useClusterHubSeo("family-visa", locale);
 
   useEffect(() => {
     if (locale === "zh-CN") return;
@@ -57,6 +61,7 @@ export function FamilyVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
         setShown({
           status: "ready",
           guides: domainGuides(guides, FAMILY_VISA_GUIDE_DOMAIN),
+          all: guides,
         }),
       )
       .catch(() => {
@@ -79,6 +84,7 @@ export function FamilyVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
           setState({
             status: "ready",
             guides: domainGuides(guides, FAMILY_VISA_GUIDE_DOMAIN),
+            all: guides,
           });
       })
       .catch(() => {
@@ -236,40 +242,48 @@ export function FamilyVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
             )}
 
             {listed.status === "ready" && listed.guides.length > 0 && (
-              <ul className="family-guide-list">
-                {listed.guides.map((guide, index) => (
-                  <li
-                    key={guide.slug}
-                    className={`family-guide-card family-tone-${CARD_TONES[index % CARD_TONES.length]}`}
-                  >
-                    <Link
-                      to={guideRoutePath(locale, "family-visa", guide.slug)}
-                      className="family-guide-link"
-                    >
-                      <h3>{guide.title}</h3>
-                      <p className="family-guide-summary">{guide.summary}</p>
-                      <span className="family-guide-meta">
-                        <CalendarDays size={14} aria-hidden="true" />
-                        {t("更新于")}{" "}
-                        <time dateTime={guide.updatedAt}>
-                          {formatUkDateFor(
-                            guide.updatedAt,
-                            GUIDE_LOCALE_LANG[locale],
-                          )}
-                        </time>
-                        <ArrowRight
-                          className="family-guide-arrow"
-                          size={16}
-                          aria-hidden="true"
-                        />
-                      </span>
-                    </Link>
-                  </li>
+              <div className="family-guide-groups">
+                {clusterGroupsFor("family-visa", locale, listed.all, CLUSTER_COPY.other[locale]).map((group) => (
+                  <section key={group.id} className="family-guide-group" data-topic={group.id}>
+                    <h3>{group.title}</h3>
+                    <ul className="family-guide-list">
+                      {group.guides.map(({ guide, domain }) => (
+                        <li
+                          key={guide.slug}
+                          className={`family-guide-card family-tone-${CARD_TONES[listed.guides.findIndex((item) => item.slug === guide.slug) % CARD_TONES.length] ?? CARD_TONES[0]}`}
+                        >
+                          <Link
+                            to={guideRoutePath(locale, domain, guide.slug)}
+                            className="family-guide-link"
+                          >
+                            <h4>{guide.title}</h4>
+                            <p className="family-guide-summary">{guide.summary}</p>
+                            <span className="family-guide-meta">
+                              <CalendarDays size={14} aria-hidden="true" />
+                              {t("更新于")}{" "}
+                              <time dateTime={guide.updatedAt}>
+                                {formatUkDateFor(
+                                  guide.updatedAt,
+                                  GUIDE_LOCALE_LANG[locale],
+                                )}
+                              </time>
+                              <ArrowRight
+                                className="family-guide-arrow"
+                                size={16}
+                                aria-hidden="true"
+                              />
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         </section>
+        {listed.status === "ready" && <ClusterOfficialSources guides={listed.guides} locale={locale} />}
         <SettlementCrossLink locale={locale} />
       </main>
     </FamilyVisaLocaleContext.Provider>

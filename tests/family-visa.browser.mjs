@@ -1,5 +1,6 @@
 // Family & Visa and Guide-domain isolation browser checks. Every /api request
 // is mocked with neutral test-only fixtures; no backend or provider is used.
+import { TOPIC_CLUSTERS } from "../src/guides/topicClusters.ts";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 const { chromium } = await import(
@@ -164,7 +165,8 @@ try {
     await p.getByText("正在加载家庭与签证指南…").waitFor({ state: "attached" });
     assert.equal(await p.locator(".family-skeleton-card").count(), 3);
     assert.equal(await p.locator(".family-guide-card").count(), 0);
-    assert.equal(await p.title(), "家庭与签证 · Life in UK");
+    // The hub's title is its topic-cluster title (same as the prerendered page).
+    assert.equal(await p.title(), `${TOPIC_CLUSTERS["family-visa"].seoTitle["zh-CN"]} · Life in UK`);
     console.log("PASS hub loading: skeleton and status, no cards");
     await context.close();
   }

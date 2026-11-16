@@ -66,12 +66,8 @@ function App() {
     else if (hubDomain === "money") document.title = "金钱与财务 · Life in UK";
     else if (workVisaHub)
       document.title = `${GUIDE_UI[activeLocale].domain["work-visa"]} · Life in UK`;
-    else if (settlementHub)
-      document.title = `${GUIDE_UI[activeLocale].domain.settlement} · Life in UK`;
-    else if (rentingHub)
-      document.title = `${GUIDE_UI[activeLocale].domain.renting} · Life in UK`;
-    else if (familyVisaHub)
-      document.title = `${GUIDE_UI[activeLocale].domain["family-visa"]} · Life in UK`;
+    // Settlement, Renting and Family & Visa hubs set their own title and SEO (useClusterHubSeo).
+    else if (settlementHub || rentingHub || familyVisaHub) return;
     else if (route.name === "not-found")
       document.title = `${SITE_UI[activeLocale].notFound.title} · Life in UK`;
     else if (route.name === "owner-editorial")

@@ -132,3 +132,22 @@ svg {
 .static-summary {
   color: var(--color-muted);
 }
+
+/* Topic hubs: GOV.UK pages the section's Guides cite (TopicCluster.tsx). */
+.cluster-official {
+  margin-top: 28px;
+}
+.cluster-official h2 {
+  font-size: 1.1rem;
+}
+.cluster-official ul {
+  margin: 10px 0 0;
+  padding-inline-start: 20px;
+}
+.cluster-official a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}

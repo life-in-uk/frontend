@@ -123,10 +123,9 @@ test("related Guides exist in the list and never cross domains", () => {
   assert.deepEqual(relatedGuidesFor(FAMILY_VISA_GUIDE_DOMAIN, from, list), []);
 });
 
-test("title references are per domain; Family & Visa has none yet", () => {
+test("title references are per domain; Family & Visa has none (its related Guides are in topic-clusters tests)", () => {
   assert.equal(HEALTH_GUIDE_DOMAIN.titleReferences, GUIDE_TITLE_REFERENCES);
   assert.deepEqual(FAMILY_VISA_GUIDE_DOMAIN.titleReferences, {});
-  assert.deepEqual(FAMILY_VISA_GUIDE_DOMAIN.relatedGuides, {});
 });
 
 test("example-price labelling stays a Health-only rule", () => {

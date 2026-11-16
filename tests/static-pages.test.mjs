@@ -47,10 +47,12 @@ test("a Guide page carries the whole article, escaped, with evidence anchors and
   assert.match(html, /<a href="https:\/\/www\.gov\.uk\/council-tax" rel="noopener noreferrer">GOV\.UK<\/a>/);
   // In-text title references link to the published Guide in the same locale.
   assert.match(html, /<a href="\/en\/renting\/renting-moving-in-inventory">Moving in: keys/);
-  // Section navigation, breadcrumb, related Guides (same section only) and the Journey entry point.
+  // Journey entry point, and the curated related Guides (not every Guide in the section).
   assert.match(html, /href="\/en\/renting#renting-journey-title"/);
-  assert.match(html, /<a href="\/en\/renting\/renting-energy">Electricity and gas<\/a>/);
-  assert.doesNotMatch(html.split('class="static-guides"')[1], /nhs-ihs-costs-england/);
+  const related = html.split('class="static-related"')[1];
+  assert.match(related, /<a href="\/en\/renting\/renting-energy">Electricity and gas<\/a>/);
+  assert.doesNotMatch(related, /nhs-ihs-costs-england|renting-moving-in-inventory/);
+  assert.doesNotMatch(html, /class="static-guides"/);
 });
 
 test("head tags: canonical, hreflang for published locales only, x-default, and replaceable by the app", () => {

@@ -51,7 +51,10 @@ export const HEALTH_GUIDE_DOMAIN: GuideDomain = {
 
 export const FAMILY_VISA_CATEGORY = "family-visa";
 
-/** No editorial cross-links until Family & Visa content is frozen. */
+/**
+ * Family & Visa (content frozen 2026-11-15): no in-text title links; related
+ * Guides follow the order a partner applicant needs them.
+ */
 export const FAMILY_VISA_GUIDE_DOMAIN: GuideDomain = {
   id: "family-visa",
   basePath: "/family-visa",
@@ -59,7 +62,13 @@ export const FAMILY_VISA_GUIDE_DOMAIN: GuideDomain = {
   label: "家庭与签证",
   backLabel: "回到家庭与签证",
   titleReferences: {},
-  relatedGuides: {},
+  relatedGuides: {
+    "partner-visa-routes-overview": ["partner-visa-financial-requirement", "partner-visa-relationship-evidence", "partner-visa-application-process"],
+    "partner-visa-financial-requirement": ["partner-visa-relationship-evidence", "partner-visa-application-process"],
+    "partner-visa-relationship-evidence": ["partner-visa-financial-requirement", "partner-visa-application-process"],
+    "partner-visa-application-process": ["partner-visa-financial-requirement", "partner-visa-dependent-children"],
+    "partner-visa-dependent-children": ["partner-visa-routes-overview", "partner-visa-application-process"],
+  },
 };
 
 export const MONEY_CATEGORY = "money";
@@ -114,7 +123,20 @@ export const SETTLEMENT_GUIDE_DOMAIN: GuideDomain = {
     "积分式定居（Earned Settlement）改革追踪：现行规则和改革方案对照": "settlement-earned-settlement-tracker",
     "拿到永居以后怎么申请入籍": "settlement-british-citizenship",
   },
-  relatedGuides: {},
+  relatedGuides: {
+    "settlement-ilr-overview": ["settlement-partner-ilr", "settlement-long-residence", "settlement-other-routes"],
+    "settlement-partner-ilr": ["settlement-continuous-residence-absences", "settlement-english-life-in-uk-test", "settlement-documents-evidence"],
+    "settlement-long-residence": ["settlement-continuous-residence-absences", "settlement-documents-evidence"],
+    "settlement-other-routes": ["settlement-ilr-overview", "settlement-documents-evidence"],
+    "settlement-continuous-residence-absences": ["settlement-documents-evidence", "settlement-application-process"],
+    "settlement-english-life-in-uk-test": ["settlement-documents-evidence", "settlement-application-process"],
+    "settlement-children-dependants": ["settlement-partner-ilr", "settlement-documents-evidence"],
+    "settlement-documents-evidence": ["settlement-application-process", "settlement-continuous-residence-absences"],
+    "settlement-application-process": ["settlement-documents-evidence", "settlement-after-ilr"],
+    "settlement-after-ilr": ["settlement-british-citizenship", "settlement-continuous-residence-absences"],
+    "settlement-british-citizenship": ["settlement-after-ilr", "settlement-english-life-in-uk-test"],
+    "settlement-earned-settlement-tracker": ["settlement-ilr-overview", "settlement-continuous-residence-absences"],
+  },
 };
 
 export const RENTING_CATEGORY = "renting";
@@ -144,7 +166,20 @@ export const RENTING_GUIDE_DOMAIN: GuideDomain = {
     "宽带和上网：查可用性、速度保证、合约期、安装和搬家": "renting-broadband",
     "TV Licence（电视许可证）：什么时候需要、合租和学生怎么办": "renting-tv-licence",
   },
-  relatedGuides: {},
+  relatedGuides: {
+    "renting-letting-agent-overview": ["renting-finding-viewing", "renting-deposits-fees", "renting-tenancy-agreement"],
+    "renting-finding-viewing": ["renting-referencing-checks", "renting-letting-agent-overview"],
+    "renting-referencing-checks": ["renting-guarantors", "renting-deposits-fees"],
+    "renting-guarantors": ["renting-referencing-checks", "renting-tenancy-agreement"],
+    "renting-deposits-fees": ["renting-tenancy-agreement", "renting-moving-in-inventory"],
+    "renting-tenancy-agreement": ["renting-deposits-fees", "renting-moving-in-inventory"],
+    "renting-moving-in-inventory": ["renting-council-tax", "renting-energy", "renting-deposits-fees"],
+    "renting-council-tax": ["renting-energy", "renting-water"],
+    "renting-energy": ["renting-water", "renting-council-tax"],
+    "renting-water": ["renting-energy", "renting-council-tax"],
+    "renting-broadband": ["renting-tv-licence", "renting-energy"],
+    "renting-tv-licence": ["renting-broadband", "renting-council-tax"],
+  },
 };
 
 export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
