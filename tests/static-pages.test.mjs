@@ -154,3 +154,19 @@ test("Guide pages: three-level breadcrumb and one JSON-LD script in the head; hu
   const hub = staticHubPage({ origin: ORIGIN, locale: "en", domainId: "renting", published: PUBLISHED, availableLocales: ["en"] });
   assert.doesNotMatch(fillTemplate(TEMPLATE, hub), /application\/ld\+json/);
 });
+
+test("general-information notice: Health Guides and the bank account Guide only (their text has none); other Guides unchanged", async () => {
+  const { guideNotice } = await import("../src/guides/guideNotice.ts");
+  for (const locale of ["zh-CN", "zh-TW", "en", "ur", "hi"]) {
+    assert.ok(guideNotice("health", "registering-with-a-gp-england", locale), `${locale} health`);
+    assert.ok(guideNotice("money", "open-uk-bank-account-new-arrival", locale), `${locale} bank`);
+    assert.equal(guideNotice("money", "national-insurance-number-newcomers", locale), null, "the NI Guide has its own disclaimer");
+    assert.equal(guideNotice("renting", "renting-council-tax", locale), null);
+    assert.doesNotMatch(guideNotice("health", "x", locale), /review|审核|審核|lawyer|律师|solicitor/i, "no review is claimed");
+  }
+  const health = meta("registering-with-a-gp-england", "Registering with a GP", "health-nhs");
+  const page = staticGuidePage({ origin: ORIGIN, locale: "ur", domainId: "health", guide: { ...health, content: "# Registering with a GP\n\nText.", sources: [], evidence: [] }, published: [health], availableLocales: ["ur"] });
+  assert.match(page.body, /<p class="guide-notice">یہ اس رہنمائی میں درج سرکاری ذرائع پر مبنی عمومی معلومات ہے/);
+  const renting = staticGuidePage({ origin: ORIGIN, locale: "en", domainId: "renting", guide: GUIDE, published: PUBLISHED, availableLocales: ["en"] });
+  assert.doesNotMatch(renting.body, /guide-notice/);
+});

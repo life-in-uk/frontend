@@ -36,6 +36,7 @@ import { RENTING_COPY, RENTING_MOVE_OUT_STEPS, RENTING_STEPS } from "../guides/r
 import { SITE_UI } from "../guides/siteUi.ts";
 import { splitTitleReferences, titleReferencesFor } from "../guides/titleReferences.ts";
 import { guideStructuredData, serializeJsonLd } from "./structuredData.ts";
+import { guideNotice } from "../guides/guideNotice.ts";
 import { CLUSTER_COPY, clusterGroupsFor, crossSectionLinksFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
 import type { ResolvedGroup } from "../guides/topicClusters.ts";
 import type { TitleReferences } from "../guides/titleReferences.ts";
@@ -273,6 +274,7 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
   const body = blocks[0]?.type === "heading" && blocks[0].level === 1 ? blocks.slice(1) : blocks;
   const others = domainGuides([...input.published], domain).filter((item) => item.slug !== guide.slug);
   const curated = CURATED_RELATED_SECTIONS.has(domain.id);
+  const notice = guideNotice(domain.id, guide.slug, locale);
   const hubHref = guideRoutePath(locale, domain.id);
   const html = [
     renderSiteNav(locale, input.published),
@@ -285,6 +287,7 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
     `<p class="static-updated">${escapeHtml(ui.updated)} <time datetime="${escapeHtml(guide.updatedAt)}">${escapeHtml(formatUkDateFor(guide.updatedAt, GUIDE_LOCALE_LANG[locale]))}</time></p>`,
     journeyLink(locale, domain),
     renderBlocks(body, { locale, domain, references }),
+    notice ? `<p class="guide-notice">${escapeHtml(notice)}</p>` : "",
     renderEvidence(guide, locale),
     `</article>`,
     // Sections without a curated list keep their section-wide list; their few cross-section next steps are added after it.

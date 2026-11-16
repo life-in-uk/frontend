@@ -31,7 +31,9 @@
     "test:work-visa:browser": "node tests/work-visa.browser.mjs",
     "test:header:browser": "node tests/site-header.browser.mjs",
     "test:seo:browser": "node tests/seo-static.browser.mjs",
-    "preview:release": "node scripts/seo/static-host.mjs dist 4174"
+    "preview:release": "node scripts/seo/static-host.mjs dist 4174",
+    "sources:inventory": "node scripts/sources/run.mjs inventory",
+    "sources:check": "node scripts/sources/run.mjs check"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

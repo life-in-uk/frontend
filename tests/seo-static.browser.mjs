@@ -72,6 +72,8 @@ for (const entry of entries) {
     ok((related.match(/<a href="/g) ?? []).length >= 1, `${path} curated related Guides`);
     ok(!root.includes('class="static-guides"'), `${path} no section-wide link list`);
   }
+  // Trust signals (Phase 4B): every English Guide says it is general information, in its own text or the notice.
+  if (slug && locale === "en") ok(/general information/i.test(text), `${path} general-information disclaimer`);
   // Internal links resolve to prerendered pages or home pages.
   for (const [, href] of root.matchAll(/href="(\/[^"#]*)/g)) {
     const target = href.replace(/\/$/, "") || "/";
@@ -177,6 +179,16 @@ try {
     }
     await page.goto(`${FRONTEND}/hi/money/national-insurance-number-newcomers`);
     await page.waitForFunction(() => document.querySelectorAll('script[type="application/ld+json"]:not([data-prerendered])').length === 1, null, { timeout: 10000 });
+    // The notice is the same in the app as in the raw HTML.
+    for (const path of ["/ur/health/registering-with-a-gp-england", "/zh-TW/money/open-uk-bank-account-new-arrival"]) {
+      const rawNotice = /<p class="guide-notice">([^<]*)<\/p>/.exec(await (await fetch(FRONTEND + path)).text())?.[1];
+      await page.goto(FRONTEND + path);
+      await page.waitForSelector("article.guide-article .guide-notice");
+      ok(rawNotice && (await page.locator("article.guide-article .guide-notice").innerText()).trim() === rawNotice, `${path} notice: app = raw HTML`);
+    }
+    await page.goto(`${FRONTEND}/hi/money/national-insurance-number-newcomers`);
+    await page.waitForFunction(() => document.querySelectorAll('script[type="application/ld+json"]:not([data-prerendered])').length === 1, null, { timeout: 10000 });
+    ok((await page.locator(".guide-notice").count()) === 0, "a Guide with its own disclaimer gets no notice");
     // Guide → Guide (cross-section) → hub: never stale or duplicated.
     await page.locator('.related-guides a[href="/hi/work-visa/skilled-worker-overview"]').click();
     await page.waitForFunction(() => document.querySelector('script[type="application/ld+json"]')?.textContent.includes("skilled-worker-overview"), null, { timeout: 10000 });

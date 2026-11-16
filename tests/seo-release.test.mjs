@@ -261,3 +261,28 @@ test("Guide JSON-LD: one Article + BreadcrumbList matching the page; hubs carry 
     rmSync(dir, { recursive: true });
   }
 });
+
+test("rebuilding never creates freshness: identical pages from the same inventory, dates only from the published Guide", async () => {
+  const inv = inventory(BASE);
+  const first = await build(inv);
+  await new Promise((resolve) => setTimeout(resolve, 1100)); // a later wall-clock second
+  const second = await build(inv);
+  try {
+    const { readdirSync, statSync } = await import("node:fs");
+    const files = (dir, base = dir) => readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      return statSync(path).isDirectory() ? files(path, base) : [path.slice(base.length)];
+    });
+    const list = files(first).filter((path) => path.endsWith(".html") || path.endsWith(".json")).sort();
+    assert.deepEqual(files(second).filter((path) => path.endsWith(".html") || path.endsWith(".json")).sort(), list);
+    for (const path of list) assert.equal(readFileSync(join(second, path), "utf8"), readFileSync(join(first, path), "utf8"), `${path} changed on rebuild`);
+    const html = readFileSync(join(first, "en/renting/renting-alpha/index.html"), "utf8");
+    const article = JSON.parse(/<script type="application\/ld\+json"[^>]*>([^<]*)<\/script>/.exec(html)[1])["@graph"][0];
+    assert.equal(article.dateModified, inv.details.en.get("renting-alpha").updatedAt);
+    assert.equal(article.datePublished, inv.details.en.get("renting-alpha").publishedAt);
+    assert.match(html, new RegExp(`<time datetime="${article.dateModified}">`), "the visible Updated date is the same value");
+  } finally {
+    rmSync(first, { recursive: true });
+    rmSync(second, { recursive: true });
+  }
+});
