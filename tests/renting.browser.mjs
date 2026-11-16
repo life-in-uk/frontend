@@ -1,10 +1,12 @@
-// Renting & Moving In (Phase 1) on the normal local site (FRONTEND_URL,
+// Renting & Moving In (Phases 1 and 2) on the normal local site (FRONTEND_URL,
 // default http://127.0.0.1:5173) against the real local backend. Covers: hub
-// in five locales with the six Guides linked; the journey (scope question,
-// out-of-scope notice with a way on, three branches, ten steps, key points
-// read from the published Guides, checklist progress, nothing written to
-// storage); every Guide in five locales with evidence and in-text links;
-// navigation from Home, header and footer; Urdu RTL; 320px and 390px.
+// in five locales with the twelve Guides linked; the journey (scope question,
+// out-of-scope notice with a way on, three branches, sixteen steps from
+// listings to the household bills, key points read from the published Guides,
+// checklist progress and completion, nothing written to storage, no
+// commercial slot shown); every Guide in five locales with evidence and
+// in-text links; navigation from Home, header and footer; Urdu RTL; 320px
+// and 390px.
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -16,7 +18,11 @@ const LOCALES = [["", "zh-CN", "ltr"], ["/zh-TW", "zh-TW", "ltr"], ["/en", "en",
 const SLUGS = [
   "renting-letting-agent-overview", "renting-finding-viewing", "renting-referencing-checks",
   "renting-guarantors", "renting-deposits-fees", "renting-tenancy-agreement",
+  "renting-moving-in-inventory", "renting-council-tax", "renting-energy",
+  "renting-water", "renting-broadband", "renting-tv-licence",
 ];
+const ORDER = "listing,contact,viewing,apply,referencing,guarantor,agreement,payments,sign,keys," +
+  "inventory,council-tax,energy,water,broadband,tv-licence";
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
 let checks = 0;
 const ok = (cond, msg) => { assert.ok(cond, msg); checks++; };
@@ -44,10 +50,9 @@ try {
     await page.goto(`${baseURL}${prefix}/renting`);
     await page.waitForSelector(".work-guide-link");
     ok((await page.locator("html").getAttribute("dir")) === dir, `${locale} dir`);
-    ok((await page.locator(".work-guide-card").count()) === 6, `${locale} 6 cards`);
-    ok((await page.locator(".work-guide-link").count()) === 6, `${locale} 6 linked Guides`);
-    ok((await page.locator(".renting-later-list li").count()) === 6, `${locale} 6 Phase 2 extension points`);
-    ok((await page.locator(".renting-later-list a").count()) === 0, `${locale} extension points are not links`);
+    ok((await page.locator(".work-guide-card").count()) === 12, `${locale} 12 cards`);
+    ok((await page.locator(".work-guide-link").count()) === 12, `${locale} 12 linked Guides`);
+    ok((await page.locator(".renting-later, .renting-later-list").count()) === 0, `${locale} no "in preparation" list remains`);
     ok((await page.locator(".renting-step").count()) === 0, `${locale} steps wait for answers`);
 
     // Out of scope: a notice with a way on, and a way back.
@@ -61,19 +66,25 @@ try {
 
     for (const branch of ["student-newcomer", "employed-family", "other"]) {
       await answer(page, branch);
-      ok((await page.locator(".renting-step").count()) === 10, `${locale} ${branch} 10 steps`);
+      ok((await page.locator(".renting-step").count()) === 16, `${locale} ${branch} 16 steps`);
       const order = await page.locator(".renting-step").evaluateAll((els) => els.map((el) => el.dataset.step));
-      ok(order.join() === "listing,contact,viewing,apply,referencing,guarantor,agreement,payments,sign,keys", `${locale} order ${order}`);
-      ok((await page.locator(".renting-guide-link").count()) === 10, `${locale} ${branch} every step links its Guide`);
+      ok(order.join() === ORDER, `${locale} order ${order}`);
+      ok((await page.locator(".renting-guide-link").count()) === 16, `${locale} ${branch} every step links its Guide`);
       ok((await page.locator(".renting-unpublished").count()) === 0, `${locale} ${branch} no unpublished steps`);
       const facts = await page.locator(".renting-fact-list li").count();
-      ok(facts >= 30, `${locale} ${branch} key points from Guides (${facts})`);
+      ok(facts >= 55, `${locale} ${branch} key points from Guides (${facts})`);
       const kinds = new Set(await page.locator(".renting-fact-list li").evaluateAll((els) => els.map((el) => el.dataset.kind)));
       ok(["legal", "agent", "optional", "help"].every((kind) => kinds.has(kind)), `${locale} ${branch} four kinds shown`);
       const hasNoCredit = (await page.locator('[data-evidence="no-uk-history"]').count()) > 0;
       ok(hasNoCredit === (branch === "student-newcomer"), `${locale} ${branch} no-UK-credit help only for students/newcomers`);
       ok((await page.locator('[data-step="guarantor"] [data-evidence="guarantor-is-condition"][data-kind="agent"]').count()) === 1,
         `${locale} ${branch} guarantor shown as agent practice`);
+      const studentCouncilTax = (await page.locator('[data-step="council-tax"] [data-evidence="students-exempt"]').count()) > 0;
+      ok(studentCouncilTax === (branch === "student-newcomer"), `${locale} ${branch} student Council Tax points only for students`);
+      ok((await page.locator('[data-step="council-tax"] [data-evidence="hmo"]').count()) === 1, `${locale} ${branch} HMO exception shown`);
+      ok((await page.locator('[data-step="energy"] [data-evidence="tenant-can-switch"][data-kind="optional"]').count()) === 1,
+        `${locale} ${branch} switching supplier shown as optional`);
+      ok((await page.locator(".renting-recommendation, [data-recommendation]").count()) === 0, `${locale} ${branch} no commercial slot shown`);
     }
     // Checklist progress, held in memory only.
     const before = await page.locator(".renting-progress").innerText();
@@ -81,6 +92,12 @@ try {
     await page.locator('[data-task="keys-date"]').check();
     const after = await page.locator(".renting-progress").innerText();
     ok(before !== after && /2/.test(after), `${locale} progress updates (${before} → ${after})`);
+    ok((await page.locator(".renting-complete").count()) === 0, `${locale} not complete yet`);
+    const unticked = page.locator(".renting-task input:not(:checked)");
+    while ((await unticked.count()) > 0) await unticked.first().check();
+    await page.waitForSelector(".renting-complete[role=status]");
+    const nums = (await page.locator(".renting-progress").innerText()).match(/\d+/g);
+    ok(nums?.length === 2 && nums[0] === nums[1], `${locale} progress shows all done (${nums})`);
     ok((await page.evaluate(() => localStorage.length + sessionStorage.length)) === 0, `${locale} journey stores nothing`);
     ok((await page.locator('main input[type="text"], main input[type="file"], main textarea').count()) === 0, `${locale} no personal-data inputs`);
     // A step link opens the Guide in the same locale.
@@ -102,7 +119,8 @@ try {
       const h1 = await page.locator("h1").first().innerText();
       ok(h1.length > 5 && !/找不到|没有找到|not found/i.test(h1), `${locale} ${slug} h1 "${h1}"`);
       const refs = await page.locator("a.guide-reference").count();
-      ok(refs >= 1, `${locale} ${slug} in-text Guide references linked (${refs})`);
+      // The Council Tax Guide refers to no other Guide in its text.
+      if (slug !== "renting-council-tax") ok(refs >= 1, `${locale} ${slug} in-text Guide references linked (${refs})`);
       if (slug === "renting-deposits-fees") {
         await page.locator(".evidence-toggle").first().click();
         ok((await page.locator('main a[href^="https://www.gov.uk/"]').count()) >= 1, `${locale} evidence shows a GOV.UK source`);
@@ -144,7 +162,9 @@ try {
       if (locale === "ur" || locale === "zh-CN") await page.screenshot({ path: `${screenshots}/hub-${locale}-${width}.png`, fullPage: true });
     }
     for (const path of ["/renting/renting-deposits-fees", "/ur/renting/renting-tenancy-agreement", "/hi/renting/renting-referencing-checks",
-      "/en/renting/renting-guarantors", "/zh-TW/renting/renting-finding-viewing"]) {
+      "/en/renting/renting-guarantors", "/zh-TW/renting/renting-finding-viewing",
+      "/renting/renting-moving-in-inventory", "/ur/renting/renting-council-tax", "/ur/renting/renting-energy",
+      "/hi/renting/renting-water", "/en/renting/renting-broadband", "/zh-TW/renting/renting-tv-licence", "/ur/renting/renting-tv-licence"]) {
       await page.goto(`${baseURL}${path}`);
       await page.waitForSelector("h1");
       await page.waitForTimeout(300);

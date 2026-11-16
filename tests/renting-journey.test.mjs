@@ -1,9 +1,9 @@
-// Renting & Moving In (Phase 1): the journey follows the fixed renting
-// sequence, every step links to one of the six Renting Guides, branches only
+// Renting & Moving In (Phases 1 and 2): the journey follows the fixed renting
+// sequence from listings to keys and on to the household bills after moving
+// in, every step links to one of the twelve Renting Guides, branches only
 // filter (never add rules), out-of-scope answers end in a scope notice with a
-// way on, all copy exists in five locales, no rule is restated as journey
-// copy, and the Phase 2 move-in topics are present as unlinked extension
-// points. The section is a normal localized Guide domain in the navigation.
+// way on, all copy exists in five locales, and no rule is restated as journey
+// copy. The section is a normal localized Guide domain in the navigation.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -17,7 +17,6 @@ import {
   RENTING_COPY,
   RENTING_FACT_KINDS,
   RENTING_GUIDE_SLUGS,
-  RENTING_LATER_STEPS,
   RENTING_SCOPES,
   RENTING_STEP_ORDER,
   RENTING_STEPS,
@@ -33,14 +32,15 @@ import { SITE_UI } from "../src/guides/siteUi.ts";
 
 const BRANCHES = RENTING_BRANCHES.map((branch) => branch.id);
 
-test("the journey follows listing → contact → viewing → apply → referencing → guarantor → agreement → payments → sign → keys", () => {
+test("the journey runs listing → … → sign → keys, then inventory → Council Tax → energy → water → broadband → TV Licence", () => {
   assert.deepEqual(RENTING_STEP_ORDER, [
     "listing", "contact", "viewing", "apply", "referencing",
     "guarantor", "agreement", "payments", "sign", "keys",
+    "inventory", "council-tax", "energy", "water", "broadband", "tv-licence",
   ]);
 });
 
-test("there are exactly six Phase 1 Guides, each owned by the renting domain and used by a step", () => {
+test("there are exactly twelve Renting Guides, each owned by the renting domain and used by a step", () => {
   assert.deepEqual([...RENTING_GUIDE_SLUGS], [
     "renting-letting-agent-overview",
     "renting-finding-viewing",
@@ -48,6 +48,12 @@ test("there are exactly six Phase 1 Guides, each owned by the renting domain and
     "renting-guarantors",
     "renting-deposits-fees",
     "renting-tenancy-agreement",
+    "renting-moving-in-inventory",
+    "renting-council-tax",
+    "renting-energy",
+    "renting-water",
+    "renting-broadband",
+    "renting-tv-licence",
   ]);
   assert.deepEqual(new Set(Object.values(RENTING_GUIDE_DOMAIN.titleReferences)), new Set(RENTING_GUIDE_SLUGS));
   assert.deepEqual(guidesFor(RENTING_STEPS), [...RENTING_GUIDE_SLUGS]);
@@ -70,7 +76,7 @@ test("scope and branch answers: out-of-scope ends in a notice; unknown values ar
   assert.deepEqual(BRANCHES, ["student-newcomer", "employed-family", "other"]);
 });
 
-test("every branch sees all ten steps, each with at least one task and one key point", () => {
+test("every branch sees all sixteen steps, each with at least one task and one key point", () => {
   for (const branch of BRANCHES) {
     for (const step of RENTING_STEPS) {
       assert.ok(stepTasks(step, branch).length > 0, `${branch}:${step.id} tasks`);
@@ -158,7 +164,7 @@ test("journey copy restates no amounts, caps or time limits (those come from the
 test("all journey copy exists in all five locales", () => {
   const all = [
     ...Object.values(RENTING_COPY), ...Object.values(RENTING_FACT_KINDS),
-    ...RENTING_SCOPES.map((scope) => scope.label), ...RENTING_LATER_STEPS.map((step) => step.title),
+    ...RENTING_SCOPES.map((scope) => scope.label),
     ...RENTING_BRANCHES.flatMap((branch) => [branch.label, branch.hint, branch.note]),
     ...RENTING_STEPS.flatMap((step) => [step.title, step.action, ...step.tasks.map((task) => task.label)]),
   ];
@@ -169,11 +175,30 @@ test("all journey copy exists in all five locales", () => {
   }
 });
 
-test("Phase 2 extension points: six move-in topics, in order, not yet linked", () => {
-  assert.deepEqual(RENTING_LATER_STEPS.map((step) => step.id), [
-    "moving-in-inventory", "council-tax", "energy", "water", "broadband", "tv-licence",
-  ]);
-  for (const step of RENTING_LATER_STEPS) assert.ok(!("guide" in step), step.id);
+test("Phase 2 steps: students see Council Tax and TV Licence points; newcomers see the no-credit-history point", () => {
+  const step = (id) => RENTING_STEPS.find((item) => item.id === id);
+  const keys = (id, branch) => stepFacts(step(id), branch).map((fact) => fact.key);
+  for (const key of ["students-exempt", "student-certificate", "mixed-household"]) {
+    assert.ok(keys("council-tax", "student-newcomer").includes(key), key);
+    assert.ok(!keys("council-tax", "employed-family").includes(key), key);
+  }
+  assert.ok(stepTasks(step("council-tax"), "student-newcomer").some((task) => task.id === "council-tax-student-proof"));
+  assert.ok(!stepTasks(step("council-tax"), "other").some((task) => task.id === "council-tax-student-proof"));
+  assert.ok(keys("energy", "student-newcomer").includes("credit-check"));
+  assert.ok(keys("tv-licence", "student-newcomer").includes("home-address"));
+  // Council Tax liability and the HMO exception apply to everyone.
+  for (const branch of BRANCHES) assert.ok(["liable-person", "hmo"].every((key) => keys("council-tax", branch).includes(key)));
+});
+
+test("Phase 2 wording: switching energy supplier is optional, students are not promised an exemption", () => {
+  const energy = RENTING_STEPS.find((item) => item.id === "energy");
+  assert.equal(energy.facts.find((fact) => fact.key === "tenant-can-switch")?.kind, "optional");
+  assert.match(energy.action.en, /Changing supplier is optional, not required/);
+  const student = RENTING_BRANCHES.find((branch) => branch.id === "student-newcomer");
+  assert.match(student.note.en, /the council decides/);
+  for (const step of RENTING_STEPS)
+    for (const locale of GUIDE_LOCALES) assert.doesNotMatch(step.action[locale], /自动免除|automatically exempt/u, `${step.id} ${locale}`);
+  assert.ok(RENTING_COPY.completeTitle.en && RENTING_COPY.completeText.en);
 });
 
 test("the renting section is a localized Guide domain linked from the navigation", () => {

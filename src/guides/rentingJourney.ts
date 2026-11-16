@@ -1,5 +1,6 @@
 // Renting Journey (England, letting-agency lets): the user-facing layer over
-// the six Phase 1 Renting Guides, built on the same ideas as the Family &
+// the twelve Renting Guides (Phase 1: finding a home to keys; Phase 2: moving
+// in and household bills), built on the same ideas as the Family &
 // Visa journey and checklist — a typed, pure model; answers are categories
 // only; every step links to the Guide it summarises; and no rule is restated
 // here. A step's "key points" are evidence statements read from the
@@ -9,10 +10,9 @@
 // Ticks live in page memory only. Nothing is stored or sent, and the page
 // never asks for personal details or documents.
 //
-// Phase 2 extension points: RENTING_LATER_STEPS lists the move-in topics
-// (inventory, Council Tax, energy, water, broadband, TV Licence) that will
-// continue the journey after "keys". They are shown as "in preparation" and
-// never linked until their Guides exist.
+// After "keys", Phase 2 continues with inventory and condition, Council Tax,
+// electricity and gas, water, broadband and the TV Licence. A step whose Guide
+// is not published shows no key points and no Guide link.
 
 import type { GuideDetail, GuideEvidence } from "./api.ts";
 import type { GuideLocale } from "./locales.ts";
@@ -20,7 +20,6 @@ import {
   RENTING_BRANCHES,
   RENTING_FACT_KINDS,
   RENTING_GUIDE_SLUGS,
-  RENTING_LATER_STEPS,
   RENTING_SCOPES,
   RENTING_STEPS,
 } from "./rentingJourneyData.ts";
@@ -30,7 +29,6 @@ export {
   RENTING_COPY,
   RENTING_FACT_KINDS,
   RENTING_GUIDE_SLUGS,
-  RENTING_LATER_STEPS,
   RENTING_SCOPES,
   RENTING_STEPS,
 } from "./rentingJourneyData.ts";
@@ -61,7 +59,11 @@ export type RentingAnswers = {
   branch?: RentingBranchId;
 };
 
-/** The fixed order: listing → contact → viewing → apply → referencing → guarantor → agreement → payments → sign → keys. */
+/**
+ * The fixed order: listing → contact → viewing → apply → referencing →
+ * guarantor → agreement → payments → sign → keys → inventory → Council Tax →
+ * energy → water → broadband → TV Licence.
+ */
 export const RENTING_STEP_ORDER: readonly RentingStepId[] = RENTING_STEPS.map((step) => step.id);
 
 const SCOPE_IDS = new Set<string>(RENTING_SCOPES.map((scope) => scope.id));
@@ -141,4 +143,3 @@ export function guidesFor(steps: readonly RentingStep[]): RentingGuideSlug[] {
   return RENTING_GUIDE_SLUGS.filter((slug) => wanted.has(slug));
 }
 
-export const RENTING_LATER_IDS: readonly string[] = RENTING_LATER_STEPS.map((step) => step.id);

@@ -137,6 +137,12 @@ export const RENTING_GUIDE_DOMAIN: GuideDomain = {
     "担保人：学生、刚到英国和没有英国信用记录的人怎么办": "renting-guarantors",
     "定金、押金和允许收取的费用：英格兰租房要付哪些钱": "renting-deposits-fees",
     "签租约前要检查什么：英格兰租约和书面信息": "renting-tenancy-agreement",
+    "入住当天：拿钥匙、清单（inventory）和房屋状况记录": "renting-moving-in-inventory",
+    "入住后的 Council Tax：谁要付、学生免除、单人折扣和账单问题": "renting-council-tax",
+    "电和燃气：入住时找到供应商、抄表、开账户和付款方式": "renting-energy",
+    "水费和污水费：找到供水公司、登记新住户、水表和账单": "renting-water",
+    "宽带和上网：查可用性、速度保证、合约期、安装和搬家": "renting-broadband",
+    "TV Licence（电视许可证）：什么时候需要、合租和学生怎么办": "renting-tv-licence",
   },
   relatedGuides: {},
 };

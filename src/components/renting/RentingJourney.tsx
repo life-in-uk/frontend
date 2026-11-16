@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight, CircleCheck, RotateCcw } from "lucide-react";
 import { getGuide, getLocalizedGuide } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { guideRoutePath } from "../../guides/locales";
@@ -20,13 +20,16 @@ import {
 } from "../../guides/rentingJourney";
 import type { RentingAnswers, RentingBranchId, RentingScopeId } from "../../guides/rentingJourney";
 import { Link } from "../Link";
+import { RENTING_STEP_RECOMMENDATIONS } from "../../guides/recommendations";
+import { RecommendationSlot } from "./RecommendationSlot";
 
 type DetailState = "loading" | "error" | GuideDetail;
 
 /**
- * The Renting Journey: two category questions, then the ten steps with their
- * Guide links, key points read from the published Guides, and a checklist
- * held in page memory only.
+ * The Renting Journey: two category questions, then the steps from listings
+ * to the household bills after moving in, with their Guide links, key points
+ * read from the published Guides, and a checklist held in page memory only.
+ * When every task that applies is ticked, the move-in checklist is complete.
  */
 export function RentingJourney({
   locale,
@@ -188,6 +191,9 @@ export function RentingJourney({
                     </fieldset>
                   )}
 
+                  {RENTING_STEP_RECOMMENDATIONS[step.id] && (
+                    <RecommendationSlot context={RENTING_STEP_RECOMMENDATIONS[step.id]} locale={locale} />
+                  )}
                   {meta ? (
                     <Link to={guideRoutePath(locale, "renting", step.guide)} className="renting-guide-link" data-guide={step.guide}>
                       <span>
@@ -202,6 +208,15 @@ export function RentingJourney({
               );
             })}
           </ol>
+          {progress.total > 0 && progress.done === progress.total && (
+            <div className="renting-complete" role="status" data-complete="true">
+              <h3>
+                <CircleCheck size={18} aria-hidden="true" />
+                {copy.completeTitle[locale]}
+              </h3>
+              <p>{copy.completeText[locale]}</p>
+            </div>
+          )}
           <button type="button" className="renting-reset" onClick={reset}>
             <RotateCcw size={14} aria-hidden="true" />
             {copy.change[locale]}

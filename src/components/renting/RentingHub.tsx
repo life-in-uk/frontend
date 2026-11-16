@@ -6,7 +6,7 @@ import { RENTING_GUIDE_DOMAIN } from "../../guides/domains";
 import { formatUkDateFor } from "../../guides/format";
 import { GUIDE_LOCALE_LANG, guideRoutePath } from "../../guides/locales";
 import type { GuideLocale } from "../../guides/locales";
-import { RENTING_COPY, RENTING_GUIDE_SLUGS, RENTING_LATER_STEPS } from "../../guides/rentingJourney";
+import { RENTING_COPY, RENTING_GUIDE_SLUGS } from "../../guides/rentingJourney";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import { RentingJourney } from "./RentingJourney";
@@ -73,20 +73,6 @@ export function RentingHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       ) : (
         <RentingJourney locale={locale} published={published} />
       )}
-
-      <section className="renting-later" aria-labelledby="renting-later-title">
-        <div className="work-section-heading">
-          <h2 id="renting-later-title">{copy.laterTitle[locale]}</h2>
-          <p>{copy.laterLead[locale]}</p>
-        </div>
-        <ul className="renting-later-list">
-          {RENTING_LATER_STEPS.map((step) => (
-            <li key={step.id} data-later={step.id}>
-              {step.title[locale]}
-            </li>
-          ))}
-        </ul>
-      </section>
 
       <section className="work-plan" aria-labelledby="renting-guides-title">
         <div className="work-section-heading">
