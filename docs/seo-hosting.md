@@ -14,7 +14,8 @@ development and must not be deployed.
 
 `scripts/seo/static-host.mjs` is a dependency-free reference implementation of
 the rules below (`npm run preview:release` serves `dist/` on port 4174), and
-`tests/seo-release.test.mjs` checks it. Any static host or reverse proxy that
+`tests/seo-release.test.mjs` checks it. `vite preview` (dev/prerenderedPages.ts)
+follows rules 1 and 3 so the browser tests see the same statuses. Any static host or reverse proxy that
 behaves the same way is suitable; no particular provider is assumed.
 
 ## Required behaviour
@@ -30,9 +31,19 @@ behaves the same way is suitable; no particular provider is assumed.
    host cannot redirect, serve the alias HTML that the build also writes: its
    canonical already points at `/zh-CN/…`, so old links keep working and only
    the `/zh-CN/…` URL is indexed. Short URLs are never sitemap entries.
-3. **SPA fallback.** Any other path without a file extension (for example
-   `/travel`, `/`, `/en`) returns `dist/index.html` with status 200 so the app
-   routes it. Missing files with an extension (`/assets/x.js`) return 404.
+3. **App-only routes and unknown paths.** `dist/seo-spa-routes.json` lists the
+   app-only routes (home pages, `/travel` and `/{locale}/travel`,
+   `/{locale}/guides`, Family Visa topic pages: exact `paths`) and path
+   `prefixes` (`/owner/editorial/`). Those return `dist/index.html` with status
+   200. **Every other path without a file extension returns `dist/404.html`
+   with status 404**: unknown sections, mistyped Guide slugs and Guides not
+   published in that locale (every published Guide and hub is a prerendered
+   page, rule 1). `404.html` is the app shell with `noindex` and no canonical,
+   so the app still shows its localized "not found" page while search engines
+   get a real 404 instead of a soft 404. Missing files with an extension
+   (`/assets/x.js`) return 404. A host that cannot return a custom status may
+   fall back to serving `dist/index.html` with 200; the app then marks the page
+   `noindex`, but that is weaker than a real 404.
 4. **API and sitemap.** `/api/*`, `/sitemap.xml` and `/robots.txt` are served
    by the Spring Boot backend.
 5. **Canonical consistency.** The backend must run with
@@ -50,3 +61,12 @@ Publishing, updating or withdrawing a Guide changes the inventory. Run
 `npm run build:release` again and deploy the whole `dist/` (removing files that
 are no longer present), so withdrawn or untranslated pages disappear and the
 validator's "unexpected page" check stays meaningful.
+
+## Structured data
+
+Every prerendered Guide page carries one `<script type="application/ld+json">`
+(an `Article` and a `BreadcrumbList`, built by `src/seo/structuredData.ts`
+from the published title, summary, language, `publishedAt`/`updatedAt` and the
+canonical URL). The app writes the same graph when it renders a Guide and
+removes it on navigation. Topic hubs, home pages and 404 pages have none. The
+release build validates that each Guide's JSON-LD matches the page.

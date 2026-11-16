@@ -7,13 +7,16 @@
 // 1. Redirects from seo-redirects.json (zh-CN short URLs) → 301.
 // 2. An existing file is served as is (hashed /assets/* cached for a year).
 // 3. /path and /path/ serve dist/path/index.html (prerendered page).
-// 4. Anything else that looks like an app route gets the SPA shell (index.html).
+// 4. App-only routes (seo-spa-routes.json) get the SPA shell (index.html), 200.
+//    Any other extensionless path gets 404.html with status 404 (without the
+//    manifest, an older build, the shell with 200 as before).
 // 5. HTML is served with Cache-Control: no-cache so updated Guides show at once.
 import { createServer } from "node:http";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { REDIRECTS_FILE } from "./redirects.mjs";
+import { isSpaRoute, NOT_FOUND_FILE, SPA_ROUTES_FILE } from "./routes.mjs";
 
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
@@ -27,6 +30,8 @@ export function createStaticHost(distDir) {
   const redirects = new Map(
     existsSync(manifest) ? JSON.parse(readFileSync(manifest, "utf8")).redirects.map((row) => [row.from, row]) : [],
   );
+  const routesFile = join(dist, SPA_ROUTES_FILE);
+  const spa = existsSync(routesFile) ? JSON.parse(readFileSync(routesFile, "utf8")) : null;
   const isFile = (file) => file.startsWith(dist + sep) && existsSync(file) && statSync(file).isFile();
   return createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://host");
@@ -58,6 +63,8 @@ export function createStaticHost(distDir) {
       res.writeHead(404, { "Cache-Control": "no-cache" }).end();
       return;
     }
+    const notFound = join(dist, NOT_FOUND_FILE);
+    if (spa && !isSpaRoute(bare, spa) && isFile(notFound)) return send(notFound, 404);
     send(join(dist, "index.html"));
   });
 }

@@ -143,3 +143,14 @@ test("a section without a curated list keeps its section list and adds its cross
   const related = page.body.split('class="static-related"')[1].split("</section>")[0];
   assert.deepEqual([...related.matchAll(/href="([^"]+)"/g)].map((x) => x[1]), ["/ur/family-visa/visiting-family-uk-visitor-visa-eta"]);
 });
+
+test("Guide pages: three-level breadcrumb and one JSON-LD script in the head; hubs have none", () => {
+  const page = staticGuidePage({ origin: ORIGIN, locale: "ur", domainId: "renting", guide: GUIDE, published: PUBLISHED, availableLocales: ["ur"] });
+  assert.match(page.body, /<nav class="static-breadcrumb"[^>]*><ol><li><a href="\/ur">[^<]+<\/a><\/li><li><a href="\/ur\/renting">[^<]+<\/a><\/li><li aria-current="page">Council Tax after moving in<\/li><\/ol><\/nav>/);
+  const html = fillTemplate(TEMPLATE, page);
+  const scripts = [...html.matchAll(/<script type="application\/ld\+json" data-guide-seo="true" data-prerendered="true">([^<]*)<\/script>/g)];
+  assert.equal(scripts.length, 1);
+  assert.equal(JSON.parse(scripts[0][1])["@graph"][0].url, "https://example.test/ur/renting/renting-council-tax");
+  const hub = staticHubPage({ origin: ORIGIN, locale: "en", domainId: "renting", published: PUBLISHED, availableLocales: ["en"] });
+  assert.doesNotMatch(fillTemplate(TEMPLATE, hub), /application\/ld\+json/);
+});

@@ -16,6 +16,7 @@ import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
 import { GuideMarkdown } from "./GuideMarkdown";
 import { titleReferencesFor } from "../../guides/titleReferences";
+import { guideStructuredData } from "../../seo/structuredData";
 import "./Guide.css";
 
 /** Optional section-specific look; the page works without any of it. */
@@ -116,7 +117,8 @@ export function GuidePage({
     if (state.status === "ready") {
       const canonical = new URL(localizedGuidePath(locale, domain.id, slug), window.location.origin).href;
       applyGuideSeo({ locale, canonical, title: `${state.guide.title} · Life in UK`, description: state.guide.summary,
-        alternates: guideAlternates(window.location.origin, domain.id, slug, availableLocales) });
+        alternates: guideAlternates(window.location.origin, domain.id, slug, availableLocales),
+        structuredData: guideStructuredData({ origin: window.location.origin, locale, domainId: domain.id, guide: state.guide }) });
     } else if (state.status === "not-found" || state.status === "error") {
       applyGuideSeo({ locale, canonical: null,
         title: state.status === "not-found" ? "Guide not found · Life in UK" : "Guide unavailable · Life in UK",

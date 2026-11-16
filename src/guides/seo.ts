@@ -51,6 +51,8 @@ export function applyGuideSeo(options: {
   description: string;
   alternates?: readonly AlternatePage[];
   noIndex?: boolean;
+  /** schema.org JSON-LD for the page (src/seo/structuredData.ts); only with a canonical URL. */
+  structuredData?: unknown;
 }): void {
   clearGuideSeo(options.locale);
   document.title = options.title;
@@ -82,6 +84,13 @@ export function applyGuideSeo(options: {
       fallback.href = options.alternates.find((row) => row.locale === "zh-CN")!.href;
       fallback.dataset.guideSeo = "true";
       document.head.append(fallback);
+    }
+    if (options.structuredData) {
+      const script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.dataset.guideSeo = "true";
+      script.textContent = JSON.stringify(options.structuredData);
+      document.head.append(script);
     }
   }
   if (options.noIndex) {

@@ -195,8 +195,69 @@ test("the reference static host follows the hosting contract", async () => {
     assert.equal(asset.headers.get("cache-control"), "public, max-age=31536000, immutable");
     assert.equal((await get("/assets/missing.js")).status, 404);
     assert.equal((await get("/%E0%A4%A")).status, 400);
+    // App-only routes answer 200 with the shell; unknown paths, unknown or untranslated Guide slugs answer 404 with a noindex page.
+    for (const path of ["/", "/en", "/zh-CN", "/ur/travel", "/hi/guides", "/family-visa/topics/children-from-previous-relationship", "/owner/editorial/batches"]) {
+      const response = await get(path);
+      assert.equal(response.status, 200, path);
+      assert.doesNotMatch(await response.text(), /noindex/, path);
+    }
+    for (const path of ["/en/renting/no-such-guide", "/hi/renting/renting-alpha", "/renting/no-such-guide", "/en/no-such-section", "/no-such-page", "/en/travel/x", "/family-visa/topics/unknown"]) {
+      const response = await get(path);
+      assert.equal(response.status, 404, path);
+      const html = await response.text();
+      assert.match(html, /<meta name="robots" content="noindex"/, path);
+      assert.doesNotMatch(html, /rel="canonical"|application\/ld\+json/, path);
+      assert.match(html, /<script type="module"/, `${path}: the app still loads and shows its not-found page`);
+    }
   } finally {
     server.close();
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test("unknown-path contract: app-only routes are real routes, never prerendered pages; 404.html is noindex", async () => {
+  const { spaRoutes, isSpaRoute, NOT_FOUND_FILE, SPA_ROUTES_FILE } = await import("../scripts/seo/routes.mjs");
+  const { matchRoute } = await import("../src/router.ts");
+  const routes = spaRoutes();
+  for (const path of routes.paths) assert.notEqual(matchRoute(path).name, "not-found", path);
+  for (const path of routes.paths) assert.ok(!["guide", "localized-guide", "hub", "localized-hub"].includes(matchRoute(path).name), `${path} must be prerendered, not app-only`);
+  assert.ok(isSpaRoute("/owner/editorial/x", routes) && !isSpaRoute("/owner", routes));
+  const inv = inventory(BASE);
+  const dir = await build(inv);
+  try {
+    assert.deepEqual(JSON.parse(readFileSync(join(dir, SPA_ROUTES_FILE), "utf8")).paths, routes.paths);
+    assert.match(readFileSync(join(dir, NOT_FOUND_FILE), "utf8"), /<title>Page not found · Life in UK<\/title>/);
+    // A 404 page that could be indexed fails the release.
+    writeFileSync(join(dir, NOT_FOUND_FILE), SHELL);
+    const { errors } = await validate(dir, inv);
+    assert.ok(errors.some((error) => error.includes("404.html: no noindex")), errors.join("\n"));
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test("Guide JSON-LD: one Article + BreadcrumbList matching the page; hubs carry none; a mismatch fails the release", async () => {
+  const inv = inventory(BASE);
+  const dir = await build(inv);
+  try {
+    const html = readFileSync(join(dir, "ur/renting/renting-alpha/index.html"), "utf8");
+    const scripts = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
+    assert.equal(scripts.length, 1);
+    const [article, crumbs] = JSON.parse(scripts[0][1])["@graph"];
+    assert.equal(article["@type"], "Article");
+    assert.equal(article.headline, "renting-alpha title (ur)");
+    assert.equal(article.inLanguage, "ur");
+    assert.equal(article.url, `${ORIGIN}/ur/renting/renting-alpha`);
+    assert.equal(article.dateModified, "2026-11-16T14:25:00Z");
+    assert.equal(article.author, undefined);
+    assert.equal(article.publisher, undefined);
+    assert.deepEqual(crumbs.itemListElement.map((row) => row.item), [`${ORIGIN}/ur`, `${ORIGIN}/ur/renting`, `${ORIGIN}/ur/renting/renting-alpha`]);
+    assert.doesNotMatch(readFileSync(join(dir, "ur/renting/index.html"), "utf8"), /application\/ld\+json/);
+    // Tampered headline: the release must fail.
+    writeFileSync(join(dir, "ur/renting/renting-alpha/index.html"), html.replace('"headline":"renting-alpha title (ur)"', '"headline":"Something else"'));
+    const { errors } = await validate(dir, inv);
+    assert.ok(errors.some((error) => error.includes("/ur/renting/renting-alpha: Article JSON-LD does not match the page")), errors.join("\n"));
+  } finally {
     rmSync(dir, { recursive: true });
   }
 });

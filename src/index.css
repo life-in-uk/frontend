@@ -132,6 +132,17 @@ svg {
 .static-summary {
   color: var(--color-muted);
 }
+.static-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.static-breadcrumb li + li::before {
+  content: "› ";
+}
 
 /* Topic hubs: GOV.UK pages the section's Guides cite (TopicCluster.tsx). */
 .cluster-official {

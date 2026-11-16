@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fillTemplate, staticGuidePage, staticHubPage } from "../../src/seo/staticPages.ts";
 import { aliasFor, expectedPages } from "./inventory.mjs";
+import { writeNotFound } from "./routes.mjs";
 
 export const SPA_ROOT = '<div id="root"></div>';
 
@@ -36,5 +37,7 @@ export async function prerender({ distDir, origin, inventory }) {
     const alias = aliasFor(page);
     if (alias) await write(alias, html);
   }
+  // 404.html and the app-only route list for the host's status contract (routes.mjs).
+  await writeNotFound(distDir, template);
   return { pages, written };
 }

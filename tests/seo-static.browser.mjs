@@ -151,6 +151,56 @@ try {
     ok((await page.locator('link[rel="canonical"]').getAttribute("href")) === `${origin}/en/renting/renting-council-tax` ||
       (await page.locator('link[rel="canonical"]').getAttribute("href")).endsWith("/en/renting/renting-council-tax"), "Guide canonical after in-app navigation");
     ok((await page.locator('[data-prerendered="true"]').count()) === 0, "no prerendered head tags remain after navigation");
+    // Structured data parity (Phase 4A): one JSON-LD graph that follows the page through in-app navigation.
+    const jsonLd = () => page.evaluate(() => [...document.querySelectorAll('script[type="application/ld+json"]')].map((el) => JSON.parse(el.textContent)));
+    const raw = await (await fetch(`${FRONTEND}/hi/money/national-insurance-number-newcomers`)).text();
+    const rawGraph = JSON.parse(/<script type="application\/ld\+json"[^>]*>([^<]*)<\/script>/.exec(raw)[1])["@graph"];
+    await page.goto(`${FRONTEND}/hi/money/national-insurance-number-newcomers`);
+    await page.waitForSelector("article.guide-article");
+    await page.waitForFunction(() => document.querySelectorAll('script[type="application/ld+json"]:not([data-prerendered])').length === 1, null, { timeout: 10000 });
+    let graphs = await jsonLd();
+    ok(graphs.length === 1, "one JSON-LD script after the app loads");
+    const [appArticle, appCrumbs] = graphs[0]["@graph"];
+    ok(appArticle.headline === rawGraph[0].headline && appArticle.headline === (await page.locator("h1").innerText()).trim(), "app Article headline = raw = visible H1");
+    ok(appArticle.dateModified === rawGraph[0].dateModified && appArticle.inLanguage === "hi", "app Article dates and language = raw");
+    ok(appArticle.url === (await page.locator('link[rel="canonical"]').getAttribute("href")), "app Article url = app canonical");
+    ok(JSON.stringify(appCrumbs.itemListElement.map((row) => row.name)) === JSON.stringify(await page.locator("nav.breadcrumb li").allInnerTexts()), "BreadcrumbList = visible breadcrumb");
+    // Five locales: the app's JSON-LD language, headline and breadcrumb follow the page.
+    for (const locale of ["zh-CN", "zh-TW", "en", "ur", "hi"]) {
+      const path = `/${locale}/family-visa/visiting-family-uk-visitor-visa-eta`;
+      await page.goto(FRONTEND + path);
+      await page.waitForFunction(() => document.querySelectorAll('script[type="application/ld+json"]:not([data-prerendered])').length === 1, null, { timeout: 10000 });
+      const [graph] = await jsonLd();
+      ok(graph["@graph"][0].inLanguage === (await page.locator("html").getAttribute("lang")), `${locale} JSON-LD language = html lang`);
+      ok(graph["@graph"][0].headline === (await page.locator("h1").innerText()).trim(), `${locale} JSON-LD headline = H1`);
+      ok(JSON.stringify(graph["@graph"][1].itemListElement.map((row) => row.name)) === JSON.stringify(await page.locator("nav.breadcrumb li").allInnerTexts()), `${locale} BreadcrumbList = visible breadcrumb`);
+    }
+    await page.goto(`${FRONTEND}/hi/money/national-insurance-number-newcomers`);
+    await page.waitForFunction(() => document.querySelectorAll('script[type="application/ld+json"]:not([data-prerendered])').length === 1, null, { timeout: 10000 });
+    // Guide → Guide (cross-section) → hub: never stale or duplicated.
+    await page.locator('.related-guides a[href="/hi/work-visa/skilled-worker-overview"]').click();
+    await page.waitForFunction(() => document.querySelector('script[type="application/ld+json"]')?.textContent.includes("skilled-worker-overview"), null, { timeout: 10000 });
+    graphs = await jsonLd();
+    ok(graphs.length === 1 && graphs[0]["@graph"][0].url.endsWith("/hi/work-visa/skilled-worker-overview"), "after Guide → Guide navigation: one JSON-LD for the new Guide");
+    ok((await page.locator('link[rel="canonical"]').count()) === 1 && (await page.locator('[data-prerendered="true"]').count()) === 0, "one canonical, no prerendered tags left");
+    await page.locator("nav.breadcrumb li:nth-child(2) a").click();
+    await page.waitForFunction(() => location.pathname === "/hi/work-visa", null, { timeout: 10000 });
+    await page.waitForTimeout(500);
+    ok((await jsonLd()).length === 0, "hub after a Guide: no JSON-LD left");
+
+    // Unknown Guide slug and unknown path: 404 status, noindex, no canonical or JSON-LD; leaving the 404 removes noindex.
+    for (const path of ["/en/renting/no-such-guide", "/ur/no-such-section", "/hi/renting/no-such-guide"]) {
+      const response = await page.goto(FRONTEND + path);
+      ok(response.status() === 404, `${path} answers 404 (${response.status()})`);
+      await page.waitForSelector('meta[name="robots"][content*="noindex"]', { state: "attached", timeout: 10000 });
+      await page.waitForSelector("h1");
+      ok((await page.locator('link[rel="canonical"]').count()) === 0 && (await jsonLd()).length === 0, `${path} no canonical or JSON-LD`);
+      ok((await page.locator('meta[name="robots"]').count()) === 1, `${path} one robots tag`);
+    }
+    await page.locator('a[href="/hi"]').first().click();
+    await page.waitForFunction(() => location.pathname === "/hi", null, { timeout: 10000 });
+    await page.waitForTimeout(500);
+    ok((await page.locator('meta[name="robots"]').count()) === 0, "a real page after a 404 is not noindex");
     ok(errors.length === 0, `no page errors ${errors}`);
     await context.close();
   }

@@ -35,6 +35,7 @@ import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales.ts";
 import { RENTING_COPY, RENTING_MOVE_OUT_STEPS, RENTING_STEPS } from "../guides/rentingJourneyData.ts";
 import { SITE_UI } from "../guides/siteUi.ts";
 import { splitTitleReferences, titleReferencesFor } from "../guides/titleReferences.ts";
+import { guideStructuredData, serializeJsonLd } from "./structuredData.ts";
 import { CLUSTER_COPY, clusterGroupsFor, crossSectionLinksFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
 import type { ResolvedGroup } from "../guides/topicClusters.ts";
 import type { TitleReferences } from "../guides/titleReferences.ts";
@@ -205,6 +206,8 @@ export type PageHead = {
   description: string;
   canonical: string;
   alternates: readonly { locale: GuideLocale; href: string }[];
+  /** schema.org JSON-LD (structuredData.ts), Guide pages only. */
+  structuredData?: unknown;
 };
 
 /** Head tags, marked so the app's SEO helper replaces them on the client. */
@@ -217,6 +220,7 @@ export function renderHead(head: PageHead): string {
   ];
   const fallback = head.alternates.find((row) => row.locale === "zh-CN");
   if (fallback) lines.push(`<link rel="alternate" hreflang="x-default" href="${escapeHtml(fallback.href)}" ${tag}>`);
+  if (head.structuredData) lines.push(`<script type="application/ld+json" ${tag}>${serializeJsonLd(head.structuredData)}</script>`);
   return lines.join("\n    ");
 }
 
@@ -273,7 +277,8 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
   const html = [
     renderSiteNav(locale, input.published),
     `<main id="main" class="static-page static-guide">`,
-    `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><a href="${guideHomePath(locale)}">${escapeHtml(ui.home)}</a> › <a href="${escapeHtml(hubHref)}">${escapeHtml(ui.domain[domain.id])}</a></nav>`,
+    // The same three levels as the app's breadcrumb and the BreadcrumbList.
+    `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><ol><li><a href="${guideHomePath(locale)}">${escapeHtml(ui.home)}</a></li><li><a href="${escapeHtml(hubHref)}">${escapeHtml(ui.domain[domain.id])}</a></li><li aria-current="page">${escapeHtml(guide.title)}</li></ol></nav>`,
     `<article>`,
     `<h1>${escapeHtml(guide.title)}</h1>`,
     `<p class="static-summary">${escapeHtml(guide.summary)}</p>`,
@@ -293,6 +298,7 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
     title: `${guide.title} · Life in UK`,
     description: guide.summary,
     canonical: absolute(origin, localizedGuidePath(locale, domain.id, guide.slug)),
+    structuredData: guideStructuredData({ origin, locale, domainId: domain.id, guide }),
     alternates: GUIDE_LOCALES.filter((candidate) => input.availableLocales.includes(candidate)).map((candidate) => ({
       locale: candidate,
       href: absolute(origin, localizedGuidePath(candidate, domain.id, guide.slug)),

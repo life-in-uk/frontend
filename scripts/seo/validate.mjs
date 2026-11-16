@@ -9,6 +9,7 @@ import { aliasFor, expectedPages, HOME_PATHS } from "./inventory.mjs";
 import { isPrivateHost } from "./origin.mjs";
 import { SPA_ROOT } from "./prerender.mjs";
 import { REDIRECTS_FILE } from "./redirects.mjs";
+import { NOT_FOUND_FILE, SPA_ROUTES_FILE } from "./routes.mjs";
 
 /** Minimum visible text of a page's <main> (characters, whitespace collapsed). */
 const MIN_TEXT = { guide: 200, hub: 80 };
@@ -137,6 +138,57 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
         else counts.alias++;
       }
     }
+  }
+
+  // Unknown paths: a noindex 404 page with no canonical, and an app-only route list that never shadows a published page.
+  const notFoundFile = join(distDir, NOT_FOUND_FILE);
+  if (!existsSync(notFoundFile)) fail(`${NOT_FOUND_FILE} missing`);
+  else {
+    const html = await readFile(notFoundFile, "utf8");
+    if (!/<meta name="robots" content="noindex"/.test(html)) fail(`${NOT_FOUND_FILE}: no noindex`);
+    if (/rel="canonical"|hreflang=|application\/ld\+json/.test(html)) fail(`${NOT_FOUND_FILE}: must not carry a canonical, hreflang or structured data`);
+    if (!parsePage(html).loadsApp) fail(`${NOT_FOUND_FILE}: the app script is missing`);
+  }
+  const routesFile = join(distDir, SPA_ROUTES_FILE);
+  if (!existsSync(routesFile)) fail(`${SPA_ROUTES_FILE} missing`);
+  else {
+    const routes = JSON.parse(await readFile(routesFile, "utf8"));
+    for (const home of HOME_PATHS) if (!routes.paths?.includes(home)) fail(`${SPA_ROUTES_FILE}: home page ${home} missing`);
+    for (const path of routes.paths ?? []) if (expected.has(path) || aliases.has(path)) fail(`${SPA_ROUTES_FILE}: ${path} is a prerendered page`);
+  }
+
+  // Guide structured data: one JSON-LD graph that matches the page (structuredData.ts).
+  for (const page of pages.filter((row) => row.kind === "guide")) {
+    const file = join(distDir, page.path, "index.html");
+    if (!existsSync(file)) continue;
+    const html = await readFile(file, "utf8");
+    const scripts = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    if (scripts.length !== 1) {
+      fail(`${page.path}: expected one JSON-LD script, found ${scripts.length}`);
+      continue;
+    }
+    let graph;
+    try {
+      graph = JSON.parse(scripts[0])["@graph"];
+    } catch {
+      fail(`${page.path}: JSON-LD is not valid JSON`);
+      continue;
+    }
+    const article = graph?.find((node) => node["@type"] === "Article");
+    const crumbs = graph?.find((node) => node["@type"] === "BreadcrumbList")?.itemListElement ?? [];
+    const canonical = `${origin}${page.path}`;
+    const parsed = parsePage(html);
+    if (!article || article.headline !== page.title || article.url !== canonical || article.mainEntityOfPage !== canonical
+      || article.inLanguage !== GUIDE_LOCALE_LANG[page.locale] || article.description !== parsed.description
+      || !article.datePublished || !article.dateModified || article.author || article.publisher || article.reviewedBy)
+      fail(`${page.path}: Article JSON-LD does not match the page`);
+    if (crumbs.length !== 3 || crumbs[2].item !== canonical || crumbs[2].name !== page.title || crumbs.some((row, index) => row.position !== index + 1 || !row.item?.startsWith(origin)))
+      fail(`${page.path}: BreadcrumbList JSON-LD does not match the visible breadcrumb`);
+    if (!html.includes(`datetime="${article?.dateModified}"`)) fail(`${page.path}: dateModified is not the date the page shows`);
+  }
+  for (const page of pages.filter((row) => row.kind === "hub")) {
+    const file = join(distDir, page.path, "index.html");
+    if (existsSync(file) && /application\/ld\+json/.test(await readFile(file, "utf8"))) fail(`${page.path}: topic hubs carry no structured data`);
   }
 
   let redirects = 0;

@@ -74,6 +74,13 @@ function App() {
       document.title = "Owner editorial · Life in UK";
   }, [route.name, hubDomain, familyVisaHub, workVisaHub, settlementHub, rentingHub, activeLocale]);
 
+  // Unknown routes: never indexable (the host also answers them with 404, see docs/seo-hosting.md).
+  useEffect(() => {
+    if (route.name !== "not-found") return;
+    applyGuideSeo({ locale: activeLocale, canonical: null, title: `${SITE_UI[activeLocale].notFound.title} · Life in UK`, description: "", noIndex: true });
+    return () => clearGuideSeo(activeLocale);
+  }, [route.name, activeLocale]);
+
   useEffect(() => {
     if (route.name !== "owner-editorial") return;
     applyGuideSeo({ locale: "zh-CN", canonical: null, title: "Owner editorial · Life in UK", description: "", noIndex: true });
