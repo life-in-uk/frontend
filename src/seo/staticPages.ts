@@ -35,7 +35,7 @@ import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales.ts";
 import { RENTING_COPY, RENTING_MOVE_OUT_STEPS, RENTING_STEPS } from "../guides/rentingJourneyData.ts";
 import { SITE_UI } from "../guides/siteUi.ts";
 import { splitTitleReferences, titleReferencesFor } from "../guides/titleReferences.ts";
-import { CLUSTER_COPY, clusterGroupsFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
+import { CLUSTER_COPY, clusterGroupsFor, crossSectionLinksFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
 import type { ResolvedGroup } from "../guides/topicClusters.ts";
 import type { TitleReferences } from "../guides/titleReferences.ts";
 
@@ -282,7 +282,10 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
     renderBlocks(body, { locale, domain, references }),
     renderEvidence(guide, locale),
     `</article>`,
-    curated ? renderRelated(relatedLinksFor(domain, guide.slug, input.published), locale) : renderGuideList(others, locale, domain),
+    // Sections without a curated list keep their section-wide list; their few cross-section next steps are added after it.
+    curated
+      ? renderRelated(relatedLinksFor(domain, guide.slug, input.published), locale)
+      : renderGuideList(others, locale, domain) + renderRelated(crossSectionLinksFor(guide.slug, input.published), locale),
     `</main>`,
   ].join("\n");
   const head: PageHead = {

@@ -22,6 +22,7 @@
     "test:family-visa-production:browser": "node tests/family-visa-production-isolation.browser.mjs",
     "test:money:browser": "node tests/money.browser.mjs",
     "test:money-ni:browser": "node tests/money-ni-number.browser.mjs",
+    "test:family-visit:browser": "node tests/family-visit.browser.mjs",
     "test:home:browser": "node tests/home.browser.mjs",
     "test:travel:browser": "node tests/travel-page.browser.mjs",
     "test:travel-production:browser": "node tests/travel-production-isolation.browser.mjs",

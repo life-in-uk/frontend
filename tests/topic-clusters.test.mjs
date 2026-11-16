@@ -18,6 +18,7 @@ import {
 const FAMILY_VISA_SLUGS = [
   "partner-visa-routes-overview", "partner-visa-financial-requirement", "partner-visa-relationship-evidence",
   "partner-visa-dependent-children", "partner-visa-application-process",
+  "visiting-family-uk-visitor-visa-eta",
 ];
 const SECTION_SLUGS = {
   renting: Object.values(GUIDE_DOMAINS.renting.titleReferences),
@@ -26,7 +27,7 @@ const SECTION_SLUGS = {
   "work-visa": Object.values(GUIDE_DOMAINS["work-visa"].titleReferences),
 };
 // Cross-section targets outside the curated sections: published Guides only.
-const OTHER_TARGETS = { health: ["nhs-ihs-costs-england"], money: ["open-uk-bank-account-new-arrival", "national-insurance-number-newcomers"] };
+const OTHER_TARGETS = { health: ["nhs-ihs-costs-england", "visiting-parents-healthcare-england"], money: ["open-uk-bank-account-new-arrival", "national-insurance-number-newcomers"] };
 const TARGETS = { ...SECTION_SLUGS, ...OTHER_TARGETS };
 const KNOWN = new Set(Object.values(TARGETS).flat());
 const meta = (slug, category) => ({ slug, category, title: `${slug} title`, summary: "s", publishedAt: "", updatedAt: "" });
@@ -88,6 +89,13 @@ test("Work Visa and newcomer cross-links (W1, X1) resolve per locale to publishe
   assert.deepEqual(links("money", "national-insurance-number-newcomers"), ["money/open-uk-bank-account-new-arrival", "work-visa/skilled-worker-overview"]);
   assert.ok(links("money", "open-uk-bank-account-new-arrival").includes("money/national-insurance-number-newcomers"));
   assert.ok(links("work-visa", "skilled-worker-occupations-salary").includes("money/national-insurance-number-newcomers"));
+  // F2: the family-visit Guide sits in its own "visits" subtopic, points to the partner routes overview and the visiting-parents
+  // Health Guide, which points back.
+  assert.deepEqual(links("family-visa", "visiting-family-uk-visitor-visa-eta"), ["family-visa/partner-visa-routes-overview", "health/visiting-parents-healthcare-england"]);
+  assert.ok(links("health", "visiting-parents-healthcare-england").includes("family-visa/visiting-family-uk-visitor-visa-eta"));
+  const visits = TOPIC_CLUSTERS["family-visa"].groups.find((group) => group.id === "visits");
+  assert.deepEqual(visits.guides.map((ref) => ref.slug), ["visiting-family-uk-visitor-visa-eta"]);
+  for (const locale of Object.keys(visits.title)) assert.match(visits.title[locale], /家庭簽證|家庭签证|not a family visa|فیملی ویزا نہیں|फ़ैमिली वीज़ा नहीं/u, `${locale}: visits are labelled as not a family visa`);
   // The IHS Guide unpublished in a locale: the link is dropped, not broken.
   const noIhs = all.filter((g) => g.slug !== "nhs-ihs-costs-england");
   assert.deepEqual(links("work-visa", "skilled-worker-overview", noIhs).filter((x) => x.startsWith("health/")), []);

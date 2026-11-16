@@ -52,8 +52,11 @@ export const HEALTH_GUIDE_DOMAIN: GuideDomain = {
 export const FAMILY_VISA_CATEGORY = "family-visa";
 
 /**
- * Family & Visa (content frozen 2026-11-15): no in-text title links; related
- * Guides follow the order a partner applicant needs them.
+ * Family & Visa (partner Guides' content frozen 2026-11-15): no in-text title
+ * links; related Guides follow the order a partner applicant needs them. The
+ * family-visit Guide (F2, Standard Visitor / ETA) sits in this section as a
+ * separate subtopic and points to the partner routes overview, so a visit is
+ * never presented as a way to join family.
  */
 export const FAMILY_VISA_GUIDE_DOMAIN: GuideDomain = {
   id: "family-visa",
@@ -68,6 +71,7 @@ export const FAMILY_VISA_GUIDE_DOMAIN: GuideDomain = {
     "partner-visa-relationship-evidence": ["partner-visa-financial-requirement", "partner-visa-application-process"],
     "partner-visa-application-process": ["partner-visa-financial-requirement", "partner-visa-dependent-children"],
     "partner-visa-dependent-children": ["partner-visa-routes-overview", "partner-visa-application-process"],
+    "visiting-family-uk-visitor-visa-eta": ["partner-visa-routes-overview"],
   },
 };
 

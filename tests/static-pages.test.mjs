@@ -130,3 +130,16 @@ test("Health Guide pages keep their section-wide list in static HTML", () => {
   assert.match(page.body, /class="static-guides"/);
   assert.doesNotMatch(page.body, /class="static-related"/);
 });
+
+test("a section without a curated list keeps its section list and adds its cross-section next steps (F2)", () => {
+  const published = [
+    meta("visiting-parents-healthcare-england", "Parents visiting fall ill", "health-nhs"),
+    meta("where-to-go-when-ill-england", "Where to go", "health-nhs"),
+    meta("visiting-family-uk-visitor-visa-eta", "Family visiting you in the UK", "family-visa"),
+  ];
+  const guide = { ...published[0], content: "# Parents visiting fall ill\n\nText.", sources: [], evidence: [] };
+  const page = staticGuidePage({ origin: ORIGIN, locale: "ur", domainId: "health", guide, published, availableLocales: ["ur"] });
+  assert.match(page.body, /class="static-guides"[\s\S]*href="\/ur\/health\/where-to-go-when-ill-england"/);
+  const related = page.body.split('class="static-related"')[1].split("</section>")[0];
+  assert.deepEqual([...related.matchAll(/href="([^"]+)"/g)].map((x) => x[1]), ["/ur/family-visa/visiting-family-uk-visitor-visa-eta"]);
+});

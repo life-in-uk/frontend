@@ -121,6 +121,7 @@ because the Family Visa Guides were frozen when that workstream closed.
 - **Existing Guides**: `visiting-parents-healthcare-england` covers healthcare during a visit, not the visa; `nhs-ihs-costs-england` explains visitors do not pay the IHS.
 - **Classification**: NEW GUIDE CANDIDATE.
 - **Evidence**: B (the existing health Guide already shows this audience exists; the visa is a prior step).
+- **Status**: implemented 2026-11-16 (Phase 3B): Guide `visiting-family-uk-visitor-visa-eta` (category family-visa, separate "Family visits (not a family visa)" subtopic on the Family Visa hub), published locally in five locales; related links to the partner routes overview and both ways with `visiting-parents-healthcare-england`. Frozen partner-visa Guides unchanged.
 - **Recommended action**: one Guide in the Family Visa section on the Standard Visitor route for family visits: eligibility, invitation and supporting documents, length of stay, what visitors cannot do; link both ways with the healthcare Guide.
 - **Score 76**: need 23 · gap 23 · verifiability 18 · fit 10 (new subtopic for the Family Visa cluster) · affiliate 2 (travel insurance is relevant, already discussed in the health Guide).
 - **Official sources**: ✓ https://www.gov.uk/standard-visitor (Immigration Rules Appendix Visitor for rules).

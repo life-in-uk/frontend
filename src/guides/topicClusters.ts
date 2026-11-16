@@ -92,18 +92,18 @@ const RENTING: TopicCluster = {
 const FAMILY_VISA: TopicCluster = {
   domain: "family-visa",
   seoTitle: {
-    "zh-CN": "配偶和伴侣签证：路线、收入和关系要求、孩子和申请步骤",
-    "zh-TW": "配偶和伴侶簽證：路線、收入和關係要求、孩子和申請步驟",
-    en: "Spouse and partner visas: routes, income and relationship requirements, children and applying",
-    ur: "شریکِ حیات اور پارٹنر ویزا: راستے، آمدنی اور رشتے کی شرائط، بچے اور درخواست",
-    hi: "पति/पत्नी और पार्टनर वीज़ा: रास्ते, आय और रिश्ते की शर्तें, बच्चे और आवेदन",
+    "zh-CN": "配偶和伴侣签证：路线、收入和关系要求、孩子和申请步骤；家人短期探亲",
+    "zh-TW": "配偶和伴侶簽證：路線、收入和關係要求、孩子和申請步驟；家人短期探親",
+    en: "Spouse and partner visas: routes, income and relationship requirements, children and applying; short family visits",
+    ur: "شریکِ حیات اور پارٹنر ویزا: راستے، آمدنی اور رشتے کی شرائط، بچے اور درخواست؛ خاندان کے مختصر دورے",
+    hi: "पति/पत्नी और पार्टनर वीज़ा: रास्ते, आय और रिश्ते की शर्तें, बच्चे और आवेदन; परिवार की छोटी यात्राएँ",
   },
   seoDescription: {
-    "zh-CN": "配偶和伴侣来英国的分主题指南：先弄清路线，再看收入要求和关系证据、孩子一起来的情况和申请步骤，以及以后怎样申请永居，并附按你情况生成的材料清单。一般信息，不是法律意见。",
-    "zh-TW": "配偶和伴侶來英國的分主題指南：先弄清路線，再看收入要求和關係證據、孩子一起來的情況和申請步驟，以及以後怎樣申請永居，並附按你情況生成的材料清單。一般資訊，不是法律意見。",
-    en: "Guides by topic for spouses and partners coming to the UK: choosing the route, the income requirement and relationship evidence, children coming too, the application steps and settling later, with a document checklist built for your situation. General information, not legal advice.",
-    ur: "برطانیہ آنے والے شریکِ حیات اور پارٹنرز کے لیے موضوع وار رہنمائیاں: راستہ چننا، آمدنی کی شرط اور رشتے کا ثبوت، ساتھ آنے والے بچے، درخواست کے مراحل اور بعد میں مستقل رہائش، ساتھ آپ کی صورتحال کے مطابق دستاویزات کی چیک لسٹ۔ عمومی معلومات، قانونی مشورہ نہیں۔",
-    hi: "ब्रिटेन आने वाले पति/पत्नी और पार्टनर के लिए विषय-वार मार्गदर्शिकाएँ: रास्ता चुनना, आय की शर्त और रिश्ते का सबूत, साथ आने वाले बच्चे, आवेदन के चरण और बाद में स्थायी निवास, साथ में आपकी स्थिति के अनुसार दस्तावेज़ चेकलिस्ट। सामान्य जानकारी, क़ानूनी सलाह नहीं।",
+    "zh-CN": "配偶和伴侣来英国的分主题指南：先弄清路线，再看收入要求和关系证据、孩子一起来的情况和申请步骤，以及以后怎样申请永居，并附按你情况生成的材料清单；另有家人短期来英国探亲（访客签证或 ETA，不是家庭签证）的指南。一般信息，不是法律意见。",
+    "zh-TW": "配偶和伴侶來英國的分主題指南：先弄清路線，再看收入要求和關係證據、孩子一起來的情況和申請步驟，以及以後怎樣申請永居，並附按你情況生成的材料清單；另有家人短期來英國探親（訪客簽證或 ETA，不是家庭簽證）的指南。一般資訊，不是法律意見。",
+    en: "Guides by topic for spouses and partners coming to the UK: choosing the route, the income requirement and relationship evidence, children coming too, the application steps and settling later, with a document checklist built for your situation; plus a separate guide to short family visits (visitor visa or ETA, not a family visa). General information, not legal advice.",
+    ur: "برطانیہ آنے والے شریکِ حیات اور پارٹنرز کے لیے موضوع وار رہنمائیاں: راستہ چننا، آمدنی کی شرط اور رشتے کا ثبوت، ساتھ آنے والے بچے، درخواست کے مراحل اور بعد میں مستقل رہائش، ساتھ آپ کی صورتحال کے مطابق دستاویزات کی چیک لسٹ؛ اور خاندان کے مختصر دوروں پر الگ رہنمائی (وزیٹر ویزا یا ETA، فیملی ویزا نہیں)۔ عمومی معلومات، قانونی مشورہ نہیں۔",
+    hi: "ब्रिटेन आने वाले पति/पत्नी और पार्टनर के लिए विषय-वार मार्गदर्शिकाएँ: रास्ता चुनना, आय की शर्त और रिश्ते का सबूत, साथ आने वाले बच्चे, आवेदन के चरण और बाद में स्थायी निवास, साथ में आपकी स्थिति के अनुसार दस्तावेज़ चेकलिस्ट; और परिवार की छोटी यात्राओं पर अलग मार्गदर्शिका (विज़िटर वीज़ा या ETA, फ़ैमिली वीज़ा नहीं)। सामान्य जानकारी, क़ानूनी सलाह नहीं।",
   },
   groups: [
     {
@@ -130,6 +130,18 @@ const FAMILY_VISA: TopicCluster = {
       id: "settling",
       title: { "zh-CN": "以后：申请永居", "zh-TW": "以後：申請永居", en: "Later: settling in the UK", ur: "بعد میں: مستقل رہائش", hi: "बाद में: स्थायी निवास" },
       guides: [st("settlement-partner-ilr")],
+    },
+    {
+      // A short visit is not a family visa route: its own subtopic, labelled as such.
+      id: "visits",
+      title: {
+        "zh-CN": "家人短期来访（不是家庭签证）",
+        "zh-TW": "家人短期來訪（不是家庭簽證）",
+        en: "Family visits (not a family visa)",
+        ur: "خاندان کے مختصر دورے (فیملی ویزا نہیں)",
+        hi: "परिवार की छोटी यात्राएँ (फ़ैमिली वीज़ा नहीं)",
+      },
+      guides: [f("visiting-family-uk-visitor-visa-eta")],
     },
   ],
 };
@@ -172,7 +184,9 @@ const m = (slug: string): ClusterGuideRef => ({ slug, domain: "money" });
  * tenant referencing ("no UK bank account yet") and the first bank account
  * Guide (tenancy agreements as proof of address) link both ways; the Skilled
  * Worker salary Guide (National Insurance contributions) links to the NI
- * number Guide, which links on to the Skilled Worker overview.
+ * number Guide, which links on to the Skilled Worker overview; the family-visit
+ * Guide and the Health Guide on visiting parents (visitor visa, IHS) link
+ * both ways.
  */
 export const CROSS_SECTION_RELATED: Readonly<Record<string, readonly ClusterGuideRef[]>> = {
   "partner-visa-application-process": [st("settlement-partner-ilr"), h("nhs-ihs-costs-england")],
@@ -186,6 +200,8 @@ export const CROSS_SECTION_RELATED: Readonly<Record<string, readonly ClusterGuid
   "open-uk-bank-account-new-arrival": [r("renting-referencing-checks")],
   "skilled-worker-occupations-salary": [m("national-insurance-number-newcomers")],
   "national-insurance-number-newcomers": [w("skilled-worker-overview")],
+  "visiting-family-uk-visitor-visa-eta": [h("visiting-parents-healthcare-england")],
+  "visiting-parents-healthcare-england": [f("visiting-family-uk-visitor-visa-eta")],
 };
 
 /**
@@ -230,6 +246,13 @@ export function clusterGroupsFor(
   const rest = domainGuides([...published], GUIDE_DOMAINS[domainId]).filter((guide) => !listed.has(guide.slug));
   if (rest.length > 0) groups.push({ id: "other", title: otherLabel, guides: rest.map((guide) => ({ guide, domain: domainId })) });
   return groups;
+}
+
+/** Only the cross-section next steps for a Guide (published targets only). */
+export function crossSectionLinksFor(slug: string, published: readonly GuideMetadata[]): ResolvedGuide[] {
+  return (CROSS_SECTION_RELATED[slug] ?? [])
+    .map((ref) => resolve(ref, published))
+    .filter((item): item is ResolvedGuide => item !== null && item.guide.slug !== slug);
 }
 
 /** Related links for a Guide: the curated in-section list, then any cross-section next step. */
