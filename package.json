@@ -24,7 +24,8 @@
     "test:travel-production:browser": "node tests/travel-production-isolation.browser.mjs",
     "test:rail:browser": "node tests/rail.browser.mjs",
     "test:guide-references:browser": "node tests/guide-references.browser.mjs",
-    "test:work-visa:browser": "node tests/work-visa.browser.mjs"
+    "test:work-visa:browser": "node tests/work-visa.browser.mjs",
+    "test:header:browser": "node tests/site-header.browser.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

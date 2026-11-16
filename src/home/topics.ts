@@ -33,8 +33,21 @@ export type TopicIcon =
   | "house"
   | "bus";
 
+/**
+ * Header navigation group. The header shows one menu per group, so a new
+ * section joins an existing group instead of adding to the top bar.
+ * Add a group only when a new family of sections genuinely needs one; the
+ * header regression test checks every group still fits in every locale.
+ */
+export type NavGroupId = "visas" | "living";
+
+/** Header menu order. Labels live in SITE_UI[locale].navGroups. */
+export const NAV_GROUPS: readonly NavGroupId[] = ["visas", "living"];
+
 export type HomeTopic = {
   id: string;
+  /** Header menu this section is listed under. */
+  navGroup: NavGroupId;
   title: string;
   description: string;
   tone: TopicTone;
@@ -51,6 +64,7 @@ export type HomeTopic = {
 export const HOME_TOPICS: readonly HomeTopic[] = [
   {
     id: "health",
+    navGroup: "living",
     title: "健康与 NHS",
     description: "看病、注册 GP、看牙、处方药等 NHS 实用信息。",
     tone: "health",
@@ -59,6 +73,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
   {
     id: "money",
+    navGroup: "living",
     title: "金钱与财务",
     description: "开第一个银行账户、存款保障等常见问题。",
     tone: "money",
@@ -68,6 +83,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   // Family & Visa: launched locally (Life in UK is local-only in 2026).
   {
     id: "family-visa",
+    navGroup: "visas",
     title: "签证与家庭",
     description: "配偶/伴侣签证的路线、收入和关系要求，以及按你情况生成的材料清单。",
     tone: "visa",
@@ -77,6 +93,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   // Work Visa (Skilled Worker): launched locally.
   {
     id: "work-visa",
+    navGroup: "visas",
     title: "工作签证",
     description: "技术工人签证：雇主担保、职业和工资要求、家属、换工作和永居。",
     tone: "visa",
@@ -86,6 +103,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   // Settlement / ILR: launched locally.
   {
     id: "settlement",
+    navGroup: "visas",
     title: "永居与入籍",
     description: "永居（ILR）各路线的条件、离境天数、英语和材料，拿到永居以后，以及入籍；改革方案单独标明。",
     tone: "visa",
@@ -95,6 +113,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   // Renting & Moving In (England, letting-agency lets): launched locally.
   {
     id: "renting",
+    navGroup: "living",
     title: "租房与入住",
     description: "在英格兰通过中介租房：找房看房、审查和担保人、定金押金和费用、签约前检查，以及分步骤的租房清单。",
     tone: "daily",
@@ -103,6 +122,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
   {
     id: "education",
+    navGroup: "living",
     title: "教育与学习",
     description: "学校申请、大学与学生生活等内容正在规划中。",
     tone: "education",
@@ -110,6 +130,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
   {
     id: "daily-life",
+    navGroup: "living",
     title: "日常生活",
     description: "账单与通信等内容正在规划中。",
     tone: "daily",
@@ -117,6 +138,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
   {
     id: "travel",
+    navGroup: "living",
     title: "出行与交通",
     description: "伦敦地铁线路状态与附近道路异常查询，附运营方官方信息链接。",
     tone: "travel",
@@ -149,6 +171,19 @@ export const FEATURED_GUIDE_SLUGS: readonly string[] = [
 ];
 
 // Suggested search queries, per language, live in guides/siteUi.ts.
+
+/**
+ * Sections in a header menu: launched sections first (in HOME_TOPICS
+ * order), then sections still in preparation, which are never linked.
+ */
+export function navGroupTopics(
+  group: NavGroupId,
+  topics: readonly HomeTopic[] = HOME_TOPICS,
+): HomeTopic[] {
+  const inGroup = topics.filter((topic) => topic.navGroup === group);
+  const live = (topic: HomeTopic) => topic.domain !== undefined || topic.page !== undefined;
+  return [...inGroup.filter(live), ...inGroup.filter((topic) => !live(topic))];
+}
 
 /** Where a topic links in a locale, or undefined while it has no live page. */
 export function topicHref(topic: HomeTopic, locale: GuideLocale): string | undefined {

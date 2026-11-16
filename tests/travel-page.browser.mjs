@@ -77,6 +77,10 @@ try {
     assert.equal(await page.locator('.travel-tab[aria-selected="true"]').getAttribute("data-tool"), "roads");
     await page.locator(".travel-page .roads-card").waitFor();
     await page.goto(`${baseURL}/money`);
+    // Travel sits in a header menu: open it (Menu on narrow screens, the group otherwise).
+    const menu = page.locator(".masthead-menu-button");
+    if (await menu.count()) await menu.click();
+    else await page.locator('.masthead-group-button:has(+ .masthead-panel a[href="/travel"])').click();
     await page.locator('.masthead-link[href="/travel"]').click();
     await page.waitForURL(`${baseURL}/travel`);
     await page.locator(".travel-page h1").waitFor();

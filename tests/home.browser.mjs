@@ -97,15 +97,19 @@ try {
     assert.equal(await p.locator("h1").count(), 1);
     assert.match(await p.locator("h1").innerText(), /在英国生活、工作、\s*学习的实用指南/);
     assert.equal(await p.title(), "Life in UK · 在英国，把日子过明白。");
-    // Navigation: real anchors, only launched sections linked (Family &
-    // Visa is launched locally).
+    // Navigation: real anchors, only launched sections linked, grouped
+    // into two header menus (tests/site-header.browser.mjs covers the rest).
     const nav = p.getByRole("navigation", { name: "主导航" });
     assert.deepEqual(
-      await nav.getByRole("link").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
+      await nav.getByRole("button").evaluateAll((b) => b.map((el) => [el.textContent, el.getAttribute("aria-expanded")])),
+      [["签证与移民", "false"], ["在英国生活", "false"]],
+    );
+    assert.deepEqual(
+      await nav.locator("a").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
+      ["/", "/family-visa", "/work-visa", "/settlement", "/health", "/money", "/renting", "/travel"],
     );
     assert.equal(
-      await nav.getByRole("link", { name: "首页" }).getAttribute("aria-current"),
+      await nav.getByRole("link", { name: "首页", includeHidden: true }).getAttribute("aria-current"),
       "page",
     );
     // Topic cards: nine; two upcoming without links (Travel links to /travel).
@@ -251,7 +255,7 @@ try {
     assert.equal(
       await p
         .getByRole("navigation", { name: "主导航" })
-        .getByRole("link", { name: "金钱与财务" })
+        .getByRole("link", { name: "金钱与财务", includeHidden: true })
         .getAttribute("aria-current"),
       "page",
     );

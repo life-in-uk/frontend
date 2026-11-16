@@ -707,9 +707,9 @@ async function mocked() {
     const nav = p.getByRole("navigation", { name: "主导航" });
     assert.deepEqual(
       await nav
-        .getByRole("link")
+        .getByRole("link", { includeHidden: true })
         .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
+      ["/", "/family-visa", "/work-visa", "/settlement", "/health", "/money", "/renting", "/travel"],
     );
     await p.evaluate(() => (window.__noReload = true));
     await entry.click();
@@ -717,7 +717,7 @@ async function mocked() {
     await p.getByRole("heading", { level: 1, name: "金钱与财务" }).waitFor();
     assert.equal(await p.evaluate(() => window.__noReload), true);
     assert.equal(
-      await nav.getByRole("link", { name: "金钱与财务" }).getAttribute("aria-current"),
+      await nav.getByRole("link", { name: "金钱与财务", includeHidden: true }).getAttribute("aria-current"),
       "page",
     );
     console.log("PASS homepage entry: Money topic card after Health; nav links");

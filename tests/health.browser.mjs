@@ -187,7 +187,7 @@ try {
     assert.equal(
       await p
         .getByRole("navigation", { name: "主导航" })
-        .getByRole("link", { name: "健康与 NHS" })
+        .getByRole("link", { name: "健康与 NHS", includeHidden: true })
         .getAttribute("aria-current"),
       "page",
     );

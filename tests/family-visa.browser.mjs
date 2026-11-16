@@ -258,9 +258,9 @@ try {
       assert.deepEqual(
         await p
           .getByRole("navigation", { name: "主导航" })
-          .getByRole("link")
+          .getByRole("link", { includeHidden: true })
           .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-        ["/", "/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
+        ["/", "/family-visa", "/work-visa", "/settlement", "/health", "/money", "/renting", "/travel"],
       );
     }
     console.log(

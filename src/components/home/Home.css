@@ -821,7 +821,8 @@ a.topic-card-body:hover {
 }
 @media (max-width: 960px) {
   .home-hero-inner {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): long search suggestions (en) must not widen the page at 320px. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
   }
   .home-search {

@@ -4,6 +4,7 @@
 // The zh-CN strings are the original site wording.
 
 import type { GuideLocale } from "./locales.ts";
+import type { NavGroupId } from "../home/topics.ts";
 
 type TopicCopy = { title: string; description: string };
 type TrustPoint = { title: string; text: string };
@@ -17,6 +18,10 @@ export type SiteUi = {
   comingSoonSr: string;
   searchLabel: string;
   about: string;
+  /** Header menu button on narrow screens. */
+  menu: string;
+  /** Header menu labels, one per navigation group. */
+  navGroups: Record<NavGroupId, string>;
   /** Label for a Guide shown in Simplified Chinese because it has no translation yet. Empty for zh-CN. */
   fallbackBadge: string;
   /** Explains Simplified Chinese fallbacks on translated pages. Empty for zh-CN. */
@@ -84,6 +89,8 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     comingSoonSr: "（即将推出）",
     searchLabel: "搜索指南和问题",
     about: "关于我们",
+    menu: "菜单",
+    navGroups: { visas: "签证与移民", living: "在英国生活" },
     fallbackBadge: "",
     translationNotice: "",
     topics: {
@@ -186,6 +193,8 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     comingSoonSr: "（即將推出）",
     searchLabel: "搜尋指南和問題",
     about: "關於我們",
+    menu: "選單",
+    navGroups: { visas: "簽證與移民", living: "在英國生活" },
     fallbackBadge: "尚未翻譯 · 簡體中文",
     translationNotice: "指南由簡體中文原文翻譯而來。尚未翻譯的內容會標示「尚未翻譯」並開啟簡體中文原文。",
     topics: {
@@ -288,6 +297,8 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     comingSoonSr: " (coming soon)",
     searchLabel: "Search guides and questions",
     about: "About us",
+    menu: "Menu",
+    navGroups: { visas: "Visas and immigration", living: "Living in the UK" },
     fallbackBadge: "Not yet translated · Simplified Chinese",
     translationNotice: "Guides are translated from the Simplified Chinese originals. Anything not yet translated is marked “Not yet translated” and opens the Chinese original.",
     topics: {
@@ -390,6 +401,8 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     comingSoonSr: " (جلد آ رہا ہے)",
     searchLabel: "رہنمائی اور سوالات تلاش کریں",
     about: "ہمارے بارے میں",
+    menu: "مینو",
+    navGroups: { visas: "ویزا اور امیگریشن", living: "برطانیہ میں زندگی" },
     fallbackBadge: "ابھی ترجمہ نہیں ہوا · سادہ چینی",
     translationNotice: "رہنمائی سادہ چینی اصل سے ترجمہ کی گئی ہے۔ جو حصہ ابھی ترجمہ نہیں ہوا، اس پر \"ابھی ترجمہ نہیں ہوا\" لکھا ہوتا ہے اور وہ چینی اصل کھولتا ہے۔",
     topics: {
@@ -492,6 +505,8 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     comingSoonSr: " (जल्द आ रहा है)",
     searchLabel: "मार्गदर्शिकाएँ और सवाल खोजें",
     about: "हमारे बारे में",
+    menu: "मेनू",
+    navGroups: { visas: "वीज़ा और आप्रवासन", living: "ब्रिटेन में ज़िंदगी" },
     fallbackBadge: "अभी अनुवाद नहीं हुआ · सरलीकृत चीनी",
     translationNotice: "मार्गदर्शिकाएँ सरलीकृत चीनी मूल से अनूदित हैं। जो हिस्सा अभी अनूदित नहीं है, उस पर \"अभी अनुवाद नहीं हुआ\" लिखा होता है और वह चीनी मूल खोलता है।",
     topics: {
