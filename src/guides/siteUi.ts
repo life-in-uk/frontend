@@ -90,7 +90,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     searchLabel: "搜索指南和问题",
     about: "关于我们",
     menu: "菜单",
-    navGroups: { visas: "签证与移民", living: "在英国生活" },
+    navGroups: { visas: "签证与移民", housing: "住房与日常生活", "health-education": "健康与教育", "work-finance": "工作与财务", transport: "交通与出行" },
     fallbackBadge: "",
     translationNotice: "",
     topics: {
@@ -194,7 +194,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     searchLabel: "搜尋指南和問題",
     about: "關於我們",
     menu: "選單",
-    navGroups: { visas: "簽證與移民", living: "在英國生活" },
+    navGroups: { visas: "簽證與移民", housing: "住房與日常生活", "health-education": "健康與教育", "work-finance": "工作與財務", transport: "交通與出行" },
     fallbackBadge: "尚未翻譯 · 簡體中文",
     translationNotice: "指南由簡體中文原文翻譯而來。尚未翻譯的內容會標示「尚未翻譯」並開啟簡體中文原文。",
     topics: {
@@ -298,7 +298,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     searchLabel: "Search guides and questions",
     about: "About us",
     menu: "Menu",
-    navGroups: { visas: "Visas and immigration", living: "Living in the UK" },
+    navGroups: { visas: "Visas & Immigration", housing: "Housing & Daily Life", "health-education": "Health & Education", "work-finance": "Work & Finance", transport: "Transport & Travel" },
     fallbackBadge: "Not yet translated · Simplified Chinese",
     translationNotice: "Guides are translated from the Simplified Chinese originals. Anything not yet translated is marked “Not yet translated” and opens the Chinese original.",
     topics: {
@@ -402,7 +402,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     searchLabel: "رہنمائی اور سوالات تلاش کریں",
     about: "ہمارے بارے میں",
     menu: "مینو",
-    navGroups: { visas: "ویزا اور امیگریشن", living: "برطانیہ میں زندگی" },
+    navGroups: { visas: "ویزا اور امیگریشن", housing: "رہائش اور روزمرہ زندگی", "health-education": "صحت اور تعلیم", "work-finance": "کام اور مالیات", transport: "ٹرانسپورٹ اور سفر" },
     fallbackBadge: "ابھی ترجمہ نہیں ہوا · سادہ چینی",
     translationNotice: "رہنمائی سادہ چینی اصل سے ترجمہ کی گئی ہے۔ جو حصہ ابھی ترجمہ نہیں ہوا، اس پر \"ابھی ترجمہ نہیں ہوا\" لکھا ہوتا ہے اور وہ چینی اصل کھولتا ہے۔",
     topics: {
@@ -506,7 +506,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
     searchLabel: "मार्गदर्शिकाएँ और सवाल खोजें",
     about: "हमारे बारे में",
     menu: "मेनू",
-    navGroups: { visas: "वीज़ा और आप्रवासन", living: "ब्रिटेन में ज़िंदगी" },
+    navGroups: { visas: "वीज़ा और आप्रवासन", housing: "आवास और रोज़मर्रा की ज़िंदगी", "health-education": "स्वास्थ्य और शिक्षा", "work-finance": "काम और वित्त", transport: "परिवहन और यात्रा" },
     fallbackBadge: "अभी अनुवाद नहीं हुआ · सरलीकृत चीनी",
     translationNotice: "मार्गदर्शिकाएँ सरलीकृत चीनी मूल से अनूदित हैं। जो हिस्सा अभी अनूदित नहीं है, उस पर \"अभी अनुवाद नहीं हुआ\" लिखा होता है और वह चीनी मूल खोलता है।",
     topics: {

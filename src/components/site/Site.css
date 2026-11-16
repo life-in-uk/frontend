@@ -55,13 +55,36 @@
   color: #4c5a50;
 }
 
-/* Wide screens: Home plus one disclosure menu per navigation group.
-   No overflow scrolling: the bar holds a fixed, small number of items
-   and tests/site-header.browser.mjs fails if any locale stops fitting. */
+/* Wide screens: brand, search, language and About on the first row; Home
+   plus one disclosure menu per category on a second, full-width row. No
+   overflow scrolling: when the category row would not fit, the header
+   switches to the Menu button, and tests/site-header.browser.mjs fails if
+   any locale overflows or clips. */
+.masthead:not(.masthead--compact) .masthead-inner {
+  flex-wrap: wrap;
+  row-gap: 0;
+  min-height: 0;
+  padding-top: 14px;
+}
+.masthead:not(.masthead--compact) .masthead-brand {
+  border-inline-end: 0;
+  padding-inline-end: 0;
+}
+.masthead:not(.masthead--compact) .masthead-nav {
+  order: 3;
+  flex: 1 0 100%;
+  min-height: 56px;
+}
+.masthead:not(.masthead--compact) .masthead-bar {
+  margin-inline-start: -12px; /* Home lines up with the brand */
+}
+/* Each menu opens under its own button on the full-width category row. */
+.masthead-group {
+  position: relative;
+}
 .masthead-nav {
   flex: 1;
   min-width: 0;
-  position: relative; /* menu panels open from the start of the nav */
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -221,12 +244,6 @@
 }
 .masthead-about:hover {
   border-color: var(--color-brand);
-}
-/* Laptops: the tagline gives way before the navigation does. */
-@media (max-width: 1439px) {
-  .masthead-brand .brand-caption {
-    display: none;
-  }
 }
 
 /* Narrow screens (below 1024px): brand, search and a Menu button; the

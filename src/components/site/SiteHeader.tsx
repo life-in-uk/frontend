@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { BusFront, ChevronDown, Coins, GraduationCap, HeartPulse, House, IdCard, Menu, Search, X } from "lucide-react";
-import { NAV_GROUPS, navGroupTopics, topicHref, type NavGroupId, type TopicIcon } from "../../home/topics";
+import { navGroupTopics, topicHref, visibleNavGroups, type NavGroupId, type TopicIcon } from "../../home/topics";
 import { Link } from "../Link";
 import { GUIDE_UI, guideHomePath, type GuideLocale } from "../../guides/locales";
 import { SITE_UI } from "../../guides/siteUi";
@@ -21,8 +21,8 @@ type SiteHeaderProps = {
 
 /**
  * Below 1024px the header always shows one "Menu" button whose sheet lists
- * every group. From 1024px it shows Home plus one disclosure menu per group
- * when that bar fits; when it would not (a long translation, a new group),
+ * every category. From 1024px it shows a second header row with Home plus
+ * one disclosure menu per category when that row fits; when it would not (a long translation, a new group),
  * it measures itself and falls back to the Menu button instead of
  * overflowing. CSS keys off the `masthead--compact` class this sets.
  * tests/site-header.browser.mjs checks both layouts in all five locales.
@@ -95,6 +95,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
   // Width the wide bar needed when it last did not fit, or null while it fits.
   const [needed, setNeeded] = useState<number | null>(null);
   const compact = narrow || needed !== null;
+  const navGroups = visibleNavGroups(locale);
   const innerRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLUListElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
@@ -129,9 +130,10 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
     closeAll();
   }
 
-  // Wide bar: if brand + bar + actions exceed the row, switch to the Menu
-  // layout (before paint, so there is no flash). Menu layout: return to the
-  // wide bar once the row is as wide as the bar needed.
+  // Wide layout has two rows: brand + actions, then the category bar. If
+  // either row would overflow, switch to the Menu layout (before paint, so
+  // there is no flash). Menu layout: return to the wide layout once the
+  // row is as wide as the wide layout needed.
   useLayoutEffect(() => {
     const inner = innerRef.current;
     if (!inner || narrow) return;
@@ -145,7 +147,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
       const brand = inner.querySelector<HTMLElement>(".masthead-brand"), bar = barRef.current, actions = actionsRef.current;
       if (!brand || !bar || !actions) return;
       const gap = parseFloat(getComputedStyle(inner).columnGap) || 0;
-      const total = brand.offsetWidth + bar.scrollWidth + actions.offsetWidth + 2 * gap;
+      const total = Math.max(brand.offsetWidth + actions.offsetWidth + gap, bar.scrollWidth);
       if (total > available) setNeeded(Math.ceil(total));
     }
     check();
@@ -325,7 +327,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
                 <ul className="masthead-menu-list masthead-sheet-top">
                   <li>{homeLink("masthead-link")}</li>
                 </ul>
-                {NAV_GROUPS.map((group) => (
+                {navGroups.map((group) => (
                   <section key={group} className="masthead-sheet-group">
                     <p id={panelId(group)} className="masthead-group-label">
                       {ui.navGroups[group]}
@@ -349,7 +351,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
           ) : (
             <ul ref={barRef} className="masthead-bar" onKeyDown={onTopLevelKeyDown}>
               <li>{homeLink("masthead-top masthead-home")}</li>
-              {NAV_GROUPS.map((group) => {
+              {navGroups.map((group) => {
                 const open = openGroup === group;
                 return (
                   <li key={group} className="masthead-group" onBlur={onGroupBlur(group)}>

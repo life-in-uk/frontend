@@ -98,15 +98,15 @@ try {
     assert.match(await p.locator("h1").innerText(), /在英国生活、工作、\s*学习的实用指南/);
     assert.equal(await p.title(), "Life in UK · 在英国，把日子过明白。");
     // Navigation: real anchors, only launched sections linked, grouped
-    // into two header menus (tests/site-header.browser.mjs covers the rest).
+    // into the five header categories (tests/site-header.browser.mjs covers the rest).
     const nav = p.getByRole("navigation", { name: "主导航" });
     assert.deepEqual(
       await nav.getByRole("button").evaluateAll((b) => b.map((el) => [el.textContent, el.getAttribute("aria-expanded")])),
-      [["签证与移民", "false"], ["在英国生活", "false"]],
+      [["签证与移民", "false"], ["住房与日常生活", "false"], ["健康与教育", "false"], ["工作与财务", "false"], ["交通与出行", "false"]],
     );
     assert.deepEqual(
       await nav.locator("a").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/family-visa", "/work-visa", "/settlement", "/health", "/money", "/renting", "/travel"],
+      ["/", "/family-visa", "/work-visa", "/settlement", "/renting", "/health", "/money", "/travel"],
     );
     assert.equal(
       await nav.getByRole("link", { name: "首页", includeHidden: true }).getAttribute("aria-current"),

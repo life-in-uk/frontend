@@ -709,7 +709,7 @@ async function mocked() {
       await nav
         .getByRole("link", { includeHidden: true })
         .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/family-visa", "/work-visa", "/settlement", "/health", "/money", "/renting", "/travel"],
+      ["/", "/family-visa", "/work-visa", "/settlement", "/renting", "/health", "/money", "/travel"],
     );
     await p.evaluate(() => (window.__noReload = true));
     await entry.click();

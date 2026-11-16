@@ -34,15 +34,15 @@ export type TopicIcon =
   | "bus";
 
 /**
- * Header navigation group. The header shows one menu per group, so a new
- * section joins an existing group instead of adding to the top bar.
- * Add a group only when a new family of sections genuinely needs one; the
- * header regression test checks every group still fits in every locale.
+ * Header navigation category (owner-approved, November 2026). The header
+ * shows one menu per category, so a new section joins a category here
+ * instead of adding to the top bar. A category with no published section
+ * is not shown; its future topics appear only once they are launched.
  */
-export type NavGroupId = "visas" | "living";
+export type NavGroupId = "visas" | "housing" | "health-education" | "work-finance" | "transport";
 
 /** Header menu order. Labels live in SITE_UI[locale].navGroups. */
-export const NAV_GROUPS: readonly NavGroupId[] = ["visas", "living"];
+export const NAV_GROUPS: readonly NavGroupId[] = ["visas", "housing", "health-education", "work-finance", "transport"];
 
 export type HomeTopic = {
   id: string;
@@ -64,7 +64,7 @@ export type HomeTopic = {
 export const HOME_TOPICS: readonly HomeTopic[] = [
   {
     id: "health",
-    navGroup: "living",
+    navGroup: "health-education",
     title: "健康与 NHS",
     description: "看病、注册 GP、看牙、处方药等 NHS 实用信息。",
     tone: "health",
@@ -73,7 +73,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
   {
     id: "money",
-    navGroup: "living",
+    navGroup: "work-finance",
     title: "金钱与财务",
     description: "开第一个银行账户、存款保障等常见问题。",
     tone: "money",
@@ -113,7 +113,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   // Renting & Moving In (England, letting-agency lets): launched locally.
   {
     id: "renting",
-    navGroup: "living",
+    navGroup: "housing",
     title: "租房与入住",
     description: "在英格兰通过中介租房：找房看房、审查和担保人、定金押金和费用、签约前检查，以及分步骤的租房清单。",
     tone: "daily",
@@ -122,7 +122,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
   {
     id: "education",
-    navGroup: "living",
+    navGroup: "health-education",
     title: "教育与学习",
     description: "学校申请、大学与学生生活等内容正在规划中。",
     tone: "education",
@@ -130,7 +130,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
   {
     id: "daily-life",
-    navGroup: "living",
+    navGroup: "housing",
     title: "日常生活",
     description: "账单与通信等内容正在规划中。",
     tone: "daily",
@@ -138,7 +138,7 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
   {
     id: "travel",
-    navGroup: "living",
+    navGroup: "transport",
     title: "出行与交通",
     description: "伦敦地铁线路状态与附近道路异常查询，附运营方官方信息链接。",
     tone: "travel",
@@ -183,6 +183,13 @@ export function navGroupTopics(
   const inGroup = topics.filter((topic) => topic.navGroup === group);
   const live = (topic: HomeTopic) => topic.domain !== undefined || topic.page !== undefined;
   return [...inGroup.filter(live), ...inGroup.filter((topic) => !live(topic))];
+}
+
+/** Categories shown in the header: those with at least one published section. */
+export function visibleNavGroups(locale: GuideLocale, topics: readonly HomeTopic[] = HOME_TOPICS): NavGroupId[] {
+  return NAV_GROUPS.filter((group) =>
+    navGroupTopics(group, topics).some((topic) => topicHref(topic, locale) !== undefined),
+  );
 }
 
 /** Where a topic links in a locale, or undefined while it has no live page. */

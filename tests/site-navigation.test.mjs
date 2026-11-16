@@ -5,24 +5,43 @@
 // rendered layout in every locale and width.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { HOME_TOPICS, NAV_GROUPS, navGroupTopics, topicHref } from "../src/home/topics.ts";
+import { HOME_TOPICS, NAV_GROUPS, navGroupTopics, topicHref, visibleNavGroups } from "../src/home/topics.ts";
 import { SITE_UI } from "../src/guides/siteUi.ts";
 import { GUIDE_LOCALES } from "../src/guides/locales.ts";
 
-// The wide header bar holds Home plus one button per group. More than this
-// and long translations would no longer fit beside search and About.
-const MAX_GROUPS = 3;
+// Owner-approved categories (November 2026), in header order, and where
+// each published section belongs. Changing these is an editorial decision.
+const APPROVED = {
+  visas: ["family-visa", "work-visa", "settlement"],
+  housing: ["renting"],
+  "health-education": ["health"],
+  "work-finance": ["money"],
+  transport: ["travel"],
+};
 
-test("every section belongs to exactly one existing header group", () => {
-  for (const topic of HOME_TOPICS) assert.ok(NAV_GROUPS.includes(topic.navGroup), `${topic.id}: unknown group ${topic.navGroup}`);
-  const listed = NAV_GROUPS.flatMap((group) => navGroupTopics(group).map((topic) => topic.id));
-  assert.deepEqual([...listed].sort(), HOME_TOPICS.map((topic) => topic.id).sort());
-  assert.equal(new Set(listed).size, listed.length, "a section appears in two groups");
+test("the header uses the five approved categories in order", () => {
+  assert.deepEqual([...NAV_GROUPS], Object.keys(APPROVED));
 });
 
-test("the header bar stays small as sections are added", () => {
-  assert.ok(NAV_GROUPS.length <= MAX_GROUPS, `${NAV_GROUPS.length} groups: regroup sections instead of widening the bar`);
-  for (const group of NAV_GROUPS) assert.ok(navGroupTopics(group).length > 0, `${group} is empty`);
+test("published sections sit in their approved category", () => {
+  for (const [group, ids] of Object.entries(APPROVED)) {
+    const published = navGroupTopics(group).filter((topic) => topic.domain || topic.page).map((topic) => topic.id);
+    assert.deepEqual(published, ids, group);
+  }
+});
+
+test("only categories with a published section are shown", () => {
+  for (const locale of GUIDE_LOCALES) assert.deepEqual(visibleNavGroups(locale), [...NAV_GROUPS], locale);
+  // A category whose topics are all still in preparation stays out of the header.
+  const planned = [...HOME_TOPICS.filter((t) => t.navGroup !== "transport"), { id: "driving", navGroup: "transport", title: "", description: "", tone: "travel", icon: "bus" }];
+  assert.ok(!visibleNavGroups("en", planned).includes("transport"));
+});
+
+test("each category shows at most one section in preparation", () => {
+  for (const group of NAV_GROUPS) {
+    const upcoming = navGroupTopics(group).filter((topic) => !topic.domain && !topic.page);
+    assert.ok(upcoming.length <= 1, `${group}: ${upcoming.length} coming-soon placeholders`);
+  }
 });
 
 test("every group has a label in all five locales", () => {

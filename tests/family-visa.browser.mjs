@@ -260,7 +260,7 @@ try {
           .getByRole("navigation", { name: "主导航" })
           .getByRole("link", { includeHidden: true })
           .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-        ["/", "/family-visa", "/work-visa", "/settlement", "/health", "/money", "/renting", "/travel"],
+        ["/", "/family-visa", "/work-visa", "/settlement", "/renting", "/health", "/money", "/travel"],
       );
     }
     console.log(

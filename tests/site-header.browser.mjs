@@ -52,17 +52,19 @@ async function assertFits(page, selector, label) {
   checks++;
 }
 
-/** Wide bar: the top-level items never run under the search / About actions. */
+/** Wide layout: no header item overlaps another (brand, actions, category row). */
 async function assertBarClear(page, label) {
   const overlap = await page.evaluate(() => {
-    const items = [...document.querySelectorAll(".masthead-brand, .masthead-top")].map((e) => e.getBoundingClientRect());
-    const actions = document.querySelector(".masthead-actions").getBoundingClientRect();
-    const rtl = document.documentElement.dir === "rtl";
-    return items
-      .map((r) => (rtl ? actions.right - r.left : r.right - actions.left))
-      .filter((overlapPx) => overlapPx > 0);
+    const boxes = [...document.querySelectorAll(".masthead-brand, .masthead-actions, .masthead-top")].map((e) => [e.textContent.trim(), e.getBoundingClientRect()]);
+    const hits = [];
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const [a, r] = boxes[i], [b, q] = boxes[j];
+        if (Math.min(r.right, q.right) - Math.max(r.left, q.left) > 0.5 && Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top) > 0.5) hits.push(`${a} × ${b}`);
+      }
+    return hits;
   });
-  assert.deepEqual(overlap, [], `${label}: nav overlaps header actions`);
+  assert.deepEqual(overlap, [], `${label}: header items overlap`);
   checks++;
 }
 
@@ -79,13 +81,14 @@ for (const locale of GUIDE_LOCALES) {
       const { page, context, errors } = await open(width, path);
       await assertFits(page, ".masthead-brand, .masthead-top, .masthead-menu-button, .masthead-search, .masthead-about, .masthead-language select", label);
       const found = [];
-      // From 1024px the bar is used when it fits; it must fall back to the
-      // Menu layout (never overflow) when it does not. From 1440px it must fit.
+      // From 1024px the category row is used when it fits; it must fall back
+      // to the Menu layout (never overflow) when it does not. From 1440px it
+      // must fit in every locale.
       const wide = (await page.locator(".masthead-bar").count()) > 0;
       if (width < WIDE) assert.ok(!wide, `${label}: narrow screens use the Menu`);
       const languageInHeader = (await page.locator(".masthead-language").count()) > 0;
-      if (width >= 1440 || (width >= WIDE && !languageInHeader))
-        assert.ok(wide, `${label}: wide bar expected`);
+      // Five categories: at 1024px longer translations may use the Menu.
+      if (width >= 1440) assert.ok(wide, `${label}: wide bar expected`);
       if (wide) {
         assert.equal(await page.locator(".masthead-menu-button").count(), 0, label);
         await assertBarClear(page, label);
@@ -161,20 +164,21 @@ for (const locale of ["en", "ur"]) {
   for (let i = 0; i < count; i++) await page.keyboard.press("Tab");
   assert.equal(await visas.getAttribute("aria-expanded"), "false", `${label}: Tab out closes`);
   // Visible focus indicator on the group buttons.
-  const living = page.locator(".masthead-group-button").last();
+  const living = page.locator(".masthead-group-button.is-current");
+  assert.equal(await living.count(), 1, `${label}: one current category`);
   await living.focus();
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Tab");
   assert.notEqual(await living.evaluate((el) => getComputedStyle(el).outlineStyle), "none", `${label}: focus visible`);
-  // The current section is marked.
-  assert.match((await living.getAttribute("class")) ?? "", /is-current/, `${label}: current group`);
+  // The current section's category is marked: Renting is under Housing & Daily Life.
+  assert.equal(await living.textContent(), SITE_UI[locale].navGroups.housing, `${label}: current group`);
   await living.click();
   assert.equal(await page.locator('.masthead-panel:not([hidden]) a[aria-current="page"]').getAttribute("href"), guideRoutePath(locale, "renting"), label);
   // Clicking outside closes.
   await page.mouse.click(700, 600);
   assert.equal(await living.getAttribute("aria-expanded"), "false", `${label}: outside click closes`);
   // Choosing a section navigates and closes the menu.
-  await living.click();
+  await page.locator(`.masthead-group-button:has(+ .masthead-panel a[href="${guideRoutePath(locale, "travel")}"])`).click();
   await page.locator(`.masthead-panel a[href="${guideRoutePath(locale, "travel")}"]`).click();
   await page.waitForURL(baseURL + guideRoutePath(locale, "travel"));
   assert.equal(await page.locator(".masthead-panel:not([hidden])").count(), 0, `${label}: closes on navigation`);
