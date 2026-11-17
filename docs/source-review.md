@@ -60,3 +60,32 @@ pipeline (generator → draft → batch → review → publish), which creates a
 revision and moves `updatedAt`. A source check on its own never changes
 `dateModified`, the sitemap or any page; rebuilding the site from the same
 published Guides produces identical pages.
+
+## Review log
+
+Outcomes of review items, so a recurring alert can be recognised as already
+reviewed. The queue keeps raising an item until the Guide is revised or its
+recorded access date moves on; that is intended.
+
+### 2026-11-16: first run, three review items (reviewed 2026-11-17)
+
+Only the three cited sources were re-read (GOV.UK, read-only). No Guide,
+translation, baseline or queue file was changed.
+
+| Source | Guide (revision) | Finding | Outcome |
+|---|---|---|---|
+| Home Office "Family life (as a partner or parent), private life and exceptional circumstances", updated 5 Nov 2026 (Version 30.0; cited as 29.0, accessed 8 Oct 2026) | `partner-visa-relationship-evidence` (`a59e2657`, frozen); statements `met-in-person-meaning`, `undissolved-marriage` | Only change note: Family Returns Process / Appendix FM valid application. Every quoted phrase in "Met in person" and "Previous relationships" is still present. | **Closed as reviewed.** Statements accurate. Cosmetic: refresh the "Version 29.0" source title when the Family Visa Guides are next revised; no reason to reopen them for this. |
+| Immigration Rules Part Suitability (SUI 16.1), last updated 8 Oct 2026 (HC 584); the 29 Oct 2026 collection update touched only the religious worker appendices | `nhs-ihs-costs-england` (`27dca22d`), statement `nhs-debt-reporting-and-refusal`; `visiting-parents-healthcare-england` (`5e789f75`), statement `nhs-debt-discretionary-refusal` | SUI 16.1 still says an application "may be refused" where NHS charges of at least £500 are outstanding. Appendix V (V 3.1) applies Part Suitability to visitors. The other points are cited from the Home Office NHS debt guidance, DHSC charging guidance and the NHS page. | **Closed as reviewed.** Statements accurate; citations are the binding rule and stay. |
+| GOV.UK "Banned and restricted goods" (`/duty-free-goods/banned-and-restricted-goods`), now 301 to `/bringing-goods-into-uk-personal-use/banned-and-restricted-goods` | `medicines-prescriptions-england` (`4c528296`), statement `herbal-products-and-imports` | Destination section still bans personal imports of "meat and dairy products from most non-EU countries" and says a CITES permit may be needed for "some medicines". The old link redirects correctly. | **Citation update pending, owner's timing.** At the Guide's next revision: URL → the new section URL; title → "Bringing goods into the UK for personal use: Banned and restricted goods"; locator → "Banned and restricted goods; Check if you need a CITES permit". Statement unchanged. |
+
+### 2026-11-17: pre-launch audit run (open item)
+
+A full `sources:check` (203 sources, run against a copy of the state
+directory, so the owner's baseline and queue were not changed) raised the
+same three review items as above (no new review signals), 18 weak notes, and
+one unavailable source that the 2026-11-16 runs had already listed but the
+review above did not cover:
+
+| Source | Guides (revision, citations) | Finding | Outcome |
+|---|---|---|---|
+| NHS England "Primary medical services policy and guidance manual (PGM)", `https://www.england.nhs.uk/long-read/primary-medical-services-policy-and-guidance-manual-pgm-2/` | `registering-with-a-gp-england` (`9ca7a5bc`, 9), `visiting-parents-healthcare-england` (`5e789f75`, 3), `chinese-medical-records-vaccinations-england` (`56a308dc`, 1); all five locales | The cited page returns HTTP 404. NHS England republished the PGM as version 7 on 16 November 2026, split into parts listed at `https://www.england.nhs.uk/publication/primary-medical-care-policy-and-guidance-manual-pgm/` (see "Summary of key changes v7"). The quoted excerpts have not yet been checked against version 7. | **Open, owner review.** Check each of the 13 citations' excerpts against the version 7 part that now holds it; then update URL, title and locator (and wording only if version 7 changed a rule) through the normal editorial pipeline. Readers following the old links get a 404 until then. |

@@ -70,3 +70,24 @@ from the published title, summary, language, `publishedAt`/`updatedAt` and the
 canonical URL). The app writes the same graph when it renders a Guide and
 removes it on navigation. Topic hubs, home pages and 404 pages have none. The
 release build validates that each Guide's JSON-LD matches the page.
+
+## Launch checklist
+
+No hosting provider is configured in this repository. Before pointing the
+public domain at a host, confirm each item against the deployed site (the
+reference host `npm run preview:release` shows the expected answers).
+
+| # | Requirement | How to verify after deployment |
+|---|---|---|
+| 1 | **HTTPS public origin.** The site answers only on `PUBLIC_ORIGIN` (`https://lifeinuk.info`). `http://` and any other host name (for example `www.`) redirect 301 to the same path on that origin. The app writes canonicals from `window.location.origin`, so a page served on another host would name that host. | `curl -sI http://lifeinuk.info/en/renting` → 301 to `https://lifeinuk.info/en/renting` |
+| 2 | **Prerendered pages** (rule 1): all 280 sitemap URLs return 200 with their own HTML, with or without a trailing slash. | `curl -s https://lifeinuk.info/en/renting \| grep '<h1'` |
+| 3 | **zh-CN short URLs** (rule 2): the 56 rows of `seo-redirects.json` are 301s that keep the query string. | `curl -sI 'https://lifeinuk.info/renting?x=1'` → `Location: /zh-CN/renting?x=1` |
+| 4 | **SPA route allowlist and real 404s** (rule 3): only `seo-spa-routes.json` paths get the app shell with 200; every other extensionless path gets `404.html` with status 404; missing assets 404. | `curl -so /dev/null -w '%{http_code}' https://lifeinuk.info/en/renting/no-such-guide` → 404 |
+| 5 | **Static asset caching** (rule 6): `/assets/*` `public, max-age=31536000, immutable`. | `curl -sI https://lifeinuk.info/assets/<entry>.js` |
+| 6 | **HTML revalidation** (rule 6): every HTML response, including `404.html` and the app shell, `Cache-Control: no-cache`; a deploy replaces the whole `dist/` (removed pages must disappear). | `curl -sI https://lifeinuk.info/en/renting` |
+| 7 | **API routing** (rule 4): `/api/*` reaches the Guide API on the same origin (the app calls relative `/api/...` URLs). | `curl -s https://lifeinuk.info/api/guides \| head -c 100` |
+| 8 | **API compression.** The Spring Boot API answers uncompressed (a Guide detail is ~58 kB, ~14 kB gzipped; a Guide page loads ~190 kB of JSON). Enable gzip or Brotli for `application/json`, `application/xml` and `text/*` at the proxy, or `server.compression.enabled=true` with those MIME types in Spring. HTML, JS and CSS from `dist/` should also be compressed. | `curl -sI -H 'Accept-Encoding: gzip' https://lifeinuk.info/api/guides` → `Content-Encoding: gzip` |
+| 9 | **API caching.** The API sends `Cache-Control: no-store`. This is safe (publishing shows immediately) but means every visit re-downloads Guide JSON. Keep it unless a short shared cache with purge-on-publish is added deliberately. | header check |
+| 10 | **Backend public base URL** (rule 5): `life-in-uk.public-base-url=https://lifeinuk.info`, so robots.txt and every sitemap `<loc>`/hreflang use the public origin. `build:release` prints a "Deployment prerequisite" line while it does not. | `curl -s https://lifeinuk.info/robots.txt` → `Sitemap: https://lifeinuk.info/sitemap.xml` |
+| 11 | **Sitemap and robots exposure** (rule 4): `/sitemap.xml` (280 URLs, `application/xml`) and `/robots.txt` are public and served from the backend. | Submit the sitemap in Google Search Console; check "Pages" and "Sitemaps" reports |
+| 12 | **Owner editorial screen.** `/owner/editorial` is a local owner tool (docs/owner-editorial-local.md). The app marks it `noindex`, but its shell is served with 200. On the public host either do not expose it, or protect it, and do not enable the owner editorial API without HTTPS and the session settings in that document. | `curl -so /dev/null -w '%{http_code}' https://lifeinuk.info/api/owner/editorial` |
