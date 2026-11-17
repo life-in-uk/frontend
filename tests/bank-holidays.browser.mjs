@@ -9,6 +9,7 @@ import {
   nextEnglandAndWalesHoliday,
 } from "../src/bank-holidays/api.ts";
 import { formatHolidayDateZh } from "../src/home/featured.ts";
+import { HOME_TOPICS } from "../src/home/topics.ts";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -93,7 +94,8 @@ async function assertHomepage(page, requests, runtimeErrors, width) {
     await page.locator("h1").innerText(),
     /在英国生活、工作、\s*学习的实用指南/,
   );
-  assert.equal(await page.locator(".topic-card").count(), 8);
+  // Every homepage topic, launched or upcoming (the count changes as sections launch).
+  assert.equal(await page.locator(".topic-card").count(), HOME_TOPICS.length);
   assert.equal(await page.locator(".home-practical .holiday-panel").count(), 1);
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth),
