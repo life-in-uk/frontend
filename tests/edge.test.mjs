@@ -125,6 +125,9 @@ test("the generated function is ES5, fits the quota and serves every page, redir
   // zh-CN short URLs: the root, two hubs and three Guides.
   assert.equal(stats.redirects, 6);
   const handle = loadViewerRequest(code);
+  const unordered = viewerEvent("/renting", { query: "b=%E4%B8%AD&a=2&a=1&flag" });
+  assert.equal(handle(unordered).headers.location.value,
+    "/zh-CN/renting?a=2&a=1&b=%E4%B8%AD&flag", "normalize key order while preserving repeated values and flags");
   assert.equal(handle(viewerEvent("/ur/health/registering-with-a-gp")).statusCode, 404, "a Guide not published in ur is a real 404");
   assert.equal(handle(viewerEvent("/zh-TW/health/registering-with-a-gp/")).uri, "/zh-TW/health/registering-with-a-gp/index.html");
   rmSync(dir, { recursive: true });

@@ -57,7 +57,10 @@ function pageDirectories(distDir) {
 const FUNCTION_SOURCE = String.raw`
 function qs(q) {
   var parts = [];
-  for (var name in q) {
+  // CloudFront does not preserve the order of keys in the event object.
+  var names = Object.keys(q).sort();
+  for (var n = 0; n < names.length; n++) {
+    var name = names[n];
     var values = q[name].multiValue ? q[name].multiValue : [q[name]];
     for (var i = 0; i < values.length; i++) parts.push(values[i].value === "" ? name : name + "=" + values[i].value);
   }
