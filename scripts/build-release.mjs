@@ -10,6 +10,7 @@
 // 5. Validates the output against the inventory and the backend sitemap.
 // Any failure exits nonzero; it never falls back to an SPA-only build.
 import { spawnSync } from "node:child_process";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { aliasFor, expectedPages, loadInventory } from "./seo/inventory.mjs";
 import { resolveReleaseOrigin } from "./seo/origin.mjs";
@@ -19,6 +20,17 @@ import { formatReport, validateSeoOutput } from "./seo/validate.mjs";
 
 const API = (process.env.API_BASE || "http://127.0.0.1:8188").replace(/\/$/, "");
 const DIST = resolve(process.env.DIST_DIR || "dist");
+
+/**
+ * release/build.json: what was validated, for the deploy script (scripts/edge/deploy-site.mjs),
+ * which refuses a dist/ that is not a validated release of the current, committed source.
+ */
+function writeReleaseMarker(details) {
+  const git = (...args) => spawnSync("git", args, { encoding: "utf8" }).stdout.trim();
+  const marker = { ...details, distDir: DIST, apiBase: API, commit: git("rev-parse", "HEAD"), dirty: git("status", "--porcelain") !== "", builtAt: new Date().toISOString() };
+  mkdirSync(resolve("release"), { recursive: true });
+  writeFileSync(resolve("release", "build.json"), JSON.stringify(marker, null, 1) + "\n", "utf8");
+}
 
 function run(step, command, args) {
   console.log(`\n▶ ${step}`);
@@ -47,6 +59,8 @@ async function checkSitemap(pages, origin) {
 try {
   const origin = resolveReleaseOrigin(process.env.PUBLIC_ORIGIN);
   console.log(`Release build for ${origin} (Guide API ${API})`);
+  // A failed build must never leave the previous build's marker next to a new, unvalidated dist/.
+  rmSync(resolve("release", "build.json"), { force: true });
   run("Type-check", "npx", ["tsc", "-b"]);
   run("App build", "npx", ["vite", "build"]);
   console.log("\n▶ Load published inventory");
@@ -66,7 +80,10 @@ try {
   if (errors.length) {
     console.error("\nbuild:release FAILED: the output in dist/ is not deployable.");
     process.exitCode = 1;
-  } else console.log("\nbuild:release OK: dist/ is a validated release artifact.");
+  } else {
+    writeReleaseMarker({ origin, pages: expectedPages(inventory).length, redirects: redirects.length, sitemapNotes: sitemap.notes });
+    console.log("\nbuild:release OK: dist/ is a validated release artifact.");
+  }
 } catch (error) {
   console.error(`\nbuild:release FAILED: ${error.message}`);
   process.exitCode = 1;

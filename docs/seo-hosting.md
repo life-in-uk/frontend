@@ -79,9 +79,13 @@ release build validates that each Guide's JSON-LD matches the page.
 
 ## Launch checklist
 
-No hosting provider is configured in this repository. Before pointing the
-public domain at a host, confirm each item against the deployed site (the
-reference host `npm run preview:release` shows the expected answers).
+The production host is S3 + CloudFront with a generated viewer-request
+function (`docs/deploy-cloudfront.md`); it implements rule 3 without CloudFront
+custom error responses, so API JSON errors are never replaced by `404.html`.
+Before pointing the public domain at it, confirm each item against the
+deployed site: `npm run verify:site -- --base https://lifeinuk.info --production`
+automates rows 1–8 and 10–12 (the reference host `npm run preview:release`
+and the edge emulator `npm run edge:emulate` show the expected answers).
 
 | # | Requirement | How to verify after deployment |
 |---|---|---|

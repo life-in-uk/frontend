@@ -40,3 +40,6 @@ tests/local/
 /.local/ai-provider.env
 # Playwright MCP page snapshots
 .playwright-mcp/
+
+# Release build marker and generated CloudFront function (scripts/edge).
+/release/
