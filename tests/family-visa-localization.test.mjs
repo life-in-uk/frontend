@@ -160,7 +160,7 @@ test("Family & Visa hub and topic keep their page type in every locale", () => {
   assert.equal(localeSwitchPath(route, "hi"), `/hi/family-visa/topics/${topic}`);
   assert.equal(
     localeSwitchPath(matchRoute(`/ur/family-visa/topics/${topic}`), "zh-CN"),
-    `/family-visa/topics/${topic}`,
+    `/zh-CN/family-visa/topics/${topic}`,
   );
   assert.deepEqual(matchRoute("/zh-TW/family-visa"), {
     name: "localized-hub",

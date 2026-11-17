@@ -40,6 +40,19 @@ import { guideNotice } from "../guides/guideNotice.ts";
 import { CLUSTER_COPY, clusterGroupsFor, crossSectionLinksFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
 import type { ResolvedGroup } from "../guides/topicClusters.ts";
 import type { TitleReferences } from "../guides/titleReferences.ts";
+import { homeDescription } from "../guides/seo.ts";
+import { FEATURED_GUIDE_SLUGS, HOME_TOPICS, launchedTopics, topicHref } from "../home/topics.ts";
+import { byRecentUpdate, localizeHomeGuides, selectFeatured } from "../home/featured.ts";
+import type { HomeGuide } from "../home/featured.ts";
+import { resolveTopic } from "../components/family-visa/topics/topicContent.ts";
+import type { ResolvedTopic } from "../components/family-visa/topics/topicContent.ts";
+import { FAMILY_VISA_PUBLISHED_WORDING } from "../guides/familyVisaPublishedWording.ts";
+import { FAMILY_VISA_PUBLISHED_STRINGS } from "../guides/familyVisaPublishedWordingLocales.ts";
+import { JOURNEY_GUIDES } from "../guides/familyVisaJourney.ts";
+import type { GuideAvailability, JourneyGuideId } from "../guides/familyVisaJourney.ts";
+import type { LocalizedJourneyGuides } from "../components/family-visa/localizedJourney.ts";
+import { familyVisaTopicPath } from "../router.ts";
+import type { FamilyVisaTopicId } from "../router.ts";
 
 /** Hubs that are crawlable topic pages, in navigation order. */
 export const STATIC_HUB_DOMAINS: readonly GuideDomainId[] = ["family-visa", "work-visa", "settlement", "renting", "health", "money"];
@@ -429,6 +442,163 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
       locale: candidate,
       href: absolute(origin, localizedGuidePath(candidate, domain.id)),
     })),
+  };
+  return { head, body: html };
+}
+
+/** Joins a two-part hero line the way the page shows it on one line. */
+function joinParts(parts: readonly string[], locale: GuideLocale): string {
+  return parts.join(locale === "zh-CN" || locale === "zh-TW" ? "" : " ");
+}
+
+const HOME_FEATURED_COUNT = 4;
+const HOME_MORE_LIMIT = 8;
+
+function renderHomeGuides(id: string, title: string, items: readonly HomeGuide[]): string {
+  if (items.length === 0) return "";
+  const rows = items
+    .map((item) => {
+      // A Simplified Chinese fallback on a translated home page is marked as such, as the app does.
+      const lang = item.fallback ? ` lang="${GUIDE_LOCALE_LANG[item.locale]}"` : "";
+      return `<li${lang}><a href="${escapeHtml(item.href)}">${escapeHtml(item.guide.title)}</a><p>${escapeHtml(item.guide.summary)}</p></li>`;
+    })
+    .join("");
+  return `<section aria-labelledby="${id}"><h2 id="${id}">${escapeHtml(title)}</h2><ul>${rows}</ul></section>`;
+}
+
+export type StaticHomeInput = {
+  origin: string;
+  locale: GuideLocale;
+  /** Published Simplified Chinese Guides (they decide what exists, as on the app's home page). */
+  source: readonly GuideMetadata[];
+  /** Published Guides in this locale. */
+  published: readonly GuideMetadata[];
+};
+
+/** A home page (/{locale}): what the site is, its sections, featured and recent Guides, and how content is sourced. */
+export function staticHomePage(input: StaticHomeInput): StaticPage {
+  const { origin, locale } = input;
+  const ui = SITE_UI[locale];
+  const domains = launchedTopics().map((topic) => topic.domain);
+  const items = localizeHomeGuides(input.source, locale === "zh-CN" ? [] : input.published, domains, locale);
+  const featured = selectFeatured(items, FEATURED_GUIDE_SLUGS, HOME_FEATURED_COUNT);
+  const more = byRecentUpdate(items).filter((item) => !featured.includes(item)).slice(0, HOME_MORE_LIMIT);
+  // Linked sections: a hub only where it is a page (a published Guide in this locale), as in the site navigation.
+  const live = (topic: (typeof HOME_TOPICS)[number]) =>
+    !topic.domain || input.published.some((guide) => guide.category === topic.domain!.category);
+  const topics = HOME_TOPICS.filter(live)
+    .map((topic) => ({ topic, href: topicHref(topic, locale), text: ui.topics[topic.id] ?? topic }))
+    .filter((row): row is typeof row & { href: string } => row.href !== undefined)
+    .map(({ href, text }) => `<li><h3><a href="${escapeHtml(href)}">${escapeHtml(text.title)}</a></h3><p>${escapeHtml(text.description)}</p></li>`)
+    .join("");
+  const trust = ui.trust.points.map((point) => `<li><h3>${escapeHtml(point.title)}</h3><p>${escapeHtml(point.text)}</p></li>`).join("");
+  const html = [
+    renderSiteNav(locale, input.published),
+    `<main id="main" class="static-page static-home">`,
+    `<h1>${escapeHtml(joinParts(ui.hero.title, locale))}</h1>`,
+    `<p class="static-summary">${escapeHtml(homeDescription(locale))}</p>`,
+    ui.translationNotice ? `<p>${escapeHtml(ui.translationNotice)}</p>` : "",
+    `<section aria-labelledby="static-topics-title"><h2 id="static-topics-title">${escapeHtml(ui.topicGrid.heading)}</h2><ul>${topics}</ul></section>`,
+    renderHomeGuides("static-featured-title", ui.featured.title, featured),
+    renderHomeGuides("static-more-title", ui.index.title, more),
+    `<section id="about" aria-labelledby="static-about-title"><h2 id="static-about-title">${escapeHtml(ui.trust.title)}</h2><p>${escapeHtml(ui.trust.intro)}</p><ul>${trust}</ul></section>`,
+    `</main>`,
+  ].join("\n");
+  const head: PageHead = {
+    locale,
+    title: ui.homeTitle,
+    description: homeDescription(locale),
+    canonical: absolute(origin, guideHomePath(locale)),
+    alternates: GUIDE_LOCALES.map((candidate) => ({ locale: candidate, href: absolute(origin, guideHomePath(candidate)) })),
+  };
+  return { head, body: html };
+}
+
+export type TopicInput = {
+  topic: FamilyVisaTopicId;
+  locale: GuideLocale;
+  /** Published Simplified Chinese Guides and their details (the journey is checked against these). */
+  source: readonly GuideMetadata[];
+  sourceDetails: ReadonlyMap<string, GuideDetail>;
+  /** Published Guide details in this locale (translated evidence, same version only). */
+  localeDetails: ReadonlyMap<string, GuideDetail>;
+};
+
+/**
+ * A Family & Visa topic exactly as the production app resolves it: the
+ * published wording and translations, checked against the published Guides.
+ */
+export function staticTopic(input: TopicInput): ResolvedTopic {
+  const published = new Map(domainGuides([...input.source], GUIDE_DOMAINS["family-visa"]).map((guide) => [guide.slug, guide]));
+  const ids = Object.keys(JOURNEY_GUIDES) as JourneyGuideId[];
+  const availability = Object.fromEntries(
+    ids.map((id): [JourneyGuideId, GuideAvailability] => {
+      const meta = published.get(JOURNEY_GUIDES[id].slug);
+      const detail = meta && input.sourceDetails.get(meta.slug);
+      return [id, meta && detail ? { status: "ready", meta, detail } : { status: "unpublished" }];
+    }),
+  ) as Record<JourneyGuideId, GuideAvailability>;
+  const localized: LocalizedJourneyGuides = {};
+  if (input.locale !== "zh-CN")
+    for (const id of ids) {
+      const state = availability[id];
+      const translated = input.localeDetails.get(JOURNEY_GUIDES[id].slug);
+      if (state.status === "ready" && translated && translated.updatedAt === state.detail.updatedAt) localized[id] = translated;
+    }
+  const strings = input.locale === "zh-CN" ? null : (FAMILY_VISA_PUBLISHED_STRINGS[input.locale] ?? {});
+  return resolveTopic(input.topic, input.locale, availability, localized, FAMILY_VISA_PUBLISHED_WORDING, strings);
+}
+
+/** "**x**" → <strong>, the rest escaped (as the app's emphasis()). */
+function emphasisHtml(text: string): string {
+  return text.split(/\*\*(.+?)\*\*/g).map((part, index) => (index % 2 === 1 ? `<strong>${escapeHtml(part)}</strong>` : escapeHtml(part))).join("");
+}
+
+/** A verified Family & Visa topic page as static HTML, or null when the app would not show (or index) its content. */
+export function staticTopicPage(input: TopicInput & { origin: string; published: readonly GuideMetadata[] }): StaticPage | null {
+  const { origin, locale, topic } = input;
+  const resolved = staticTopic(input);
+  const { t, section } = resolved;
+  if (!resolved.verified || !section) return null;
+  const hubHref = guideRoutePath(locale, "family-visa");
+  const tasks = section.tasks
+    .map((task) => {
+      const wording = task.status !== "pending" ? task.wording : null;
+      const parts = [
+        `<h2>${escapeHtml(task.title)}</h2>`,
+        task.label ? `<p>${escapeHtml(task.label)}</p>` : "",
+        wording ? `<p>${emphasisHtml(wording.summary)}</p>` : `<p>${escapeHtml(t("这一项的具体说明还在核对，请先看官方说明。"))}</p>`,
+        wording?.steps?.length ? `<ol>${wording.steps.map((step) => `<li>${emphasisHtml(step)}</li>`).join("")}</ol>` : "",
+        wording?.examples?.length
+          ? `<p>${escapeHtml(t("常见的准备材料（举例，待核对；以官方清单为准）"))}</p><ul>${wording.examples.map((example) => `<li>${escapeHtml(example)}</li>`).join("")}</ul>`
+          : "",
+        wording?.advice ? `<p>${escapeHtml(wording.advice)}</p>` : "",
+        task.official.length
+          ? `<ul>${task.official.filter((link) => isSafeExternalUrl(link.url)).map((link) => `<li><a href="${escapeHtml(link.url)}" rel="noopener noreferrer">${escapeHtml(link.label)}</a></li>`).join("")}</ul>`
+          : "",
+      ];
+      return `<li>${parts.join("")}</li>`;
+    })
+    .join("");
+  const html = [
+    renderSiteNav(locale, input.published),
+    `<main id="main" class="static-page static-topic">`,
+    `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><ol><li><a href="${guideHomePath(locale)}">${escapeHtml(GUIDE_UI[locale].home)}</a></li><li><a href="${escapeHtml(hubHref)}">${escapeHtml(GUIDE_UI[locale].domain["family-visa"])}</a></li></ol></nav>`,
+    `<article>`,
+    `<h1>${escapeHtml(resolved.title)}</h1>`,
+    `<p class="static-summary">${escapeHtml(resolved.intro ?? "")}</p>`,
+    `<p>${escapeHtml(t("这是一般信息，不是签证资格判断，也不是法律意见。"))}</p>`,
+    `<ol>${tasks}</ol>`,
+    `<p>${escapeHtml(t("想按你的情况生成完整的材料清单？"))} <a href="${escapeHtml(hubHref)}">${escapeHtml(t("生成我的材料清单"))}</a></p>`,
+    `</article>`,
+    `</main>`,
+  ].join("\n");
+  const head: PageHead = {
+    locale,
+    title: `${resolved.title} · Life in UK`,
+    description: resolved.description,
+    canonical: absolute(origin, familyVisaTopicPath(locale, topic)),
+    alternates: GUIDE_LOCALES.map((candidate) => ({ locale: candidate, href: absolute(origin, familyVisaTopicPath(candidate, topic)) })),
   };
   return { head, body: html };
 }

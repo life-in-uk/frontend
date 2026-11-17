@@ -10,12 +10,12 @@ import { shortLocalizedTitle } from "../src/guides/format.ts";
 
 const page = (path) => pageRoute(matchRoute(path));
 
-test("switching to Simplified Chinese targets the original editorial routes", () => {
-  assert.equal(guideRoutePath("zh-CN", "health"), "/health");
-  assert.equal(guideRoutePath("zh-CN", "health", "registering-with-a-gp-england"), "/health/registering-with-a-gp-england");
-  assert.equal(guideRoutePath("zh-CN", "money"), "/money");
-  assert.equal(guideHomePath("zh-CN"), "/");
-  for (const locale of GUIDE_LOCALES.filter((item) => item !== "zh-CN")) {
+test("switching to Simplified Chinese targets the canonical /zh-CN routes (no short URL, which redirects)", () => {
+  assert.equal(guideRoutePath("zh-CN", "health"), "/zh-CN/health");
+  assert.equal(guideRoutePath("zh-CN", "health", "registering-with-a-gp-england"), "/zh-CN/health/registering-with-a-gp-england");
+  assert.equal(guideRoutePath("zh-CN", "money"), "/zh-CN/money");
+  assert.equal(guideHomePath("zh-CN"), "/zh-CN");
+  for (const locale of GUIDE_LOCALES) {
     assert.equal(guideRoutePath(locale, "health"), `/${locale}/health`);
     assert.equal(guideRoutePath(locale, "health", "a guide"), localizedGuidePath(locale, "health", "a guide"));
     assert.equal(guideHomePath(locale), `/${locale}`);
@@ -25,6 +25,9 @@ test("switching to Simplified Chinese targets the original editorial routes", ()
 test("zh-CN → zh-TW → zh-CN keeps the Health hub and Guide page types", () => {
   assert.deepEqual(page(guideRoutePath("zh-CN", "health")), { name: "hub", domain: "health" });
   assert.deepEqual(page(guideRoutePath("zh-TW", "health")), { name: "localized-hub", locale: "zh-TW", domain: "health" });
+  // The old short routes still render the same pages (external links; the host 301s them).
+  assert.deepEqual(page("/health"), page(guideRoutePath("zh-CN", "health")));
+  assert.deepEqual(page("/"), page(guideHomePath("zh-CN")));
   assert.deepEqual(page(guideRoutePath("zh-CN", "health")), { name: "hub", domain: "health" });
   const slug = "registering-with-a-gp-england";
   assert.deepEqual(page(guideRoutePath("zh-CN", "health", slug)), { name: "guide", domain: "health", slug });
@@ -60,15 +63,15 @@ test("a partially translated hub keeps every section and labels Simplified Chine
   for (const entry of entries.filter((item) => item.fallback)) {
     // Never claims a translation: Chinese text, Chinese page.
     assert.equal(entry.locale, "zh-CN");
-    assert.equal(entry.path, `/health/${entry.slug}`);
+    assert.equal(entry.path, `/zh-CN/health/${entry.slug}`);
     assert.equal(entry.title, `简体 ${entry.slug}？说明`);
   }
 });
 
-test("the Simplified Chinese hub has no fallbacks and links to the original routes", () => {
+test("the Simplified Chinese hub has no fallbacks and links to the canonical /zh-CN routes", () => {
   const entries = localizedHealthSections(source, [], "zh-CN").flatMap((section) => section.entries);
   assert.equal(entries.length, source.length);
-  assert.ok(entries.every((entry) => !entry.fallback && entry.locale === "zh-CN" && entry.path === `/health/${entry.slug}`));
+  assert.ok(entries.every((entry) => !entry.fallback && entry.locale === "zh-CN" && entry.path === `/zh-CN/health/${entry.slug}`));
 });
 
 test("an untranslated locale shows the whole hub as labelled fallbacks", () => {

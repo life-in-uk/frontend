@@ -16,7 +16,7 @@ const baseURL = process.env.FRONTEND_URL || "http://127.0.0.1:5173";
 const screenshots = process.env.SCREENSHOT_DIR || "/tmp/life-uk-renting";
 await mkdir(screenshots, { recursive: true });
 const browser = await chromium.launch({ headless: true });
-const LOCALES = [["", "zh-CN", "ltr"], ["/zh-TW", "zh-TW", "ltr"], ["/en", "en", "ltr"], ["/ur", "ur", "rtl"], ["/hi", "hi", "ltr"]];
+const LOCALES = [["/zh-CN", "zh-CN", "ltr"], ["/zh-TW", "zh-TW", "ltr"], ["/en", "en", "ltr"], ["/ur", "ur", "rtl"], ["/hi", "hi", "ltr"]];
 const SLUGS = [
   "renting-letting-agent-overview", "renting-finding-viewing", "renting-referencing-checks",
   "renting-guarantors", "renting-deposits-fees", "renting-tenancy-agreement",
@@ -163,8 +163,8 @@ try {
     const { context, page } = await open();
     await page.goto(`${baseURL}/`);
     for (const where of ["main", "header", "footer"]) {
-      const n = await page.locator(`${where} a[href="/renting"]`).count();
-      ok(n >= 1, `home ${where} links to /renting (${n})`);
+      const n = await page.locator(`${where} a[href="/zh-CN/renting"]`).count();
+      ok(n >= 1, `home ${where} links to /zh-CN/renting (${n})`);
     }
     for (const locale of ["zh-TW", "en", "ur", "hi"]) {
       await page.goto(`${baseURL}/${locale}`);

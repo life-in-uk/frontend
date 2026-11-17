@@ -29,6 +29,14 @@ if (prerendered && route.name === 'guide')
   ready.push(primeStartupGuide(route.slug, 'zh-CN', AbortSignal.timeout(STARTUP_DEADLINE_MS)))
 if (prerendered && route.name === 'localized-guide')
   ready.push(primeStartupGuide(route.slug, route.locale, AbortSignal.timeout(STARTUP_DEADLINE_MS)))
+if (prerendered && route.name === 'topic') {
+  const locale = route.locale ?? 'zh-CN'
+  ready.push(
+    import('./components/family-visa/topics/topicStartup').then((m) =>
+      m.primeTopicStartup(locale, AbortSignal.timeout(STARTUP_DEADLINE_MS)),
+    ),
+  )
+}
 
 function render() {
   createRoot(container).render(

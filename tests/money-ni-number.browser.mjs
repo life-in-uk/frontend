@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const baseURL = process.env.FRONTEND_URL || "http://127.0.0.1:5173";
 const SLUG = "national-insurance-number-newcomers";
-const LOCALES = [["", "zh-CN", "ltr"], ["/zh-TW", "zh-TW", "ltr"], ["/en", "en", "ltr"], ["/ur", "ur", "rtl"], ["/hi", "hi", "ltr"]];
+const LOCALES = [["/zh-CN", "zh-CN", "ltr"], ["/zh-TW", "zh-TW", "ltr"], ["/en", "en", "ltr"], ["/ur", "ur", "rtl"], ["/hi", "hi", "ltr"]];
 const browser = await chromium.launch({ headless: true });
 let checks = 0;
 const ok = (cond, msg) => { assert.ok(cond, msg); checks++; };

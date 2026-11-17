@@ -73,11 +73,11 @@ test("search index covers launched sections only", () => {
   const index = buildSearchIndex(GUIDES, DOMAINS, ANSWERS);
   assert.deepEqual(
     searchEntries(index, "配偶签证").map((entry) => entry.href),
-    ["/family-visa/fixture-family-visa"],
+    ["/zh-CN/family-visa/fixture-family-visa"],
   );
   assert.ok(
     index.every((entry) =>
-      ["/money", "/health", "/family-visa"].some((base) =>
+      ["/zh-CN/money", "/zh-CN/health", "/zh-CN/family-visa"].some((base) =>
         entry.href.startsWith(base),
       ),
     ),
@@ -86,10 +86,10 @@ test("search index covers launched sections only", () => {
   assert.deepEqual(
     guides.map((entry) => entry.href),
     [
-      "/money/open-uk-bank-account-new-arrival",
-      "/health/urgent-dental-care-england",
-      "/health/registering-with-a-gp-england",
-      "/family-visa/fixture-family-visa",
+      "/zh-CN/money/open-uk-bank-account-new-arrival",
+      "/zh-CN/health/urgent-dental-care-england",
+      "/zh-CN/health/registering-with-a-gp-england",
+      "/zh-CN/family-visa/fixture-family-visa",
     ],
   );
 });
@@ -103,7 +103,7 @@ test("Quick Answer questions are indexed only when their Guide is published", ()
   assert.ok(
     withGuide
       .filter((entry) => entry.kind === "answer")
-      .every((entry) => entry.href === "/money" && entry.text === ""),
+      .every((entry) => entry.href === "/zh-CN/money" && entry.text === ""),
   );
   const without = buildSearchIndex(
     GUIDES.filter((g) => g.category !== "money"),

@@ -1,94 +1,58 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
-import { getGuides } from "../../../guides/api";
-import {
-  buildChecklist,
-  CHECKLIST_SECTIONS,
-} from "../../../guides/familyVisaChecklist";
-import {
-  JOURNEY_GUIDES,
-  reviewedWording,
-} from "../../../guides/familyVisaJourney";
-import type { Answers } from "../../../guides/familyVisaJourney";
+import { getGuides, startupGuides } from "../../../guides/api";
 import {
   domainGuides,
   FAMILY_VISA_GUIDE_DOMAIN,
 } from "../../../guides/domains";
+import { familyVisaTopicPath } from "../../../router";
 import type { FamilyVisaTopicId } from "../../../router";
-import {
-  familyVisaText,
-  FamilyVisaLocaleContext,
-  translateDeep,
-} from "../../../guides/familyVisaI18n";
-import { guideRoutePath } from "../../../guides/locales";
+import { FamilyVisaLocaleContext } from "../../../guides/familyVisaI18n";
+import { GUIDE_LOCALES, guideRoutePath } from "../../../guides/locales";
 import type { GuideLocale } from "../../../guides/locales";
-import {
-  localizeSections,
-  useLocalizedJourneyGuides,
-} from "../localizedJourney";
+import { applyGuideSeo, clearGuideSeo } from "../../../guides/seo";
+import { useLocalizedJourneyGuides } from "../localizedJourney";
 import { Link } from "../../Link";
 import { TaskDetail } from "../checklist/ChecklistView";
 import { useFamilyVisaContent, useJourneyGuides } from "../useJourneyGuides";
 import type { GuideListState } from "../useJourneyGuides";
+import { resolveTopic } from "./topicContent";
 import "../../guides/Guide.css";
 import "../FamilyVisa.css";
 import "../navigator/FamilyVisaNavigator.css";
 import "../checklist/FamilyVisaChecklist.css";
 import "./FamilyVisaTopic.css";
 
-type Topic = {
-  title: string;
-  description: string;
-  /** The situation the topic's checklist content is built for. */
-  answers: Answers;
-};
-
-const TOPICS: Record<FamilyVisaTopicId, Topic> = {
-  "children-from-previous-relationship": {
-    title: "孩子来自上一段关系，如何准备英国签证材料？",
-    description:
-      "伴侣签证路线下，孩子来自上一段关系、英国伴侣不是孩子的父母时，要准备哪些材料，以及“单方负责”是什么意思。",
-    answers: {
-      relationship: "married",
-      children: "yes",
-      childRelations: ["not-parent"],
-      location: "unsure",
-    },
-  },
-};
-
-/** Sets <title>, description and robots; restores them when leaving. */
-function useTopicMeta(title: string, description: string, indexable: boolean) {
+/**
+ * Head tags once the content is known: verified content is indexable with a
+ * canonical URL and its five language versions (the same tags as the
+ * prerendered page); otherwise noindex. While loading, the prerendered tags
+ * (if any) stay.
+ */
+function useTopicSeo(
+  topic: FamilyVisaTopicId,
+  locale: GuideLocale,
+  title: string,
+  description: string,
+  state: "loading" | "verified" | "pending",
+) {
   useEffect(() => {
-    const previous = document.title;
-    document.title = `${title} · Life in UK`;
-    const set = (name: string, content: string) => {
-      let meta = document.querySelector<HTMLMetaElement>(
-        `meta[name="${name}"]`,
-      );
-      const created = !meta;
-      if (!meta) {
-        meta = document.createElement("meta");
-        meta.name = name;
-        document.head.append(meta);
-      }
-      const before = meta.content;
-      meta.content = content;
-      return () => {
-        if (created) meta.remove();
-        else meta.content = before;
-      };
-    };
-    const undo = [
-      set("description", description),
-      // Not indexable until the reviewed Guide behind it is published.
-      ...(indexable ? [] : [set("robots", "noindex, nofollow")]),
-    ];
-    return () => {
-      document.title = previous;
-      undo.forEach((fn) => fn());
-    };
-  }, [title, description, indexable]);
+    if (state === "loading") return;
+    const origin = window.location.origin;
+    applyGuideSeo({
+      locale,
+      title: `${title} · Life in UK`,
+      description,
+      ...(state === "verified"
+        ? {
+            canonical: new URL(familyVisaTopicPath(locale, topic), origin).href,
+            alternates: GUIDE_LOCALES.map((alt) => ({ locale: alt, href: new URL(familyVisaTopicPath(alt, topic), origin).href })),
+          }
+        : // Not indexable until the reviewed Guide behind it is published.
+          { canonical: null, noIndex: true }),
+    });
+    return () => clearGuideSeo(locale);
+  }, [topic, locale, title, description, state]);
 }
 
 /**
@@ -104,8 +68,13 @@ export function FamilyVisaTopicPage({
   topic: FamilyVisaTopicId;
   locale?: GuideLocale;
 }) {
-  const config = TOPICS[topic];
-  const [list, setList] = useState<GuideListState>({ status: "loading" });
+  // On a prerendered page main.tsx fetched the data first, so the first render shows the content.
+  const [list, setList] = useState<GuideListState>(() => {
+    const ready = startupGuides("zh-CN");
+    return ready
+      ? { status: "ready", guides: domainGuides(ready, FAMILY_VISA_GUIDE_DOMAIN) }
+      : { status: "loading" };
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -125,36 +94,18 @@ export function FamilyVisaTopicPage({
   const availability = useJourneyGuides(list, true);
   const localized = useLocalizedJourneyGuides(locale, availability);
   const { content, strings, loaded } = useFamilyVisaContent(locale);
-  const t = useMemo(() => familyVisaText(locale, strings), [locale, strings]);
+  const { t, title, description, intro, section, verified: shown } = useMemo(
+    () => resolveTopic(topic, locale, availability, localized, content, strings),
+    [topic, locale, availability, localized, content, strings],
+  );
   const fvLocale = useMemo(() => ({ locale, t }), [locale, t]);
-  const section = localizeSections(
-    translateDeep(
-      buildChecklist(
-        config.answers,
-        availability,
-        JOURNEY_GUIDES,
-        CHECKLIST_SECTIONS,
-        content,
-      ),
-      (text: string) => t(text),
-    ),
-    locale,
-    localized,
-  ).find((s) => s.id === "children");
-  const zhIntro =
-    reviewedWording(content, "children", (c) => c.topics, topic)?.intro ?? null;
-  const intro = zhIntro === null ? null : t(zhIntro);
   const loading =
     !loaded ||
     list.status === "loading" ||
     availability.children.status === "loading";
   // Shown only when the Guide is verified AND reviewed wording is available.
-  const verified =
-    !loading &&
-    Boolean(section?.open) &&
-    intro !== null &&
-    Boolean(section?.tasks.some((task) => task.status === "verified"));
-  useTopicMeta(t(config.title), t(config.description), verified);
+  const verified = !loading && shown;
+  useTopicSeo(topic, locale, title, description, loading ? "loading" : verified ? "verified" : "pending");
 
   return (
     <FamilyVisaLocaleContext.Provider value={fvLocale}>
@@ -170,7 +121,7 @@ export function FamilyVisaTopicPage({
           <span className="eyebrow family-eyebrow">
             {t("家庭与签证 · 特殊情况")}
           </span>
-          <h1 id="topic-title">{t(config.title)}</h1>
+          <h1 id="topic-title">{title}</h1>
 
           {loading && (
             <p className="family-topic-status" role="status">

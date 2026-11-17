@@ -68,7 +68,7 @@ test("Health translations link their descriptive phrases, never to the Guide its
 });
 
 test("reference paths are locale-correct", () => {
-  assert.equal(guideRoutePath("zh-CN", "settlement", "settlement-after-ilr"), "/settlement/settlement-after-ilr");
+  assert.equal(guideRoutePath("zh-CN", "settlement", "settlement-after-ilr"), "/zh-CN/settlement/settlement-after-ilr");
   assert.equal(guideRoutePath("ur", "settlement", "settlement-after-ilr"), "/ur/settlement/settlement-after-ilr");
   assert.equal(guideRoutePath("zh-TW", "health", "nhs-dentist-england"), "/zh-TW/health/nhs-dentist-england");
 });

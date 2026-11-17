@@ -61,7 +61,7 @@ async function realBackend() {
     const listResponse = p.waitForResponse(
       (r) => new URL(r.url()).pathname === "/api/guides",
     );
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     const list = await (await listResponse).json();
     const money = list.filter((guide) => guide.category === "money");
     assert.ok(
@@ -92,11 +92,11 @@ async function realBackend() {
     }
     assert.equal(
       await p.locator(".money-aside-link").getAttribute("href"),
-      `/money/${slug}`,
+      `/zh-CN/money/${slug}`,
     );
     assert.equal(await noOverflow(p), true, `hub overflow at ${width}`);
 
-    await p.goto(`${baseURL}/money/${slug}`);
+    await p.goto(`${baseURL}/zh-CN/money/${slug}`);
     await p.locator(".guide-body").waitFor();
     assert.equal(await p.locator(".guide-kicker").textContent(), "金钱与财务");
     // Checklist and nested lists render as structure, not literal markers.
@@ -282,7 +282,7 @@ async function mocked() {
   // Hub: loading the Guide list.
   {
     const { p, context } = await page(1280, { list: "hang" });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.getByRole("heading", { level: 1, name: "金钱与财务" }).waitFor();
     await p
       .getByText("正在加载金钱与财务的解答…")
@@ -297,13 +297,13 @@ async function mocked() {
   // Hub: loading the answers; the full Guide is already reachable.
   {
     const { p, context } = await page(390, { answers: "hang" });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.locator(".money-aside-link").waitFor();
     assert.equal(await p.locator(".money-qa-skeleton li").count(), 6);
     assert.equal(await p.locator(".money-qa-item").count(), 0);
     assert.equal(
       await p.locator(".money-aside-link").getAttribute("href"),
-      `/money/${QA.guideSlug}`,
+      `/zh-CN/money/${QA.guideSlug}`,
     );
     console.log(
       "PASS hub loading answers: skeleton, full Guide link available",
@@ -314,7 +314,7 @@ async function mocked() {
   // Hub: list API error, with no fallback content.
   {
     const { p, context } = await page(1280, { list: 500 });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.locator(".money-error").waitFor();
     assert.match(await p.locator(".money-error").textContent(), /暂时无法加载/);
     assert.equal(
@@ -328,7 +328,7 @@ async function mocked() {
   // Hub: answer Guide error: no answers shown, full Guide link kept.
   {
     const { p, context } = await page(1280, { answers: 500 });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.locator(".money-error").waitFor();
     assert.match(await p.locator(".money-error").textContent(), /完整指南/);
     assert.equal(await p.locator(".money-qa-item, .money-qa-text").count(), 0);
@@ -342,7 +342,7 @@ async function mocked() {
   // Hub: empty when the API has no money Guides.
   for (const width of widths) {
     const { p, context, errors } = await page(width, { list: noMoney });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.locator(".money-empty").waitFor();
     assert.equal(
       await p
@@ -362,7 +362,7 @@ async function mocked() {
   // Hub: Quick Answers with evidence, one open at a time.
   for (const width of widths) {
     const { p, context, errors, requests } = await page(width);
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     const items = p.locator(".money-qa-item");
     await p.locator(".money-qa-answer").waitFor();
     assert.equal(await items.count(), QA.answers.length);
@@ -413,11 +413,11 @@ async function mocked() {
     // Full Guide link inside the answer and in the aside.
     assert.equal(
       await items.nth(0).locator(".money-qa-guide-link").getAttribute("href"),
-      `/money/${QA.guideSlug}`,
+      `/zh-CN/money/${QA.guideSlug}`,
     );
     assert.equal(
       await p.locator(".money-aside-link").getAttribute("href"),
-      `/money/${QA.guideSlug}`,
+      `/zh-CN/money/${QA.guideSlug}`,
     );
     // Switching questions closes the previous answer; clicking again closes.
     await items.nth(2).locator(".money-qa-question").click();
@@ -472,7 +472,7 @@ async function mocked() {
   {
     const drop = QA.answers[0].evidenceKeys[0];
     const { p, context } = await page(390, { answers: qaDetail({ drop }) });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     const items = p.locator(".money-qa-item");
     await p.locator(".money-qa-answer").waitFor();
     assert.equal(await items.nth(0).locator(".money-qa-text").count(), 0);
@@ -483,7 +483,7 @@ async function mocked() {
     );
     assert.equal(
       await items.nth(0).locator(".money-qa-guide-link").getAttribute("href"),
-      `/money/${QA.guideSlug}`,
+      `/zh-CN/money/${QA.guideSlug}`,
     );
     const unaffected = QA.answers.findIndex(
       (a) => !a.evidenceKeys.includes(drop),
@@ -501,7 +501,7 @@ async function mocked() {
     const { p, context } = await page(1280, {
       answers: qaDetail({ updatedAt: "2026-11-01T09:00:00Z" }),
     });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.locator(".money-qa-notice").waitFor();
     assert.equal(await p.locator(".money-qa-text").count(), 0);
     assert.equal(await p.locator(".money-qa-unverified").count(), 1);
@@ -520,7 +520,7 @@ async function mocked() {
         },
       }),
     });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     const items = p.locator(".money-qa-item");
     await p.locator(".money-qa-answer").waitFor();
     for (const [index, answer] of QA.answers.entries()) {
@@ -547,7 +547,7 @@ async function mocked() {
   // Affiliate slot: disabled by default, leaving no card, copy or space.
   for (const width of [1280, 390]) {
     const { p, context } = await page(width);
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.locator(".money-qa-answer").waitFor();
     assert.equal(await p.locator(".money-affiliate").count(), 0);
     assert.equal(await p.locator(".money-qa-list").count(), 1);
@@ -569,7 +569,7 @@ async function mocked() {
   // Affiliate preview (development only): placement and separation.
   {
     const { p, context } = await page(1280);
-    await p.goto(`${baseURL}/money?affiliate-preview`);
+    await p.goto(`${baseURL}/zh-CN/money?affiliate-preview`);
     await p.locator(".money-qa-answer").waitFor();
     const card = p.locator(".money-affiliate-aside");
     assert.equal(await card.isVisible(), true);
@@ -616,7 +616,7 @@ async function mocked() {
   }
   for (const width of [390, 320]) {
     const { p, context } = await page(width);
-    await p.goto(`${baseURL}/money?affiliate-preview`);
+    await p.goto(`${baseURL}/zh-CN/money?affiliate-preview`);
     await p.locator(".money-qa-answer").waitFor();
     const inline = p.locator(".money-affiliate-inline");
     assert.equal(await inline.isVisible(), true);
@@ -658,13 +658,13 @@ async function mocked() {
   // Other money Guides are listed after the answers, without featuring.
   {
     const { p, context } = await page(1280, { list: [qaMeta, moneyOne] });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.locator(".money-qa-answer").waitFor();
     assert.deepEqual(
       await p
         .locator(".money-more .money-guide-card")
         .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-      ["/money/fixture-money-one"],
+      ["/zh-CN/money/fixture-money-one"],
     );
     console.log("PASS other money Guides listed under 更多指南");
     await context.close();
@@ -675,14 +675,14 @@ async function mocked() {
     const { p, context, requests } = await page(390, {
       list: [moneyOne, moneyTwo],
     });
-    await p.goto(`${baseURL}/money`);
+    await p.goto(`${baseURL}/zh-CN/money`);
     await p.locator(".money-guide-card").first().waitFor();
     assert.equal(await p.locator(".money-qa-item, .money-aside").count(), 0);
     assert.deepEqual(
       await p
         .locator(".money-guide-card")
         .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-      ["/money/fixture-money-one", "/money/fixture-money-two"],
+      ["/zh-CN/money/fixture-money-one", "/zh-CN/money/fixture-money-two"],
     );
     assert.ok(requests.every((path) => path === "/api/guides"));
     assert.equal(await noOverflow(p), true);
@@ -695,13 +695,13 @@ async function mocked() {
   {
     const { p, context } = await page(1280);
     await p.goto(`${baseURL}/`);
-    const entry = p.locator(".topic-card a[href='/money']");
+    const entry = p.locator(".topic-card a[href='/zh-CN/money']");
     await entry.waitFor();
     assert.deepEqual(
       await p
         .locator(".topic-card a")
         .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
+      ["/zh-CN/health", "/zh-CN/money", "/zh-CN/family-visa", "/zh-CN/work-visa", "/zh-CN/settlement", "/zh-CN/renting", "/zh-CN/travel"],
     );
     assert.doesNotMatch(await entry.textContent(), /官方/);
     const nav = p.getByRole("navigation", { name: "主导航" });
@@ -709,11 +709,11 @@ async function mocked() {
       await nav
         .getByRole("link", { includeHidden: true })
         .evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/family-visa", "/work-visa", "/settlement", "/renting", "/health", "/money", "/travel"],
+      ["/zh-CN", "/zh-CN/family-visa", "/zh-CN/work-visa", "/zh-CN/settlement", "/zh-CN/renting", "/zh-CN/health", "/zh-CN/money", "/zh-CN/travel"],
     );
     await p.evaluate(() => (window.__noReload = true));
     await entry.click();
-    await p.waitForURL(`${baseURL}/money`);
+    await p.waitForURL(`${baseURL}/zh-CN/money`);
     await p.getByRole("heading", { level: 1, name: "金钱与财务" }).waitFor();
     assert.equal(await p.evaluate(() => window.__noReload), true);
     assert.equal(
@@ -727,7 +727,7 @@ async function mocked() {
   // Money Guide detail: shared renderer, domain links, evidence wording.
   for (const width of widths) {
     const { p, context, errors } = await page(width);
-    await p.goto(`${baseURL}/money/${moneyOne.slug}`);
+    await p.goto(`${baseURL}/zh-CN/money/${moneyOne.slug}`);
     await p.locator(".guide-body").waitFor();
     assert.equal(await p.locator("h1").textContent(), moneyOne.title);
     assert.equal(await p.locator(".guide-kicker").textContent(), "金钱与财务");
@@ -739,7 +739,7 @@ async function mocked() {
     assert.equal(
       await p.locator(".guide-back a, .guide-status-card a", { hasText: "金钱与财务" })
         .getAttribute("href"),
-      "/money",
+      "/zh-CN/money",
     );
     // Neutral frontend wording; content-authored labels are untouched.
     assert.match(
@@ -802,10 +802,10 @@ async function mocked() {
   {
     const { p, context } = await page(1280);
     for (const [path, back, backHref] of [
-      [`/health/${moneyOne.slug}`, "健康与 NHS", "/health"],
-      [`/family-visa/${moneyOne.slug}`, "家庭与签证", "/family-visa"],
-      [`/money/${health.slug}`, "金钱与财务", "/money"],
-      [`/money/${family.slug}`, "金钱与财务", "/money"],
+      [`/zh-CN/health/${moneyOne.slug}`, "健康与 NHS", "/zh-CN/health"],
+      [`/zh-CN/family-visa/${moneyOne.slug}`, "家庭与签证", "/zh-CN/family-visa"],
+      [`/zh-CN/money/${health.slug}`, "金钱与财务", "/zh-CN/money"],
+      [`/zh-CN/money/${family.slug}`, "金钱与财务", "/zh-CN/money"],
     ]) {
       await p.goto(`${baseURL}${path}`);
       await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
@@ -827,10 +827,10 @@ async function mocked() {
   // Malformed and unknown Money routes fail safely.
   {
     const { p, context, requests } = await page(1280);
-    await p.goto(`${baseURL}/money/Bad..Slug`);
+    await p.goto(`${baseURL}/zh-CN/money/Bad..Slug`);
     await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
     assert.ok(!requests.some((r) => r.includes("Bad..Slug")));
-    await p.goto(`${baseURL}/money/not-a-published-guide`);
+    await p.goto(`${baseURL}/zh-CN/money/not-a-published-guide`);
     await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
     // Malformed percent-encoding is covered by the router unit tests: the
     // Vite dev server answers such URLs itself before the app loads.

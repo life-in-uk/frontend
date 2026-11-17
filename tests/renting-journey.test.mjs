@@ -221,7 +221,7 @@ test("the renting section is a localized Guide domain linked from the navigation
   for (const locale of GUIDE_LOCALES) {
     assert.ok(GUIDE_UI[locale].domain.renting);
     assert.ok(SITE_UI[locale].topics.renting?.title);
-    assert.equal(topicHref(topic, locale), locale === "zh-CN" ? "/renting" : `/${locale}/renting`);
+    assert.equal(topicHref(topic, locale), `/${locale}/renting`);
     assert.doesNotMatch(SITE_UI[locale].topics["daily-life"].description, /租房|租屋|renting|کرائے|किराये/u);
   }
 });

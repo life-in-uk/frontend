@@ -4,7 +4,8 @@
 // language direction, and a Journey entry point.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { escapeHtml, fillTemplate, JOURNEY_LINKS, staticGuidePage, staticHubPage } from "../src/seo/staticPages.ts";
+import { escapeHtml, fillTemplate, JOURNEY_LINKS, staticGuidePage, staticHomePage, staticHubPage, staticTopicPage } from "../src/seo/staticPages.ts";
+import { JOURNEY_GUIDES } from "../src/guides/familyVisaJourney.ts";
 import { RENTING_STEPS } from "../src/guides/rentingJourney.ts";
 
 const ORIGIN = "https://example.test";
@@ -169,4 +170,37 @@ test("general-information notice: Health Guides and the bank account Guide only 
   assert.match(page.body, /<p class="guide-notice">یہ اس رہنمائی میں درج سرکاری ذرائع پر مبنی عمومی معلومات ہے/);
   const renting = staticGuidePage({ origin: ORIGIN, locale: "en", domainId: "renting", guide: GUIDE, published: PUBLISHED, availableLocales: ["en"] });
   assert.doesNotMatch(renting.body, /guide-notice/);
+});
+
+test("a home page: canonical /{locale}, five hreflang + x-default /zh-CN, crawlable sections and direct canonical links", () => {
+  const source = [...PUBLISHED, meta("partner-visa-routes-overview", "伴侣签证路线", "family-visa")];
+  for (const locale of ["zh-CN", "en", "ur"]) {
+    const published = locale === "zh-CN" ? source : PUBLISHED.slice(0, 2);
+    const page = staticHomePage({ origin: ORIGIN, locale, source, published });
+    assert.equal(page.head.canonical, `${ORIGIN}/${locale}`);
+    assert.deepEqual(page.head.alternates.map((row) => row.href), ["zh-CN", "zh-TW", "en", "ur", "hi"].map((l) => `${ORIGIN}/${l}`));
+    assert.ok(page.head.description.length > 40 && !page.head.structuredData);
+    const html = fillTemplate(TEMPLATE, page);
+    assert.match(html, /<link rel="alternate" hreflang="x-default" href="https:\/\/example\.test\/zh-CN"/);
+    assert.equal((page.body.match(/<h1>/g) ?? []).length, 1);
+    const links = [...page.body.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+    // Every internal link is a canonical /{locale}/… URL: never / or a zh-CN short URL that redirects.
+    assert.ok(links.every((href) => href.startsWith("/zh-CN") || href.startsWith(`/${locale}`)), links.join(" "));
+    assert.ok(links.includes(`/${locale}/renting`) && links.includes(`/${locale}/travel`));
+    // Only sections with a published Guide in this locale are linked (other hubs are not pages).
+    assert.equal(links.includes(`/${locale}/family-visa`), locale === "zh-CN");
+    assert.match(page.body, /id="about"/);
+  }
+  assert.match(fillTemplate(TEMPLATE, staticHomePage({ origin: ORIGIN, locale: "ur", source: PUBLISHED, published: PUBLISHED })), /<html lang="ur" dir="rtl">/);
+});
+
+test("a Family & Visa topic page is prerendered only when the app would show verified content", () => {
+  const base = { origin: ORIGIN, topic: "children-from-previous-relationship", published: PUBLISHED, localeDetails: new Map() };
+  // No Family & Visa Guide published: nothing to prerender (the app shows "being checked", noindex).
+  assert.equal(staticTopicPage({ ...base, locale: "en", source: PUBLISHED, sourceDetails: new Map() }), null);
+  // The Guide behind it published, but not the reviewed version: still nothing.
+  const { slug, reviewedUpdatedAt } = JOURNEY_GUIDES.children;
+  const changed = { ...meta(slug, "Children", "family-visa"), updatedAt: "2099-01-01T00:00:00Z", content: "x", sources: [], evidence: [] };
+  assert.notEqual(changed.updatedAt, reviewedUpdatedAt);
+  assert.equal(staticTopicPage({ ...base, locale: "zh-CN", source: [changed], sourceDetails: new Map([[slug, changed]]) }), null);
 });

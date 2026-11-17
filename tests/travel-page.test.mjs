@@ -27,17 +27,17 @@ test("/travel and /{locale}/travel are the Travel page; deeper paths are not fou
 
 test("language switching keeps the Travel page", () => {
   assert.equal(localeSwitchPath(matchRoute("/travel"), "ur"), "/ur/travel");
-  assert.equal(localeSwitchPath(matchRoute("/hi/travel"), "zh-CN"), "/travel");
+  assert.equal(localeSwitchPath(matchRoute("/hi/travel"), "zh-CN"), "/zh-CN/travel");
   assert.equal(localeSwitchPath(matchRoute("/en/travel"), "zh-TW"), "/zh-TW/travel");
   assert.equal(travelPath("en", "roads"), "/en/travel#roads");
-  assert.equal(travelPath("zh-CN"), "/travel");
+  assert.equal(travelPath("zh-CN"), "/zh-CN/travel");
 });
 
 test("the Travel topic is linked in every locale but never counted or searched as Guides", () => {
   const travel = HOME_TOPICS.find((topic) => topic.id === "travel");
   assert.equal(travel?.page, "travel");
   assert.equal(travel?.domain, undefined);
-  assert.equal(topicHref(travel, "zh-CN"), "/travel");
+  assert.equal(topicHref(travel, "zh-CN"), "/zh-CN/travel");
   assert.equal(topicHref(travel, "ur"), "/ur/travel");
   assert.ok(!launchedTopics().some((topic) => topic.id === "travel"));
   // Upcoming sections stay unlinked.

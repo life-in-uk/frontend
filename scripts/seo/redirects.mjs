@@ -1,7 +1,9 @@
 // Portable redirect manifest for the zh-CN short URLs (/renting/… →
-// /zh-CN/renting/…). Hosts that support redirects should apply these as
-// permanent (301) redirects; hosts that do not still serve the alias HTML
-// pages, whose canonical already points at /zh-CN/…, so no link breaks.
+// /zh-CN/renting/…, and the site root / → /zh-CN). Hosts that support
+// redirects should apply these as permanent (301) redirects; hosts that do
+// not still serve the alias HTML pages, whose canonical already points at
+// /zh-CN/…, so no link breaks (the root then serves the app shell, which
+// sets the same canonical when it starts).
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { aliasFor } from "./inventory.mjs";
@@ -18,7 +20,7 @@ export function redirectsFor(pages) {
 export async function writeRedirects(distDir, pages) {
   const redirects = redirectsFor(pages);
   const body = {
-    description: "Permanent redirects from zh-CN short URLs to their canonical /zh-CN/ pages. Apply as HTTP 301 where the host supports redirects; the alias HTML pages remain as a fallback.",
+    description: "Permanent redirects from zh-CN short URLs and the site root to their canonical /zh-CN/ pages. Apply as HTTP 301 where the host supports redirects (keep the query string); the alias HTML pages remain as a fallback.",
     redirects,
   };
   await writeFile(join(distDir, REDIRECTS_FILE), JSON.stringify(body, null, 1) + "\n", "utf8");

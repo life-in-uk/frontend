@@ -16,7 +16,7 @@ export function MoneyEntry() {
           开户、存钱等常见问题先看简短回答，每条都能查看依据；需要细节再看完整指南。
         </p>
       </div>
-      <Link to="/money" className="button money-entry-button">
+      <Link to="/zh-CN/money" className="button money-entry-button">
         进入金钱与财务
         <ArrowRight size={17} aria-hidden="true" />
       </Link>

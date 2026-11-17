@@ -5,14 +5,14 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { GUIDE_LOCALE_HREFLANG, GUIDE_LOCALE_LANG } from "../../src/guides/locales.ts";
-import { aliasFor, expectedPages, HOME_PATHS } from "./inventory.mjs";
+import { aliasFor, expectedPages, HOME_PATHS, ROOT_ALIAS } from "./inventory.mjs";
 import { isPrivateHost } from "./origin.mjs";
 import { SPA_ROOT } from "./prerender.mjs";
 import { REDIRECTS_FILE } from "./redirects.mjs";
-import { NOT_FOUND_FILE, SPA_ROUTES_FILE } from "./routes.mjs";
+import { isSpaRoute, NOT_FOUND_FILE, SPA_ROUTES_FILE } from "./routes.mjs";
 
 /** Minimum visible text of a page's <main> (characters, whitespace collapsed). */
-const MIN_TEXT = { guide: 200, hub: 80 };
+const MIN_TEXT = { guide: 200, hub: 80, home: 200, topic: 200 };
 
 const decode = (value) => value.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 const textOf = (html) => decode(html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
@@ -75,8 +75,10 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
   for (const path of generated)
     if (!expected.has(path) && !aliases.has(path)) fail(`${path}: unexpected page (not a published Guide or hub in this locale)`);
 
+  const routesFile = join(distDir, SPA_ROUTES_FILE);
+  const routes = existsSync(routesFile) ? JSON.parse(await readFile(routesFile, "utf8")) : null;
   const canonicalOwners = new Map();
-  const counts = { guide: 0, hub: 0, alias: 0 };
+  const counts = { guide: 0, hub: 0, home: 0, topic: 0, alias: 0 };
   for (const page of pages) {
     const file = join(distDir, page.path, "index.html");
     if (!existsSync(file)) {
@@ -120,16 +122,17 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
           fail(`${where}: invalid URL ${href}`);
         }
       }
-    // Internal links resolve to a page, a home page, an alias or a built file.
+    // Internal links resolve to a page or a built file, and never to a zh-CN short URL (a 301 on the public host).
     for (const href of parsed.links) {
       if (!href.startsWith("/") || href.startsWith("//")) continue;
       const target = href.split(/[?#]/)[0].replace(/(.)\/$/, "$1") || "/";
-      if (!(expected.has(target) || aliases.has(target) || HOME_PATHS.has(target) || existsSync(join(distDir, target))))
+      if (aliases.has(target)) fail(`${where}: internal link ${href} is a redirecting short URL; link ${aliases.get(target).path}`);
+      else if (!(expected.has(target) || HOME_PATHS.has(target) || (routes && isSpaRoute(target, routes)) || existsSync(join(distDir, target))))
         fail(`${where}: internal link ${href} does not resolve`);
     }
-    // zh-CN short URL: same page, canonical on /zh-CN/….
+    // zh-CN short URL: same page, canonical on /zh-CN/…. The root has no alias page (it is the app shell; hosts redirect it).
     const alias = aliasFor(page);
-    if (alias) {
+    if (alias && alias !== ROOT_ALIAS) {
       const aliasFile = join(distDir, alias, "index.html");
       if (!existsSync(aliasFile)) fail(`${alias}: missing zh-CN short URL page`);
       else {
@@ -149,12 +152,12 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
     if (/rel="canonical"|hreflang=|application\/ld\+json/.test(html)) fail(`${NOT_FOUND_FILE}: must not carry a canonical, hreflang or structured data`);
     if (!parsePage(html).loadsApp) fail(`${NOT_FOUND_FILE}: the app script is missing`);
   }
-  const routesFile = join(distDir, SPA_ROUTES_FILE);
-  if (!existsSync(routesFile)) fail(`${SPA_ROUTES_FILE} missing`);
+  if (!routes) fail(`${SPA_ROUTES_FILE} missing`);
   else {
-    const routes = JSON.parse(await readFile(routesFile, "utf8"));
-    for (const home of HOME_PATHS) if (!routes.paths?.includes(home)) fail(`${SPA_ROUTES_FILE}: home page ${home} missing`);
-    for (const path of routes.paths ?? []) if (expected.has(path) || aliases.has(path)) fail(`${SPA_ROUTES_FILE}: ${path} is a prerendered page`);
+    for (const home of HOME_PATHS)
+      if (!routes.paths?.includes(home) && !expected.has(home)) fail(`${SPA_ROUTES_FILE}: home page ${home} is neither prerendered nor an app route`);
+    for (const path of routes.paths ?? [])
+      if (expected.has(path) || (aliases.has(path) && path !== ROOT_ALIAS)) fail(`${SPA_ROUTES_FILE}: ${path} is a prerendered page`);
   }
 
   // Guide structured data: one JSON-LD graph that matches the page (structuredData.ts).
@@ -186,9 +189,9 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
       fail(`${page.path}: BreadcrumbList JSON-LD does not match the visible breadcrumb`);
     if (!html.includes(`datetime="${article?.dateModified}"`)) fail(`${page.path}: dateModified is not the date the page shows`);
   }
-  for (const page of pages.filter((row) => row.kind === "hub")) {
+  for (const page of pages.filter((row) => row.kind !== "guide")) {
     const file = join(distDir, page.path, "index.html");
-    if (existsSync(file) && /application\/ld\+json/.test(await readFile(file, "utf8"))) fail(`${page.path}: topic hubs carry no structured data`);
+    if (existsSync(file) && /application\/ld\+json/.test(await readFile(file, "utf8"))) fail(`${page.path}: only Guide pages carry structured data`);
   }
 
   let redirects = 0;
@@ -210,7 +213,10 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
   const report = {
     origin,
     release,
-    expected: { guides: pages.filter((p) => p.kind === "guide").length, hubs: pages.filter((p) => p.kind === "hub").length, aliases: aliases.size },
+    expected: {
+      guides: pages.filter((p) => p.kind === "guide").length, hubs: pages.filter((p) => p.kind === "hub").length,
+      homes: pages.filter((p) => p.kind === "home").length, topics: pages.filter((p) => p.kind === "topic").length, aliases: aliases.size,
+    },
     valid: counts,
     generatedFiles: generated.length,
     redirects,
@@ -226,7 +232,9 @@ export function formatReport(report, errors) {
   if (report)
     lines.push(
       `  Guide pages: ${report.valid.guide}/${report.expected.guides}   Topic hubs: ${report.valid.hub}/${report.expected.hubs}   ` +
-        `Canonical URLs: ${report.expected.guides + report.expected.hubs}   zh-CN short URLs: ${report.valid.alias}/${report.expected.aliases}` +
+        `Home pages: ${report.valid.home}/${report.expected.homes}   Family Visa topic pages: ${report.valid.topic}/${report.expected.topics}   ` +
+        `Canonical URLs: ${report.expected.guides + report.expected.hubs + report.expected.homes + report.expected.topics}   ` +
+        `zh-CN short URLs: ${report.valid.alias}/${report.expected.aliases - 1} pages + root redirect` +
         (report.release ? `   Redirects: ${report.redirects}` : "") + `   HTML files: ${report.generatedFiles}`,
     );
   for (const error of errors.slice(0, 50)) lines.push(`  ✗ ${error}`);

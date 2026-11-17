@@ -11,7 +11,7 @@ const baseURL = process.env.FRONTEND_URL || "http://127.0.0.1:5173";
 const screenshots = process.env.SCREENSHOT_DIR || "/tmp/life-uk-settlement";
 await mkdir(screenshots, { recursive: true });
 const browser = await chromium.launch({ headless: true });
-const LOCALES = [["", "zh-CN", "ltr"], ["/zh-TW", "zh-TW", "ltr"], ["/en", "en", "ltr"], ["/ur", "ur", "rtl"], ["/hi", "hi", "ltr"]];
+const LOCALES = [["/zh-CN", "zh-CN", "ltr"], ["/zh-TW", "zh-TW", "ltr"], ["/en", "en", "ltr"], ["/ur", "ur", "rtl"], ["/hi", "hi", "ltr"]];
 const SLUGS = [
   "settlement-ilr-overview", "settlement-partner-ilr", "settlement-long-residence", "settlement-other-routes",
   "settlement-continuous-residence-absences", "settlement-english-life-in-uk-test", "settlement-children-dependants",
@@ -75,8 +75,8 @@ try {
     const { context, page } = await open();
     await page.goto(`${baseURL}/`);
     for (const where of ["main", "header", "footer"]) {
-      const n = await page.locator(`${where} a[href="/settlement"]`).count();
-      ok(n >= 1, `home ${where} links to /settlement (${n})`);
+      const n = await page.locator(`${where} a[href="/zh-CN/settlement"]`).count();
+      ok(n >= 1, `home ${where} links to /zh-CN/settlement (${n})`);
     }
     await page.goto(`${baseURL}/ur`);
     ok((await page.locator('header a[href="/ur/settlement"]').count()) >= 1, "ur header link");

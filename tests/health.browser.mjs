@@ -181,7 +181,7 @@ try {
     await p.goto(`${baseURL}/`);
     await p.evaluate(() => (window.__noReload = true));
     await p.getByRole("link", { name: "进入健康与 NHS" }).click();
-    await p.waitForURL(`${baseURL}/health`);
+    await p.waitForURL(`${baseURL}/zh-CN/health`);
     await p.getByRole("heading", { level: 1, name: "健康与 NHS" }).waitFor();
     assert.equal(await p.evaluate(() => window.__noReload), true);
     assert.equal(
@@ -217,7 +217,7 @@ try {
     assert.equal(await emergency.getAttribute("href"), "tel:999");
     assert.equal(
       await p.locator(".health-hero-unsure").getAttribute("href"),
-      "/health/where-to-go-when-ill-england",
+      "/zh-CN/health/where-to-go-when-ill-england",
     );
     assert.match(
       await p.locator(".health-hero-unsure").textContent(),
@@ -236,7 +236,7 @@ try {
     assert.equal(guideHrefs.length, 9);
     assert.deepEqual(
       [...guideHrefs].sort(),
-      slugs.map((slug) => `/health/${slug}`).sort(),
+      slugs.map((slug) => `/zh-CN/health/${slug}`).sort(),
     );
     assert.deepEqual(
       await p
@@ -263,12 +263,12 @@ try {
           links.map((a) => [a.textContent, a.getAttribute("href")]),
         ),
       [
-        ["生病了该去哪？", "/health/where-to-go-when-ill-england"],
-        ["怎么注册 GP？", "/health/registering-with-a-gp-england"],
-        ["药怎么买？", "/health/medicines-prescriptions-england"],
-        ["晚上牙痛怎么办？", "/health/urgent-dental-care-england"],
-        ["父母来英国看病？", "/health/visiting-parents-healthcare-england"],
-        ["NHS 收费吗？", "/health/nhs-ihs-costs-england"],
+        ["生病了该去哪？", "/zh-CN/health/where-to-go-when-ill-england"],
+        ["怎么注册 GP？", "/zh-CN/health/registering-with-a-gp-england"],
+        ["药怎么买？", "/zh-CN/health/medicines-prescriptions-england"],
+        ["晚上牙痛怎么办？", "/zh-CN/health/urgent-dental-care-england"],
+        ["父母来英国看病？", "/zh-CN/health/visiting-parents-healthcare-england"],
+        ["NHS 收费吗？", "/zh-CN/health/nhs-ihs-costs-england"],
       ],
     );
     const quickHrefs = await p
@@ -276,7 +276,7 @@ try {
       .evaluateAll((links) => links.map((a) => a.getAttribute("href")));
     assert.equal(quickHrefs.length, 9);
     for (const href of quickHrefs)
-      assert.ok(slugs.includes(href.replace("/health/", "")), href);
+      assert.ok(slugs.includes(href.replace("/zh-CN/health/", "")), href);
     assert.equal(await noOverflow(p), true);
     await p.screenshot({ path: `${screenshots}/hub-1280.png`, fullPage: true });
 
@@ -284,20 +284,20 @@ try {
     await p
       .locator("[data-category='ill-now']")
       .click({ position: { x: 24, y: 24 } });
-    await p.waitForURL(`${baseURL}/health/where-to-go-when-ill-england`);
+    await p.waitForURL(`${baseURL}/zh-CN/health/where-to-go-when-ill-england`);
     await p.goBack();
-    await p.waitForURL(`${baseURL}/health`);
+    await p.waitForURL(`${baseURL}/zh-CN/health`);
 
     // Guide link inside a card → detail via client-side navigation.
     await p
-      .locator(".category-guides a[href='/health/nhs-dentist-england']")
+      .locator(".category-guides a[href='/zh-CN/health/nhs-dentist-england']")
       .click();
-    await p.waitForURL(`${baseURL}/health/nhs-dentist-england`);
+    await p.waitForURL(`${baseURL}/zh-CN/health/nhs-dentist-england`);
     await p.locator(".guide-body").waitFor();
     assert.equal(await p.evaluate(() => window.__noReload), true);
     // Back returns to the Hub.
     await p.goBack();
-    await p.waitForURL(`${baseURL}/health`);
+    await p.waitForURL(`${baseURL}/zh-CN/health`);
     await p.locator(".category-card").first().waitFor();
     assert.deepEqual(guideErrors(errors), []);
     await context.close();
@@ -306,7 +306,7 @@ try {
   // Detail rendering, evidence disclosure and internal links.
   {
     const { p, context, errors } = await page(1280);
-    await p.goto(`${baseURL}/health/nhs-dentist-england`);
+    await p.goto(`${baseURL}/zh-CN/health/nhs-dentist-england`);
     await p.locator(".guide-body").waitFor();
     assert.equal(await p.locator("h1").count(), 1);
     assert.equal(
@@ -435,7 +435,7 @@ try {
     // 《》 references to existing Guides link internally; others stay text.
     assert.equal(
       await p.locator(".guide-body a.guide-reference").getAttribute("href"),
-      "/health/urgent-dental-care-england",
+      "/zh-CN/health/urgent-dental-care-england",
     );
     assert.equal(await p.locator(".guide-body a.guide-reference").count(), 1);
     await p.screenshot({
@@ -443,7 +443,7 @@ try {
       fullPage: true,
     });
     await p.locator(".guide-body a.guide-reference").click();
-    await p.waitForURL(`${baseURL}/health/urgent-dental-care-england`);
+    await p.waitForURL(`${baseURL}/zh-CN/health/urgent-dental-care-england`);
     await p
       .getByRole("heading", {
         level: 1,
@@ -456,10 +456,10 @@ try {
       await p
         .locator(".related-guides a")
         .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-      ["/health/nhs-dentist-england", "/health/where-to-go-when-ill-england"],
+      ["/zh-CN/health/nhs-dentist-england", "/zh-CN/health/where-to-go-when-ill-england"],
     );
     await p.locator(".guide-back a, .guide-status-card a", { hasText: "健康与 NHS" }).click();
-    await p.waitForURL(`${baseURL}/health`);
+    await p.waitForURL(`${baseURL}/zh-CN/health`);
     assert.deepEqual(guideErrors(errors), []);
     await context.close();
   }
@@ -467,9 +467,9 @@ try {
   // Not found, server error and list failure states (no fallback content).
   {
     const { p, context } = await page(1280);
-    await p.goto(`${baseURL}/health/not-a-published-guide`);
+    await p.goto(`${baseURL}/zh-CN/health/not-a-published-guide`);
     await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
-    await p.goto(`${baseURL}/health/Bad..Slug`);
+    await p.goto(`${baseURL}/zh-CN/health/Bad..Slug`);
     await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
     await p.goto(`${baseURL}/somewhere-else`);
     await p.getByRole("heading", { name: "页面不存在" }).waitFor();
@@ -480,13 +480,13 @@ try {
       listStatus: 500,
       detailStatus: 500,
     });
-    await p.goto(`${baseURL}/health`);
+    await p.goto(`${baseURL}/zh-CN/health`);
     await p.getByText("健康指南暂时无法加载，请稍后再试。").waitFor();
     assert.equal(
       await p.locator(".category-card, .intent-chips, .quick-answers").count(),
       0,
     );
-    await p.goto(`${baseURL}/health/nhs-dentist-england`);
+    await p.goto(`${baseURL}/zh-CN/health/nhs-dentist-england`);
     await p.getByRole("heading", { name: "指南暂时无法加载" }).waitFor();
     assert.equal(await p.locator(".guide-body").count(), 0);
     await context.close();
@@ -495,10 +495,10 @@ try {
   // Mobile: no horizontal overflow on the Hub or an article with panels open.
   for (const width of [320, 390]) {
     const { p, context, errors } = await page(width);
-    await p.goto(`${baseURL}/health`);
+    await p.goto(`${baseURL}/zh-CN/health`);
     await p.locator(".category-card").first().waitFor();
     assert.equal(await noOverflow(p), true, `hub overflow at ${width}`);
-    await p.goto(`${baseURL}/health/nhs-dentist-england`);
+    await p.goto(`${baseURL}/zh-CN/health/nhs-dentist-england`);
     await p.locator(".guide-body").waitFor();
     for (const toggle of await p.locator(".evidence-toggle").all())
       await toggle.click();

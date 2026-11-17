@@ -34,7 +34,7 @@ import type {
   Step,
 } from "../../../guides/familyVisaJourney";
 import { formatUkDateFor } from "../../../guides/format";
-import { GUIDE_LOCALE_LANG } from "../../../guides/locales";
+import { GUIDE_LOCALE_LANG, guideRoutePath } from "../../../guides/locales";
 import {
   familyVisaText,
   translateDeep,
@@ -219,7 +219,8 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
     function onPopState(event: PopStateEvent) {
       // The router also receives popstate: never rewrite a destination on
       // another route while this component is waiting to unmount.
-      if (window.location.pathname.replace(/\/+$/, "") !== "/family-visa")
+      const path = window.location.pathname.replace(/\/+$/, "");
+      if (path !== guideRoutePath(locale, "family-visa") && path !== "/family-visa")
         return;
       const entry = readHistoryState(event.state);
       if (!entry) return;
@@ -231,7 +232,7 @@ export function FamilyVisaNavigator({ list }: { list: GuideListState }) {
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [writeHistory]);
+  }, [writeHistory, locale]);
 
   // Focus the new view's heading after the person moves on.
   const view =

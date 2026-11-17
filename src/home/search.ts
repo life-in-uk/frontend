@@ -12,6 +12,7 @@
 import type { GuideMetadata } from "../guides/api";
 import type { GuideDomain } from "../guides/domains";
 import { belongsToDomain, guidePath } from "../guides/domains.ts";
+import { guideRoutePath } from "../guides/locales.ts";
 import type { QuickAnswerSet } from "../guides/moneyQuickAnswers";
 
 export type SearchEntry = {
@@ -62,7 +63,7 @@ export function buildSearchIndex(
         key: `answer:${answer.id}`,
         title: answer.question,
         text: "",
-        href: domain.basePath,
+        href: guideRoutePath("zh-CN", domain.id),
         sectionLabel: domain.label,
       });
   }

@@ -6,8 +6,9 @@
 //
 //   API_BASE=http://127.0.0.1:8188 npm run build:static
 import { resolve } from "node:path";
-import { loadInventory } from "./seo/inventory.mjs";
+import { expectedPages, loadInventory } from "./seo/inventory.mjs";
 import { prerender } from "./seo/prerender.mjs";
+import { writeRedirects } from "./seo/redirects.mjs";
 import { formatReport, validateSeoOutput } from "./seo/validate.mjs";
 
 const API = (process.env.API_BASE || "http://127.0.0.1:8188").replace(/\/$/, "");
@@ -25,7 +26,8 @@ try {
   const origin = await localOrigin();
   const inventory = await loadInventory(API);
   const { written } = await prerender({ distDir: DIST, origin, inventory });
-  console.log(`prerendered ${written.length} HTML files for ${origin}`);
+  const redirects = await writeRedirects(DIST, expectedPages(inventory));
+  console.log(`prerendered ${written.length} HTML files for ${origin}, ${redirects.length} redirects`);
   const { errors, report } = await validateSeoOutput({ distDir: DIST, inventory, origin });
   console.log(formatReport(report, errors));
   if (errors.length) process.exitCode = 1;

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { getLocalizedGuide } from "../../guides/api";
+import { getLocalizedGuide, startupGuide } from "../../guides/api.ts";
 import type {
   GuideDetail,
   GuideEvidence,
   GuideMetadata,
   GuideSource,
 } from "../../guides/api";
-import { JOURNEY_GUIDES } from "../../guides/familyVisaJourney";
+import { JOURNEY_GUIDES } from "../../guides/familyVisaJourney.ts";
 import type {
   GuideAvailability,
   JourneyGuideId,
@@ -29,8 +29,19 @@ export function useLocalizedJourneyGuides(
   locale: GuideLocale,
   availability: Readonly<Record<JourneyGuideId, GuideAvailability>>,
 ): LocalizedJourneyGuides {
-  const [guides, setGuides] = useState<LocalizedJourneyGuides>({});
-  const requested = useRef(new Set<string>());
+  // Translations fetched before the first render (main.tsx), for the same Guide version.
+  const [guides, setGuides] = useState<LocalizedJourneyGuides>(() => {
+    if (locale === "zh-CN") return {};
+    const ready: LocalizedJourneyGuides = {};
+    for (const id of Object.keys(JOURNEY_GUIDES) as JourneyGuideId[]) {
+      const slug = JOURNEY_GUIDES[id].slug;
+      const source = startupGuide(slug, "zh-CN");
+      const translated = startupGuide(slug, locale);
+      if (source && translated && translated.updatedAt === source.updatedAt) ready[id] = translated;
+    }
+    return ready;
+  });
+  const requested = useRef(new Set<string>(Object.keys(guides).map((id) => `${locale}:${id}`)));
 
   useEffect(() => {
     if (locale === "zh-CN") return;

@@ -106,7 +106,7 @@ try {
     );
     assert.deepEqual(
       await nav.locator("a").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/", "/family-visa", "/work-visa", "/settlement", "/renting", "/health", "/money", "/travel"],
+      ["/zh-CN", "/zh-CN/family-visa", "/zh-CN/work-visa", "/zh-CN/settlement", "/zh-CN/renting", "/zh-CN/health", "/zh-CN/money", "/zh-CN/travel"],
     );
     assert.equal(
       await nav.getByRole("link", { name: "首页", includeHidden: true }).getAttribute("aria-current"),
@@ -118,7 +118,7 @@ try {
     assert.equal(await p.locator(".topic-card-soon").count(), 2);
     assert.deepEqual(
       await p.locator(".topic-card a").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
-      ["/health", "/money", "/family-visa", "/work-visa", "/settlement", "/renting", "/travel"],
+      ["/zh-CN/health", "/zh-CN/money", "/zh-CN/family-visa", "/zh-CN/work-visa", "/zh-CN/settlement", "/zh-CN/renting", "/zh-CN/travel"],
     );
     const counts = await p.locator(".topic-card-count").allInnerTexts();
     if (!REAL) assert.deepEqual(counts, ["6 篇指南", "1 篇指南 · 12 条解答", "1 篇指南", "", "", ""]);
@@ -127,10 +127,10 @@ try {
       .locator(".featured-card-link")
       .evaluateAll((a) => a.map((l) => l.getAttribute("href")));
     assert.deepEqual(featured, [
-      "/money/open-uk-bank-account-new-arrival",
-      "/health/registering-with-a-gp-england",
-      "/health/where-to-go-when-ill-england",
-      "/health/nhs-ihs-costs-england",
+      "/zh-CN/money/open-uk-bank-account-new-arrival",
+      "/zh-CN/health/registering-with-a-gp-england",
+      "/zh-CN/health/where-to-go-when-ill-england",
+      "/zh-CN/health/nhs-ihs-costs-england",
     ]);
     assert.equal(await p.locator(".featured-media img").count(), 0);
     // More Guides: the rest, never duplicating featured or unlaunched.
@@ -140,10 +140,10 @@ try {
     assert.ok(more.every((href) => !featured.includes(href)));
     if (!REAL)
       assert.deepEqual(more, [
-        "/family-visa/fixture-family-visa",
-        "/health/visiting-parents-healthcare-england",
-        "/health/urgent-dental-care-england",
-        "/health/medicines-prescriptions-england",
+        "/zh-CN/family-visa/fixture-family-visa",
+        "/zh-CN/health/visiting-parents-healthcare-england",
+        "/zh-CN/health/urgent-dental-care-england",
+        "/zh-CN/health/medicines-prescriptions-england",
       ]);
     // Questions: no popularity claims.
     const body = await p.locator("main").innerText();
@@ -177,7 +177,7 @@ try {
     ]);
     assert.deepEqual(
       await transport.locator("a.transport-item").evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-      ["/travel#underground", "/travel#rail", "/travel#roads"],
+      ["/zh-CN/travel#underground", "/zh-CN/travel#rail", "/zh-CN/travel#roads"],
     );
     // The Rail tool's own label "车站延误查询" (station delay checker) is not a status.
     assert.doesNotMatch(
@@ -204,7 +204,7 @@ try {
     await p.keyboard.type("牙疼");
     const results = p.locator(".home-search-list a");
     await results.first().waitFor();
-    assert.equal(await results.first().getAttribute("href"), "/health/urgent-dental-care-england");
+    assert.equal(await results.first().getAttribute("href"), "/zh-CN/health/urgent-dental-care-england");
     assert.match(await p.locator(".home-search-status").innerText(), /找到 \d+ 条相关内容/);
     // Keyboard: Enter keeps focus; Tab reaches the submit button, then results.
     await p.keyboard.press("Enter");
@@ -219,11 +219,11 @@ try {
     }
     await p.locator(".home-search-suggestions button", { hasText: "银行开户" }).click();
     assert.equal(await input.inputValue(), "银行开户");
-    assert.equal(await results.first().getAttribute("href"), "/money/open-uk-bank-account-new-arrival");
+    assert.equal(await results.first().getAttribute("href"), "/zh-CN/money/open-uk-bank-account-new-arrival");
     // Family & Visa is launched (locally), so its Guides are searchable.
     await input.fill("配偶签证草稿");
     await results.first().waitFor();
-    assert.equal(await results.first().getAttribute("href"), "/family-visa/fixture-family-visa");
+    assert.equal(await results.first().getAttribute("href"), "/zh-CN/family-visa/fixture-family-visa");
     // A query with no match shows the empty state.
     await input.fill("完全不存在的内容");
     await p.locator(".home-search-empty").waitFor();
@@ -233,7 +233,7 @@ try {
     await input.fill("注册 GP");
     await p.evaluate(() => (window.__noReload = true));
     await results.first().click();
-    await p.waitForURL(`${baseURL}/health/registering-with-a-gp-england`);
+    await p.waitForURL(`${baseURL}/zh-CN/health/registering-with-a-gp-england`);
     assert.equal(await p.evaluate(() => window.__noReload), true);
     console.log("PASS search: keyboard, suggestions, empty state, navigation");
     await context.close();
@@ -242,15 +242,15 @@ try {
   // Header search from another page focuses the homepage search.
   {
     const { p, context } = await page(1280);
-    await p.goto(`${baseURL}/health`);
+    await p.goto(`${baseURL}/zh-CN/health`);
     await p.getByRole("link", { name: "搜索指南和问题" }).click();
-    await p.waitForURL(`${baseURL}/#search`);
+    await p.waitForURL(`${baseURL}/zh-CN#search`);
     await p.waitForFunction(() => document.activeElement?.id === "home-search");
     // Topic card to Money, no reload, aria-current follows.
     await loaded(p);
     await p.evaluate(() => (window.__noReload = true));
-    await p.locator(".topic-card a[href='/money']").click();
-    await p.waitForURL(`${baseURL}/money`);
+    await p.locator(".topic-card a[href='/zh-CN/money']").click();
+    await p.waitForURL(`${baseURL}/zh-CN/money`);
     assert.equal(await p.evaluate(() => window.__noReload), true);
     assert.equal(
       await p

@@ -41,7 +41,7 @@ const haveGuides = Object.values(SLUGS).every((slug) =>
 // opt-in preview server. Probes are read from the local file at run time, so
 // this public test file quotes none of the unpublished wording.
 const LOCAL = await localContent();
-const serverPreview = await fetch(`${baseURL}/family-visa`)
+const serverPreview = await fetch(`${baseURL}/zh-CN/family-visa`)
   .then((r) => r.text())
   .then((html) => html.includes("family-visa-draft-preview"))
   .catch(() => false);
@@ -209,11 +209,11 @@ try {
   // History must not contaminate unrelated routes, including the initial entry.
   {
     const { p, context } = await page(390);
-    await p.goto(`${baseURL}/health`);
+    await p.goto(`${baseURL}/zh-CN/health`);
     await p.getByRole("heading", { level: 1 }).waitFor();
     await p.evaluate(() => {
       history.replaceState({ unrelated: "preserve" }, "");
-      history.pushState(null, "", "/family-visa");
+      history.pushState(null, "", "/zh-CN/family-visa");
       dispatchEvent(new PopStateEvent("popstate", { state: null }));
     });
     await p.getByRole("heading", { name: "你们是什么关系？" }).waitFor();
@@ -230,7 +230,7 @@ try {
     await p.goBack();
     await p.getByRole("heading", { name: "你们是什么关系？" }).waitFor();
     await p.goBack();
-    await p.waitForURL(`${baseURL}/health`);
+    await p.waitForURL(`${baseURL}/zh-CN/health`);
     assert.deepEqual(await p.evaluate(() => history.state), { unrelated: "preserve" });
     await p.goForward();
     await p.getByRole("heading", { name: "你们是什么关系？" }).waitFor();
@@ -242,7 +242,7 @@ try {
   // Both user deletion actions must retain the record on a storage failure.
   for (const resumeOffer of [false, true]) {
     const { p, context } = await page(390);
-    await p.goto(`${baseURL}/family-visa`);
+    await p.goto(`${baseURL}/zh-CN/family-visa`);
     await toChecklist(p, { relationship: "已婚，或已登记民事伴侣", children: "没有", location: "英国境外" }, { save: true });
     const raw = await stored(p);
     assert.ok(raw);
@@ -265,7 +265,7 @@ try {
   // Hub: slogan, journey first, special circumstances, 全部指南 collapsed.
   {
     const { p, context, errors } = await page(1280);
-    await p.goto(`${baseURL}/family-visa`);
+    await p.goto(`${baseURL}/zh-CN/family-visa`);
     await p
       .getByRole("heading", { level: 1, name: "一份清单，理清每一步。" })
       .waitFor();
@@ -280,7 +280,7 @@ try {
     assert.equal(
       await p
         .locator(
-          "#special-circumstances a[href='/family-visa/topics/children-from-previous-relationship']",
+          "#special-circumstances a[href='/zh-CN/family-visa/topics/children-from-previous-relationship']",
         )
         .count(),
       1,
@@ -300,7 +300,7 @@ try {
   // Questions: validation, keyboard, focus, the conditional child question.
   {
     const { p, context } = await page(390);
-    await p.goto(`${baseURL}/family-visa`);
+    await p.goto(`${baseURL}/zh-CN/family-visa`);
     await p.getByRole("button", { name: "下一步" }).click();
     assert.match(await p.getByRole("alert").textContent(), /请选择一项/);
     await p.getByRole("radio").first().focus();
@@ -334,7 +334,7 @@ try {
   // Unpublished Guides: every task pending, nothing restated.
   for (const width of [1280, 390]) {
     const { p, context, errors, requests } = await page(width);
-    await p.goto(`${baseURL}/family-visa`);
+    await p.goto(`${baseURL}/zh-CN/family-visa`);
     await toChecklist(p, EXAMPLE);
     assert.equal(await focusedText(p), "你的材料清单");
     assert.deepEqual(
@@ -378,7 +378,7 @@ try {
   {
     const { p, context } = await page(1280);
     await p.goto(
-      `${baseURL}/family-visa/topics/children-from-previous-relationship`,
+      `${baseURL}/zh-CN/family-visa/topics/children-from-previous-relationship`,
     );
     await p.getByText("这个专题还在核对中").waitFor();
     assert.equal(
@@ -415,7 +415,7 @@ try {
           details,
           list,
         });
-        await p.goto(`${baseURL}/family-visa`);
+        await p.goto(`${baseURL}/zh-CN/family-visa`);
         await toChecklist(p, EXAMPLE);
         assert.match(
           await p.locator(".checklist-save").textContent(),
@@ -514,7 +514,7 @@ try {
     // Accommodation paths, ticking, green sections, not-applicable, completion.
     {
       const { p, context, errors } = await page(1280, { details, list });
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await toChecklist(p, {
         relationship: "已婚，或已登记民事伴侣",
         children: "没有",
@@ -589,7 +589,7 @@ try {
     // Changing answers keeps only still-relevant progress; back/forward.
     {
       const { p, context } = await page(1280, { details, list });
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await toChecklist(p, {
         relationship: "已婚，或已登记民事伴侣",
         children: "没有",
@@ -636,7 +636,7 @@ try {
         viewport: { width: 1280, height: 900 },
       });
       let p = (await page(1280, { details, list, context })).p;
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await toChecklist(p, EXAMPLE, { save: true });
       await openSection(p, "身份和申请材料");
       await task(p, "申请人的有效护照或旅行证件").getByRole("checkbox").check();
@@ -668,7 +668,7 @@ try {
       );
       // A new visit offers to resume.
       p = (await page(1280, { details, list, context })).p;
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await p
         .getByText("欢迎回来！你在这台设备上保存了一份准备清单。")
         .waitFor();
@@ -696,7 +696,7 @@ try {
       await task(p, "英国伴侣的身份证明").getByRole("checkbox").check();
       assert.equal(await stored(p), null);
       p = (await page(1280, { details, list, context })).p;
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await p.getByRole("heading", { name: "你们是什么关系？" }).waitFor();
       assert.equal(await p.locator(".resume-card").count(), 0);
       console.log(
@@ -727,7 +727,7 @@ try {
         list,
         init: `try { if (!sessionStorage.getItem("seeded")) { localStorage.setItem(${JSON.stringify(STORAGE_KEY)}, ${JSON.stringify(record)}); sessionStorage.setItem("seeded", "1"); } } catch {}`,
       });
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await p.getByText(text).waitFor();
       assert.equal(await stored(p), null);
       assert.equal(await p.locator(".resume-card").count(), 0);
@@ -742,7 +742,7 @@ try {
         list,
         init: `Object.defineProperty(window, "localStorage", { get() { throw new Error("blocked"); } });`,
       });
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await toChecklist(p, EXAMPLE, { save: true });
       assert.match(
         await p.locator(".checklist-save").textContent(),
@@ -758,7 +758,7 @@ try {
     // Special circumstances: checklist link, hub section, verified topic page.
     {
       const { p, context, errors } = await page(390, { details, list });
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await toChecklist(p, EXAMPLE);
       await p.locator(".checklist-special-link a").click();
       await p.waitForURL(/#special-circumstances$/);
@@ -822,7 +822,7 @@ try {
         details: changed,
         list: [...Object.values(changed).map(meta), otherFamily],
       });
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await toChecklist(p, {
         relationship: "已婚，或已登记民事伴侣",
         children: "没有",
@@ -852,7 +852,7 @@ try {
     // The rules behind the checklist stay available as a secondary disclosure.
     if (haveWording) {
       const { p, context } = await page(1280, { details, list });
-      await p.goto(`${baseURL}/family-visa`);
+      await p.goto(`${baseURL}/zh-CN/family-visa`);
       await toChecklist(p, EXAMPLE);
       await p
         .getByRole("button", { name: "想了解这些要求背后的规则？" })

@@ -4,8 +4,8 @@
 // and the tests.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fillTemplate, staticGuidePage, staticHubPage } from "../../src/seo/staticPages.ts";
-import { aliasFor, expectedPages } from "./inventory.mjs";
+import { fillTemplate, staticGuidePage, staticHomePage, staticHubPage, staticTopicPage } from "../../src/seo/staticPages.ts";
+import { aliasFor, expectedPages, ROOT_ALIAS } from "./inventory.mjs";
 import { writeNotFound } from "./routes.mjs";
 
 export const SPA_ROOT = '<div id="root"></div>';
@@ -27,17 +27,25 @@ export async function prerender({ distDir, origin, inventory }) {
     const availableLocales = page.alternates.map((row) => row.locale);
     const rendered = page.kind === "guide"
       ? staticGuidePage({ origin, locale: page.locale, domainId: page.domainId, guide: inventory.details[page.locale].get(page.slug), published, availableLocales })
-      : staticHubPage({
-          origin, locale: page.locale, domainId: page.domainId, published, availableLocales,
-          details: [...inventory.details[page.locale].values()].filter((guide) => published.some((meta) => meta.slug === guide.slug && meta.category === guide.category)),
-        });
+      : page.kind === "home"
+        ? staticHomePage({ origin, locale: page.locale, source: inventory.lists["zh-CN"], published })
+        : page.kind === "topic"
+          ? staticTopicPage({
+              origin, locale: page.locale, topic: page.topic, published,
+              source: inventory.lists["zh-CN"], sourceDetails: inventory.details["zh-CN"], localeDetails: inventory.details[page.locale],
+            })
+          : staticHubPage({
+              origin, locale: page.locale, domainId: page.domainId, published, availableLocales,
+              details: [...inventory.details[page.locale].values()].filter((guide) => published.some((meta) => meta.slug === guide.slug && meta.category === guide.category)),
+            });
     if (!rendered) throw new Error(`No content for required page ${page.path}`);
     const html = fillTemplate(template, rendered);
     await write(page.path, html);
     const alias = aliasFor(page);
-    if (alias) await write(alias, html);
+    // The root stays the app shell for app-only routes; hosts redirect / to /zh-CN (seo-redirects.json).
+    if (alias && alias !== ROOT_ALIAS) await write(alias, html);
   }
   // 404.html and the app-only route list for the host's status contract (routes.mjs).
-  await writeNotFound(distDir, template);
+  await writeNotFound(distDir, template, pages);
   return { pages, written };
 }

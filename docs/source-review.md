@@ -89,3 +89,45 @@ review above did not cover:
 | Source | Guides (revision, citations) | Finding | Outcome |
 |---|---|---|---|
 | NHS England "Primary medical services policy and guidance manual (PGM)", `https://www.england.nhs.uk/long-read/primary-medical-services-policy-and-guidance-manual-pgm-2/` | `registering-with-a-gp-england` (`9ca7a5bc`, 9), `visiting-parents-healthcare-england` (`5e789f75`, 3), `chinese-medical-records-vaccinations-england` (`56a308dc`, 1); all five locales | The cited page returns HTTP 404. NHS England republished the PGM as version 7 on 16 November 2026, split into parts listed at `https://www.england.nhs.uk/publication/primary-medical-care-policy-and-guidance-manual-pgm/` (see "Summary of key changes v7"). The quoted excerpts have not yet been checked against version 7. | **Open, owner review.** Check each of the 13 citations' excerpts against the version 7 part that now holds it; then update URL, title and locator (and wording only if version 7 changed a rule) through the normal editorial pipeline. Readers following the old links get a 404 until then. |
+
+### 2026-11-17: NHS England PGM version 7 checked (citation update proposed, awaiting owner approval)
+
+Version 7.0 (published 16 November 2026) splits the manual into Parts A–D.
+Chapters 3 and 4 (managing patient lists; GP patient registration standard
+operating principles) are now in **Part B: General contract management**,
+`https://www.england.nhs.uk/long-read/primary-medical-services-pgm-part-b-general-contract-management/`.
+Each cited paragraph was compared word for word with version 6 (August 2025,
+the version the Guides cite, read from the Internet Archive capture of the old
+URL dated 23 June 2026): **all 20 cited paragraphs are identical**
+(§3.2.4, §4.4.1, §4.4.2, §4.4.7–4.4.9, §4.5.1–4.5.2, old §4.9.1–4.9.9 and
+§4.10.1–4.10.3). Version 7 only renumbered the documentary-information
+section (§4.9 → §4.10) and the refusal section (§4.10 → §4.11), after the
+new §4.8 on the national online registration service. The version 7 change
+summary lists no other Chapter 3–4 change (§4.7.5 clarifies refusal grounds
+already stated in §4.11.2; §4.8 is new and is not cited). All 13 citations
+(9 + 3 + 1) and the quoted wording in their notes stay supported; no
+statement, excerpt or note needs to change.
+
+Proposed citation-only update, identical in all five locales of the three
+Guides (no other text changes):
+
+| Field | Now | Proposed |
+|---|---|---|
+| Source `nhs-england-pgm` URL, and the same URL in each Guide's source list | `…/long-read/primary-medical-services-policy-and-guidance-manual-pgm-2/` | `…/long-read/primary-medical-services-pgm-part-b-general-contract-management/` |
+| Source `nhs-england-pgm` accessed date | 4–5 Oct / 13 Nov 2026 | the date of the update |
+| Locator | `Chapter 4, §4.9.8–4.9.9` | `Chapter 4, §4.10.8–4.10.9` |
+| Locator | `Chapter 4, §4.9.4–4.9.8 (page labels §4.9.4 as 4.94)` | `Chapter 4, §4.10.4–4.10.8` |
+| Locator | `Chapter 4, §4.9.6–4.9.8` | `Chapter 4, §4.10.6–4.10.8` |
+| Locator | `Chapter 4, §4.9.4–4.9.8` | `Chapter 4, §4.10.4–4.10.8` |
+| Locator | `Chapter 4, §4.9.1–4.9.3 and §4.9.8; §4.10` | `Chapter 4, §4.10.1–4.10.3 and §4.10.8; §4.11` |
+| Locator | `Chapter 4, §4.10.3` | `Chapter 4, §4.11.3` |
+| Locators `§4.4.2`, `§4.4.7–4.4.8`, `§4.4.8`, `§4.4.9`, `§4.4.9；Chapter 3, §3.2.4`, `§4.5.1–4.5.2` | unchanged | unchanged |
+
+The source title ("Primary medical services policy and guidance manual
+(PGM)") and the source-list wording ("Chapters 3–4" / "Chapter 4") stay
+correct. Publishing goes through the normal batch workflow (new batch per
+Guide, five locales, owner approval, publish with
+`expectCurrentPublicationId`); whether the Guides' displayed "updated" date
+changes for a citation-only revision is the owner's call. **Status: not
+published; waiting for owner approval.** Until then readers following the
+old link get NHS England's 404.

@@ -20,7 +20,7 @@ test("Article and BreadcrumbList use canonical /{locale}/ URLs and the published
     );
     for (const claim of ["author", "publisher", "reviewedBy", "aggregateRating", "review"]) assert.equal(article[claim], undefined, claim);
     assert.deepEqual(crumbs.itemListElement.map((row) => [row.position, row.name, row.item]), [
-      [1, GUIDE_UI[locale].home, `https://lifeinuk.info${locale === "zh-CN" ? "/" : `/${locale}`}`],
+      [1, GUIDE_UI[locale].home, `https://lifeinuk.info/${locale}`],
       [2, GUIDE_UI[locale].domain.renting, `https://lifeinuk.info/${locale}/renting`],
       [3, guide.title, url],
     ]);

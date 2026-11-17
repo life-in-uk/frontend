@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getGuide } from "../../guides/api";
+import { getGuide, startupGuide } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import {
   JOURNEY_GUIDE_SLUGS,
@@ -10,6 +10,7 @@ import type {
   JourneyGuideId,
 } from "../../guides/familyVisaJourney";
 import {
+  initialFamilyVisaContent,
   loadFamilyVisaContent,
   loadFamilyVisaContentStrings,
 } from "../../guides/familyVisaContent";
@@ -32,8 +33,16 @@ export function useJourneyGuides(
   list: GuideListState,
   enabled: boolean,
 ): Record<JourneyGuideId, GuideAvailability> {
-  const [details, setDetails] = useState<Record<string, DetailState>>({});
-  const requested = useRef(new Set<string>());
+  // Details fetched before the first render (main.tsx, prerendered topic page) are used at once.
+  const [details, setDetails] = useState<Record<string, DetailState>>(() =>
+    Object.fromEntries(
+      JOURNEY_GUIDE_SLUGS.flatMap((slug) => {
+        const ready = startupGuide(slug, "zh-CN");
+        return ready ? [[slug, ready]] : [];
+      }),
+    ),
+  );
+  const requested = useRef(new Set<string>(Object.keys(details)));
   const published = useMemo(
     () =>
       list.status === "ready"
@@ -98,7 +107,12 @@ export function useFamilyVisaContent(locale: GuideLocale = "zh-CN"): {
     content: FamilyVisaContent | null;
     strings: Readonly<Record<string, string>> | null;
     loaded: boolean;
-  }>({ content: null, strings: null, loaded: false });
+  }>(() => {
+    const initial = initialFamilyVisaContent(locale);
+    return initial
+      ? { ...initial, loaded: true }
+      : { content: null, strings: null, loaded: false };
+  });
   useEffect(() => {
     let active = true;
     Promise.all([loadFamilyVisaContent(), loadFamilyVisaContentStrings(locale)])

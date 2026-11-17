@@ -79,11 +79,11 @@ test("unknown localized paths keep their language for the not-found page", () =>
 test("the header language switch keeps the page type", () => {
   const at = (path, next) => localeSwitchPath(pageRoute(matchRoute(path)), next);
   assert.equal(at("/", "zh-TW"), "/zh-TW");
-  assert.equal(at("/zh-TW", "zh-CN"), "/");
+  assert.equal(at("/zh-TW", "zh-CN"), "/zh-CN");
   assert.equal(at("/ur", "hi"), "/hi");
   assert.equal(at("/health", "ur"), "/ur/health");
-  assert.equal(at("/ur/health", "zh-CN"), "/health");
-  assert.equal(at("/hi/health/registering-with-a-gp-england", "zh-CN"), "/health/registering-with-a-gp-england");
+  assert.equal(at("/ur/health", "zh-CN"), "/zh-CN/health");
+  assert.equal(at("/hi/health/registering-with-a-gp-england", "zh-CN"), "/zh-CN/health/registering-with-a-gp-england");
   assert.equal(at("/en/guides", "zh-TW"), "/zh-TW/guides");
   assert.equal(at("/en/nope", "ur"), "/ur");
   assert.equal(at("/owner/editorial", "en"), undefined);
@@ -99,15 +99,15 @@ test("home Guides: translations where published, labelled Chinese fallbacks else
   const items = localizeHomeGuides(source, [meta(gp, "Just arrived in the UK: how do I register with a GP?", "health-nhs")], domains, "en");
   assert.deepEqual(items.map((item) => [item.guide.slug, item.locale, item.fallback, item.href]), [
     [gp, "en", false, `/en/health/${gp}`],
-    ["nhs-dentist-england", "zh-CN", true, "/health/nhs-dentist-england"],
-    ["open-uk-bank-account-new-arrival", "zh-CN", true, "/money/open-uk-bank-account-new-arrival"],
+    ["nhs-dentist-england", "zh-CN", true, "/zh-CN/health/nhs-dentist-england"],
+    ["open-uk-bank-account-new-arrival", "zh-CN", true, "/zh-CN/money/open-uk-bank-account-new-arrival"],
   ]);
   assert.equal(items[1].guide.title, "英国牙医到底怎么看？");
 });
 
 test("the Simplified Chinese home page has no fallbacks", () => {
   const items = localizeHomeGuides(source, [], domains, "zh-CN");
-  assert.ok(items.every((item) => !item.fallback && item.locale === "zh-CN" && !item.href.startsWith("/zh-CN")));
+  assert.ok(items.every((item) => !item.fallback && item.locale === "zh-CN" && item.href.startsWith("/zh-CN/")));
 });
 
 test("a translation in the wrong section never counts as translated", () => {

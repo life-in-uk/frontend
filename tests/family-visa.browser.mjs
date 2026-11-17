@@ -158,7 +158,7 @@ try {
   // Hub: loading state.
   {
     const { p, context } = await page(1280, { list: "hang" });
-    await p.goto(`${baseURL}/family-visa`);
+    await p.goto(`${baseURL}/zh-CN/family-visa`);
     await p
       .getByRole("heading", { level: 1, name: "一份清单，理清每一步。" })
       .waitFor();
@@ -174,7 +174,7 @@ try {
   // Hub: error state, with no fallback content.
   {
     const { p, context } = await page(1280, { list: 500 });
-    await p.goto(`${baseURL}/family-visa`);
+    await p.goto(`${baseURL}/zh-CN/family-visa`);
     await openAllGuides(p);
     await p.locator(".family-error").waitFor();
     assert.match(
@@ -192,7 +192,7 @@ try {
   // Hub: empty state when the API has no family-visa Guides.
   for (const width of [1280, 390, 320]) {
     const { p, context, errors } = await page(width, { list: healthOnlyList });
-    await p.goto(`${baseURL}/family-visa`);
+    await p.goto(`${baseURL}/zh-CN/family-visa`);
     await openAllGuides(p);
     await p.locator(".family-empty").waitFor();
     assert.match(
@@ -202,7 +202,7 @@ try {
     assert.equal(await p.locator(".family-guide-card").count(), 0);
     // Health Guides never appear in the Family & Visa hub.
     assert.doesNotMatch(await p.locator("main").textContent(), /Fixture 标题/);
-    assert.equal(await p.locator("main a[href^='/health']").count(), 0);
+    assert.equal(await p.locator("main a[href^='/zh-CN/health']").count(), 0);
     assert.equal(await noOverflow(p), true, `empty overflow at ${width}`);
     await p.screenshot({
       path: `${screenshots}/hub-empty-${width}.png`,
@@ -216,14 +216,14 @@ try {
   // Hub: only family-visa Guides, in backend order, linked under the domain.
   for (const width of [1280, 390]) {
     const { p, context, errors } = await page(width);
-    await p.goto(`${baseURL}/family-visa`);
+    await p.goto(`${baseURL}/zh-CN/family-visa`);
     await openAllGuides(p);
     await p.locator(".family-guide-card").first().waitFor();
     assert.deepEqual(
       await p
         .locator(".family-guide-card a")
         .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-      ["/family-visa/fixture-family-one", "/family-visa/fixture-family-two"],
+      ["/zh-CN/family-visa/fixture-family-one", "/zh-CN/family-visa/fixture-family-two"],
     );
     assert.doesNotMatch(
       await p.locator("main").textContent(),
@@ -239,20 +239,20 @@ try {
   // the homepage topic card, and nowhere else outside the hub.
   {
     const { p, context } = await page(1280, { list: healthOnlyList });
-    for (const path of ["/", "/health", "/family-visa"]) {
+    for (const path of ["/", "/zh-CN/health", "/zh-CN/family-visa"]) {
       await p.goto(`${baseURL}${path}`);
       await p.locator("main").waitFor();
       await p.waitForLoadState("networkidle");
       // The hub itself links only to its own special-circumstances topic.
       const inMain = await p
-        .locator("main a[href^='/family-visa']")
+        .locator("main a[href^='/zh-CN/family-visa']")
         .evaluateAll((links) => links.map((a) => a.getAttribute("href")));
       assert.deepEqual(
         inMain,
-        path === "/family-visa"
-          ? ["/family-visa/topics/children-from-previous-relationship"]
+        path === "/zh-CN/family-visa"
+          ? ["/zh-CN/family-visa/topics/children-from-previous-relationship"]
           : path === "/"
-            ? ["/family-visa"]
+            ? ["/zh-CN/family-visa"]
             : [],
         `family-visa links in main on ${path}`,
       );
@@ -262,7 +262,7 @@ try {
           .getByRole("navigation", { name: "主导航" })
           .getByRole("link", { includeHidden: true })
           .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-        ["/", "/family-visa", "/work-visa", "/settlement", "/renting", "/health", "/money", "/travel"],
+        ["/zh-CN", "/zh-CN/family-visa", "/zh-CN/work-visa", "/zh-CN/settlement", "/zh-CN/renting", "/zh-CN/health", "/zh-CN/money", "/zh-CN/travel"],
       );
     }
     console.log(
@@ -274,7 +274,7 @@ try {
   // A family-visa Guide renders under /family-visa with domain-aware links.
   for (const width of [1280, 390, 320]) {
     const { p, context, errors } = await page(width);
-    await p.goto(`${baseURL}/family-visa/${familyOne.slug}`);
+    await p.goto(`${baseURL}/zh-CN/family-visa/${familyOne.slug}`);
     await p.locator(".guide-body").waitFor();
     assert.equal(await p.locator("h1").textContent(), familyOne.title);
     assert.equal(await p.locator(".guide-kicker").textContent(), "家庭与签证");
@@ -285,12 +285,12 @@ try {
     ]);
     assert.equal(
       await p.locator(".breadcrumb a").nth(1).getAttribute("href"),
-      "/family-visa",
+      "/zh-CN/family-visa",
     );
     assert.equal(
       await p.locator(".guide-back a, .guide-status-card a", { hasText: "家庭与签证" })
         .getAttribute("href"),
-      "/family-visa",
+      "/zh-CN/family-visa",
     );
     // A title belonging to another domain stays plain text.
     assert.equal(await p.locator(".guide-body a.guide-reference").count(), 0);
@@ -298,7 +298,7 @@ try {
       await p.locator(".guide-body").textContent(),
       /《突然牙疼怎么办》/,
     );
-    assert.equal(await p.locator(".guide-body a[href^='/health']").count(), 0);
+    assert.equal(await p.locator(".guide-body a[href^='/zh-CN/health']").count(), 0);
     assert.equal(
       await p
         .getByRole("link", { name: "Fixture 内部链接" })
@@ -346,30 +346,30 @@ try {
   // Cross-domain requests are treated as not found, without leaking content.
   {
     const { p, context } = await page(1280);
-    await p.goto(`${baseURL}/family-visa/${healthWhere.slug}`);
+    await p.goto(`${baseURL}/zh-CN/family-visa/${healthWhere.slug}`);
     await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
     assert.equal(await p.locator(".guide-body").count(), 0);
     assert.doesNotMatch(await p.locator("main").textContent(), /Fixture/);
     assert.equal(
       await p.locator(".guide-back a, .guide-status-card a", { hasText: "家庭与签证" })
         .getAttribute("href"),
-      "/family-visa",
+      "/zh-CN/family-visa",
     );
     console.log("PASS /family-visa rejects a health-nhs Guide");
 
-    await p.goto(`${baseURL}/health/${familyOne.slug}`);
+    await p.goto(`${baseURL}/zh-CN/health/${familyOne.slug}`);
     await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
     assert.equal(await p.locator(".guide-body").count(), 0);
     assert.doesNotMatch(await p.locator("main").textContent(), /Fixture/);
     assert.equal(
       await p.locator(".guide-back a, .guide-status-card a", { hasText: "健康与 NHS" })
         .getAttribute("href"),
-      "/health",
+      "/zh-CN/health",
     );
     console.log("PASS /health rejects a family-visa Guide");
 
     // Each domain still accepts its own category.
-    await p.goto(`${baseURL}/health/${healthWhere.slug}`);
+    await p.goto(`${baseURL}/zh-CN/health/${healthWhere.slug}`);
     await p.locator(".guide-body").waitFor();
     assert.equal(
       await p.locator(".guide-kicker").textContent(),
@@ -382,10 +382,10 @@ try {
   // Malformed and unknown slugs fail safely in the new domain.
   {
     const { p, context, requests } = await page(1280);
-    await p.goto(`${baseURL}/family-visa/Bad..Slug`);
+    await p.goto(`${baseURL}/zh-CN/family-visa/Bad..Slug`);
     await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
     assert.ok(!requests.some((r) => r.includes("Bad..Slug")));
-    await p.goto(`${baseURL}/family-visa/not-a-published-guide`);
+    await p.goto(`${baseURL}/zh-CN/family-visa/not-a-published-guide`);
     await p.getByRole("heading", { name: "没有找到这篇指南" }).waitFor();
     // Malformed percent-encoding is covered by the router unit tests: the
     // Vite dev server answers such URLs itself before the app loads.
@@ -402,13 +402,13 @@ try {
     const { p, context } = await page(1280, {
       list: [healthWhere, miscategorised, healthDental, familyOne],
     });
-    await p.goto(`${baseURL}/health/${healthWhere.slug}`);
+    await p.goto(`${baseURL}/zh-CN/health/${healthWhere.slug}`);
     await p.locator(".related-guides a").first().waitFor();
     assert.deepEqual(
       await p
         .locator(".related-guides a")
         .evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-      ["/health/urgent-dental-care-england"],
+      ["/zh-CN/health/urgent-dental-care-england"],
     );
     console.log("PASS related Guides stay within the Health domain");
     await context.close();

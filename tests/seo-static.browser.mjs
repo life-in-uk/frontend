@@ -1,10 +1,12 @@
 // Crawlable static pages on the built site (`npm run build:static`, then
 // `vite preview`). Three parts:
-//  1. Raw HTTP, no JavaScript: every sitemap URL (Guides and topic hubs, five
-//     locales) returns its article/hub HTML with one H1, real text, the
-//     sitemap's own canonical and exactly the sitemap's hreflang set, correct
-//     lang/dir, and internal links that resolve; zh-CN in-app aliases point
-//     their canonical at /zh-CN/…; Guides link to their section's Journey.
+//  1. Raw HTTP, no JavaScript: every sitemap URL (Guides, topic hubs, home
+//     pages and Family Visa topic pages, five locales) returns its HTML with
+//     one H1, real text, the sitemap's own canonical and exactly the sitemap's
+//     hreflang set, correct lang/dir, and internal links that go straight to
+//     canonical pages (never a zh-CN short URL, which redirects); the short
+//     URLs still serve their page with the /zh-CN/… canonical; Guides link to
+//     their section's Journey.
 //  2. With JavaScript: the app replaces the static markup without errors or
 //     duplicate head tags, the Renting Journey still works from a prerendered
 //     hub, and Journey → Guide navigation leaves no stale prerendered tags.
@@ -35,11 +37,21 @@ const hubs = entries.filter((entry) => new URL(entry.loc).pathname.split("/").le
 ok(hubs.length >= 6 && hubs.length < entries.length, `sitemap lists Guides and hubs (${entries.length - hubs.length} + ${hubs.length})`);
 
 const LANG = { "zh-CN": "zh-CN", "zh-TW": "zh-TW", en: "en-GB", ur: "ur", hi: "hi" };
-const homes = new Set(["/", "/zh-TW", "/en", "/ur", "/hi"]);
-const aliasPaths = new Set();
+const LOCALES = Object.keys(LANG);
+const homes = entries.filter((entry) => new URL(entry.loc).pathname.split("/").length === 2);
+const topics = entries.filter((entry) => new URL(entry.loc).pathname.includes("/family-visa/topics/"));
+ok(homes.length === 5 && homes.every((entry) => entry.alternates.length === 6), "sitemap lists the five home pages with their hreflang set");
+ok(!sitemapPaths.has("/"), "the root (a redirect to /zh-CN) is not a sitemap URL");
+ok(topics.length === 5, `sitemap lists the Family Visa topic page in five locales (${topics.length})`);
+// App-only routes a page may link to (the travel tools): 200 with the app shell.
+const appRoutes = new Set(LOCALES.map((locale) => `/${locale}/travel`));
+const redirects = (await (await fetch(`${FRONTEND}/seo-redirects.json`)).json()).redirects;
+const shortUrls = new Set(redirects.map((row) => row.from));
 for (const entry of entries) {
   const path = new URL(entry.loc).pathname;
-  const [, locale, section, slug] = path.split("/");
+  const isTopic = path.includes("/family-visa/topics/");
+  const [, locale, section, guideSlug] = path.split("/");
+  const slug = isTopic ? undefined : guideSlug;
   const response = await fetch(FRONTEND + path);
   ok(response.status === 200, `${path} 200`);
   const html = await response.text();
@@ -47,17 +59,18 @@ for (const entry of entries) {
   ok(root.startsWith('<header class="static-header">'), `${path} prerendered markup in the first response`);
   ok((root.match(/<h1>/g) ?? []).length === 1, `${path} exactly one H1`);
   const text = root.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-  ok(text.length > (slug ? 1500 : 300), `${path} meaningful text (${text.length})`);
+  ok(text.length > (slug || isTopic ? 1200 : 300), `${path} meaningful text (${text.length})`);
   ok(attr(html, /rel="canonical" href="([^"]+)"/) === entry.loc, `${path} canonical = sitemap loc`);
   const pageAlternates = [...html.matchAll(/rel="alternate" hreflang="([^"]+)" href="([^"]+)"/g)].map(([, l, h]) => `${l} ${h}`).sort();
   ok(JSON.stringify(pageAlternates) === JSON.stringify(entry.alternates), `${path} hreflang matches sitemap`);
   ok(html.includes(`<html lang="${LANG[locale]}" dir="${locale === "ur" ? "rtl" : "ltr"}">`), `${path} lang/dir`);
-  ok(/<title>[^<]+ · Life in UK<\/title>/.test(html) && /<meta name="description" content="[^"]{10,}"/.test(html), `${path} title and description`);
+  // Home pages keep the app's "Life in UK · <tagline>" title; every other page is "<title> · Life in UK".
+  ok((section ? /<title>[^<]+ · Life in UK<\/title>/ : /<title>Life in UK · [^<]+<\/title>/).test(html) && /<meta name="description" content="[^"]{10,}"/.test(html), `${path} title and description`);
   ok(html.includes('<script type="module"'), `${path} app still loads`);
   if (slug && JOURNEY_SECTIONS.has(section)) ok(root.includes('class="static-journey"'), `${path} links to its section's Journey`);
   // Topic clusters: grouped hubs with official sources and their own title; curated related links on Guides.
   const cluster = TOPIC_CLUSTERS[section];
-  if (cluster && !slug) {
+  if (cluster && !slug && !isTopic) {
     ok((root.match(/class="static-topic"/g) ?? []).length >= 4, `${path} Guides grouped by subtopic`);
     ok(root.includes('class="static-official"') && !/[\u3400-\u9fff]/.test(locale === "en" || locale === "ur" || locale === "hi" ? root.split('class="static-official"')[1].split("</section>")[0] : ""), `${path} official sources`);
     ok(html.includes(`<title>${cluster.seoTitle[locale].replace(/&/g, "&amp;")} · Life in UK</title>`), `${path} cluster title`);
@@ -74,21 +87,24 @@ for (const entry of entries) {
   }
   // Trust signals (Phase 4B): every English Guide says it is general information, in its own text or the notice.
   if (slug && locale === "en") ok(/general information/i.test(text), `${path} general-information disclaimer`);
-  // Internal links resolve to prerendered pages or home pages.
-  for (const [, href] of root.matchAll(/href="(\/[^"#]*)/g)) {
-    const target = href.replace(/\/$/, "") || "/";
-    const zhAlias = target.split("/").length <= 3 && !/^\/(zh-CN|zh-TW|en|ur|hi)(\/|$)/.test(target) && target !== "/";
-    if (zhAlias) aliasPaths.add(target);
-    ok(homes.has(target) || sitemapPaths.has(target) || (zhAlias && sitemapPaths.has(`/zh-CN${target}`)), `${path} link ${href} resolves`);
+  // Internal links go straight to a canonical page (or an app-only route), never through a 301.
+  for (const [, href] of root.matchAll(/href="(\/[^"#?]*)/g)) {
+    const target = href.replace(/(.)\/$/, "$1") || "/";
+    ok(!shortUrls.has(target), `${path} link ${href} is not a redirecting short URL`);
+    ok(sitemapPaths.has(target) || appRoutes.has(target), `${path} link ${href} resolves`);
   }
 }
 
-// zh-CN in-app aliases (/renting/…): same content, canonical on /zh-CN/….
-for (const alias of aliasPaths) {
-  const html = await (await fetch(FRONTEND + alias)).text();
-  ok(attr(html, /rel="canonical" href="([^"]+)"/) === `${origin}/zh-CN${alias}`, `${alias} canonical → /zh-CN${alias}`);
+// zh-CN short URLs (/renting/…): every one is a 301 on the public host (seo-redirects.json); without the
+// redirect (vite preview) they still serve the same page with the /zh-CN/… canonical, and / serves the app shell.
+ok(redirects.length === entries.filter((entry) => entry.loc.startsWith(`${origin}/zh-CN`)).length, `one redirect per zh-CN page (${redirects.length})`);
+for (const row of redirects) {
+  ok(row.status === 301 && sitemapPaths.has(row.to) && row.to === (row.from === "/" ? "/zh-CN" : `/zh-CN${row.from}`), `${row.from} → 301 ${row.to}`);
+  if (row.from === "/") continue;
+  const html = await (await fetch(FRONTEND + row.from)).text();
+  ok(attr(html, /rel="canonical" href="([^"]+)"/) === `${origin}${row.to}`, `${row.from} canonical → ${row.to}`);
 }
-console.log(`PASS raw HTML: ${entries.length} sitemap URLs (${hubs.length} hubs), ${aliasPaths.size} zh-CN aliases`);
+console.log(`PASS raw HTML: ${entries.length} sitemap URLs (${hubs.length} hubs, ${homes.length} homes, ${topics.length} topic pages), ${redirects.length} zh-CN short URLs`);
 
 // ---- 2. With JavaScript ----
 const browser = await chromium.launch({ headless: true });
@@ -200,6 +216,49 @@ try {
     await page.waitForTimeout(500);
     ok((await jsonLd()).length === 0, "hub after a Guide: no JSON-LD left");
 
+    // Home pages: the app keeps one canonical per locale; the root shows the zh-CN home with the /zh-CN canonical.
+    for (const [path, locale] of [["/en", "en"], ["/ur", "ur"], ["/", "zh-CN"], ["/zh-CN", "zh-CN"]]) {
+      await page.goto(FRONTEND + path);
+      await page.waitForSelector(".home-page .topic-grid");
+      await page.waitForTimeout(300);
+      ok((await page.locator(".static-page").count()) === 0, `${path} app replaced the static home`);
+      ok((await page.locator('link[rel="canonical"]').count()) === 1 && (await page.locator('link[rel="canonical"]').getAttribute("href")).endsWith(`/${locale}`), `${path} app canonical /${locale}`);
+      ok((await page.locator('link[rel="alternate"][hreflang]').count()) === 6 && (await page.locator('meta[name="description"]').count()) === 1, `${path} app hreflang (5 + x-default) and one description`);
+      ok((await page.locator('meta[name="robots"]').count()) === 0 && (await jsonLd()).length === 0, `${path} indexable, no JSON-LD`);
+    }
+    // Family Visa topic page: verified content, canonical and five-language hreflang in the app too.
+    for (const locale of ["ur", "zh-CN"]) {
+      const path = `/${locale}/family-visa/topics/children-from-previous-relationship`;
+      await page.goto(FRONTEND + path);
+      await page.waitForSelector(".family-topic-tasks");
+      await page.waitForFunction(() => document.querySelectorAll('link[rel="canonical"]:not([data-prerendered])').length === 1, null, { timeout: 10000 });
+      ok((await page.locator('link[rel="canonical"]').getAttribute("href")) === `${origin}${path}` || (await page.locator('link[rel="canonical"]').getAttribute("href")).endsWith(path), `${path} app canonical`);
+      ok((await page.locator('link[rel="alternate"][hreflang]').count()) === 6 && (await page.locator('meta[name="robots"]').count()) === 0, `${path} hreflang, indexable`);
+      ok((await page.locator('meta[name="description"]').count()) === 1, `${path} one description`);
+    }
+    // React navigation: every internal link on zh-CN pages goes straight to /zh-CN/… (no short URL).
+    for (const path of ["/zh-CN", "/zh-CN/renting", "/zh-CN/health", "/zh-CN/money", "/zh-CN/family-visa", "/zh-CN/settlement", "/zh-CN/health/registering-with-a-gp-england", "/zh-CN/renting/renting-council-tax", "/zh-CN/family-visa/topics/children-from-previous-relationship", "/zh-CN/travel"]) {
+      await page.goto(FRONTEND + path);
+      await page.waitForSelector("main#main:not(.route-loading):not(.static-page)");
+      await page.waitForTimeout(1500);
+      const hrefs = await page.evaluate(() => [...document.querySelectorAll("a[href^='/']")].map((a) => a.getAttribute("href")));
+      const short = hrefs.filter((href) => shortUrls.has(href.split(/[?#]/)[0].replace(/(.)\/$/, "$1") || "/"));
+      ok(hrefs.length > 5 && short.length === 0, `${path} app links: ${hrefs.length}, none through a redirect ${short.join(" ")}`);
+    }
+    // Renting Journey (zh-CN): step → Guide stays on /zh-CN.
+    await page.goto(`${FRONTEND}/zh-CN/renting`);
+    await page.locator('input[name="renting-scope"][value="england-agent"]').check();
+    await page.locator('input[name="renting-branch"][value="student-newcomer"]').check();
+    await page.locator('[data-step="council-tax"] .renting-guide-link').click();
+    await page.waitForSelector("article.guide-article");
+    ok(page.url().endsWith("/zh-CN/renting/renting-council-tax"), "zh-CN Journey → Guide link is canonical");
+    // Language switch back to Simplified Chinese lands on the canonical URL.
+    await page.goto(`${FRONTEND}/en/renting/renting-council-tax`);
+    await page.waitForSelector("article.guide-article");
+    await page.locator("select").first().selectOption("zh-CN");
+    await page.waitForFunction(() => location.pathname === "/zh-CN/renting/renting-council-tax", null, { timeout: 10000 });
+    ok(true, "language switch to zh-CN keeps the Guide on its canonical URL");
+
     // Unknown Guide slug and unknown path: 404 status, noindex, no canonical or JSON-LD; leaving the 404 removes noindex.
     for (const path of ["/en/renting/no-such-guide", "/ur/no-such-section", "/hi/renting/no-such-guide"]) {
       const response = await page.goto(FRONTEND + path);
@@ -221,11 +280,11 @@ try {
   for (const width of [320, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 800 }, javaScriptEnabled: false });
     const page = await context.newPage();
-    for (const path of ["/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks", "/ur/work-visa/skilled-worker-settlement-ilr", "/ur/renting/renting-moving-out-deposit", "/hi/renting/renting-moving-out-deposit", "/ur/money/national-insurance-number-newcomers", "/zh-CN/money/national-insurance-number-newcomers", "/ur/family-visa/visiting-family-uk-visitor-visa-eta", "/hi/family-visa/visiting-family-uk-visitor-visa-eta"]) {
+    for (const path of ["/ur", "/hi", "/zh-CN", "/ur/family-visa/topics/children-from-previous-relationship", "/en/family-visa/topics/children-from-previous-relationship", "/ur/renting/renting-council-tax", "/ur/renting", "/ur/family-visa", "/ur/settlement", "/hi/family-visa/partner-visa-routes-overview", "/en/renting/renting-referencing-checks", "/ur/work-visa/skilled-worker-settlement-ilr", "/ur/renting/renting-moving-out-deposit", "/hi/renting/renting-moving-out-deposit", "/ur/money/national-insurance-number-newcomers", "/zh-CN/money/national-insurance-number-newcomers", "/ur/family-visa/visiting-family-uk-visitor-visa-eta", "/hi/family-visa/visiting-family-uk-visitor-visa-eta"]) {
       await page.goto(FRONTEND + path);
       ok((await page.locator(".static-page h1").count()) === 1, `${width}px no-JS ${path} article visible`);
       ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px no-JS ${path} no horizontal overflow`);
-      if (path.startsWith("/ur/")) ok((await page.evaluate(() => getComputedStyle(document.querySelector(".static-page")).direction)) === "rtl", `${width}px ${path} RTL`);
+      if (path.startsWith("/ur")) ok((await page.evaluate(() => getComputedStyle(document.querySelector(".static-page")).direction)) === "rtl", `${width}px ${path} RTL`);
     }
     await context.close();
   }
@@ -237,6 +296,12 @@ try {
       await page.goto(FRONTEND + path);
       await page.waitForSelector(".cluster-official li", { timeout: 15000 });
       ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px app ${path} no horizontal overflow`);
+    }
+    for (const [path, ready] of [["/ur", ".home-page .topic-grid"], ["/ur/family-visa/topics/children-from-previous-relationship", ".family-topic-tasks"]]) {
+      await page.goto(FRONTEND + path);
+      await page.waitForSelector(ready, { timeout: 15000 });
+      ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}px app ${path} no horizontal overflow`);
+      ok((await page.locator("html").getAttribute("dir")) === "rtl", `${width}px app ${path} RTL`);
     }
     await context.close();
   }

@@ -80,6 +80,22 @@ export async function loadFamilyVisaContent(): Promise<FamilyVisaContent | null>
 }
 
 /**
+ * The wording a production build loads, available synchronously (null on the
+ * preview server, where draft wording loads asynchronously), so a page can
+ * render its content in its first render.
+ */
+export function initialFamilyVisaContent(locale: GuideLocale): {
+  content: FamilyVisaContent;
+  strings: Readonly<Record<string, string>> | null;
+} | null {
+  if (DRAFT_CONTENT_ENABLED) return null;
+  return {
+    content: FAMILY_VISA_PUBLISHED_WORDING,
+    strings: locale === "zh-CN" ? null : (FAMILY_VISA_PUBLISHED_STRINGS[locale] ?? {}),
+  };
+}
+
+/**
  * Translations of the restated wording for `locale`, keyed by the Simplified
  * Chinese text: the published translations everywhere, plus the local draft
  * translations (gitignored dev/familyVisaDraftContentLocales.ts) on the

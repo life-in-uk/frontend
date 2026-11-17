@@ -3,8 +3,9 @@
 // only; missing translations are omitted by the API, so a Simplified Chinese
 // fallback can never be mistaken for a translation).
 import { GUIDE_DOMAINS } from "../../src/guides/domains.ts";
-import { GUIDE_LOCALES, localizedGuidePath } from "../../src/guides/locales.ts";
-import { STATIC_HUB_DOMAINS } from "../../src/seo/staticPages.ts";
+import { GUIDE_LOCALES, guideHomePath, localizedGuidePath } from "../../src/guides/locales.ts";
+import { FAMILY_VISA_TOPICS, familyVisaTopicPath } from "../../src/router.ts";
+import { STATIC_HUB_DOMAINS, staticTopic } from "../../src/seo/staticPages.ts";
 
 export const LOCALES = GUIDE_LOCALES;
 export const HOME_PATHS = new Set(["/", "/zh-CN", "/zh-TW", "/en", "/ur", "/hi"]);
@@ -46,10 +47,19 @@ export async function loadInventory(apiBase) {
   return { lists, details };
 }
 
+/** Whether a Family & Visa topic shows verified (indexable) content in a locale, as the production app decides. */
+export function topicVerified(inventory, topic, locale) {
+  return staticTopic({
+    topic, locale, source: inventory.lists["zh-CN"], sourceDetails: inventory.details["zh-CN"], localeDetails: inventory.details[locale],
+  }).verified;
+}
+
 /**
  * Every canonical page the inventory requires, with its expected alternates:
- * one page per published Guide per published locale, and one hub per section
- * per locale in which that section has a published Guide.
+ * one page per published Guide per published locale, one hub per section
+ * per locale in which that section has a published Guide, the five home
+ * pages (/{locale}), and each Family & Visa topic page in the locales where
+ * its content is verified.
  */
 export function expectedPages(inventory) {
   const pages = [];
@@ -76,10 +86,21 @@ export function expectedPages(inventory) {
         alternates: locales.map((alt) => ({ locale: alt, path: localizedGuidePath(alt, domainId) })),
       });
   }
+  const homes = LOCALES.map((locale) => ({ locale, path: guideHomePath(locale) }));
+  for (const home of homes) pages.push({ kind: "home", ...home, alternates: homes });
+  for (const topic of FAMILY_VISA_TOPICS) {
+    const locales = LOCALES.filter((locale) => topicVerified(inventory, topic, locale));
+    const alternates = locales.map((locale) => ({ locale, path: familyVisaTopicPath(locale, topic) }));
+    for (const alt of alternates) pages.push({ kind: "topic", topic, ...alt, alternates });
+  }
   return pages;
 }
 
-/** zh-CN short URLs (/renting/…, /renting) for the /zh-CN/… canonical pages. */
+/** The site root: a zh-CN short URL for /zh-CN, but it is the app shell (dist/index.html), so it has no alias page. */
+export const ROOT_ALIAS = "/";
+
+/** zh-CN short URLs (/renting/…, /renting, / for /zh-CN) for the /zh-CN/… canonical pages. */
 export function aliasFor(page) {
-  return page.locale === "zh-CN" ? page.path.replace(/^\/zh-CN/, "") : null;
+  if (page.locale !== "zh-CN") return null;
+  return page.path === "/zh-CN" ? ROOT_ALIAS : page.path.replace(/^\/zh-CN/, "");
 }

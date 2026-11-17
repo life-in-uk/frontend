@@ -104,8 +104,8 @@ test("Guides belong only to the domain matching their category", () => {
 });
 
 test("Guide paths use the domain base", () => {
-  assert.equal(guidePath(HEALTH_GUIDE_DOMAIN, "x"), "/health/x");
-  assert.equal(guidePath(FAMILY_VISA_GUIDE_DOMAIN, "x"), "/family-visa/x");
+  assert.equal(guidePath(HEALTH_GUIDE_DOMAIN, "x"), "/zh-CN/health/x");
+  assert.equal(guidePath(FAMILY_VISA_GUIDE_DOMAIN, "x"), "/zh-CN/family-visa/x");
 });
 
 test("related Guides exist in the list and never cross domains", () => {
@@ -204,5 +204,5 @@ test("Money Guides belong only to the Money domain", () => {
   // No source classification: Money has no example-source rule.
   assert.equal(MONEY_GUIDE_DOMAIN.isExampleSource, undefined);
   assert.deepEqual(relatedGuidesFor(MONEY_GUIDE_DOMAIN, "m", list), []);
-  assert.equal(guidePath(MONEY_GUIDE_DOMAIN, "m"), "/money/m");
+  assert.equal(guidePath(MONEY_GUIDE_DOMAIN, "m"), "/zh-CN/money/m");
 });

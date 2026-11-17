@@ -16,7 +16,7 @@ export function HealthEntry() {
           注册 GP、看病收费、生病了该去哪、买药、看牙——每篇都附上英国官方依据。
         </p>
       </div>
-      <Link to="/health" className="button button-primary">
+      <Link to="/zh-CN/health" className="button button-primary">
         进入健康与 NHS
         <ArrowRight size={17} aria-hidden="true" />
       </Link>

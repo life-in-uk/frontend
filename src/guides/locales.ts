@@ -58,20 +58,21 @@ export function localizedGuidePath(
 }
 
 /**
- * In-app navigation path for a locale. Simplified Chinese keeps the original
- * editorial routes (`/`, `/health`, `/health/:slug`); other locales use the
- * prefixed routes. SEO canonicals and hreflang keep using `localizedGuidePath`.
+ * In-app navigation path for a locale: always the canonical prefixed route
+ * (`/zh-CN/health/:slug`, `/en/health/:slug`). The original Simplified
+ * Chinese short routes (`/health/:slug`) still work, and permanently redirect
+ * on the public host (dist/seo-redirects.json), but nothing links to them, so
+ * no internal link goes through a redirect.
  */
 export function guideRoutePath(
   locale: GuideLocale,
   domain: string,
   slug?: string,
 ): string {
-  return locale === "zh-CN"
-    ? `/${domain}${slug ? `/${encodeURIComponent(slug)}` : ""}`
-    : localizedGuidePath(locale, domain, slug);
+  return localizedGuidePath(locale, domain, slug);
 }
 
+/** A locale's home page, also its canonical URL (`/` redirects to `/zh-CN`). */
 export function guideHomePath(locale: GuideLocale): string {
-  return locale === "zh-CN" ? "/" : `/${locale}`;
+  return `/${locale}`;
 }

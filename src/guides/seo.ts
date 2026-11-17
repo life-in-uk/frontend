@@ -6,6 +6,7 @@ import {
   textDirection,
   type GuideLocale,
 } from "./locales.ts";
+import { SITE_UI } from "./siteUi.ts";
 
 export type AlternatePage = { locale: GuideLocale; href: string };
 
@@ -31,6 +32,16 @@ export function guideAlternates(
 /** A topic hub in every locale (/{locale}/{domain}); hubs exist in all five. */
 export function hubAlternates(origin: string, domain: string): AlternatePage[] {
   return GUIDE_LOCALES.map((locale) => ({ locale, href: new URL(localizedGuidePath(locale, domain), origin).href }));
+}
+
+/** The five home pages (/{locale}); each is its locale's canonical home. */
+export function homeAlternates(origin: string): AlternatePage[] {
+  return GUIDE_LOCALES.map((locale) => ({ locale, href: new URL(`/${locale}`, origin).href }));
+}
+
+/** Home page meta description: the hero's existing two-sentence lead. */
+export function homeDescription(locale: GuideLocale): string {
+  return SITE_UI[locale].hero.lead.join(locale === "zh-CN" || locale === "zh-TW" ? "" : " ");
 }
 
 export function localizedIndexAlternates(

@@ -21,8 +21,8 @@ import {
   WorkVisaHub,
 } from "./routeChunks";
 import { GUIDE_DOMAINS } from "./guides/domains";
-import { applyGuideSeo, clearGuideSeo } from "./guides/seo";
-import { GUIDE_LOCALE_LANG, GUIDE_UI, textDirection } from "./guides/locales";
+import { applyGuideSeo, clearGuideSeo, homeAlternates, homeDescription } from "./guides/seo";
+import { GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, textDirection } from "./guides/locales";
 import { currentPath, localeSwitchPath, matchRoute, pageRoute, routeLocale, subscribeToLocation } from "./router";
 import type { GuideLocale } from "./guides/locales";
 import { SITE_UI } from "./guides/siteUi";
@@ -63,8 +63,8 @@ function App() {
   }, [activeLocale]);
 
   useEffect(() => {
-    if (route.name === "home" || route.name === "localized-home")
-      document.title = SITE_UI[activeLocale].homeTitle;
+    // Home pages set their title with their SEO tags below.
+    if (route.name === "home" || route.name === "localized-home") return;
     else if (hubDomain === "health") document.title = "健康与 NHS · Life in UK";
     else if (hubDomain === "money") document.title = "金钱与财务 · Life in UK";
     else if (workVisaHub)
@@ -76,6 +76,21 @@ function App() {
     else if (route.name === "owner-editorial")
       document.title = "Owner editorial · Life in UK";
   }, [route.name, hubDomain, familyVisaHub, workVisaHub, settlementHub, rentingHub, activeLocale]);
+
+  // Home pages: one canonical per locale (/zh-CN, not /), the same tags as the prerendered page.
+  const isHome = route.name === "home" || route.name === "localized-home";
+  useEffect(() => {
+    if (!isHome) return;
+    const origin = window.location.origin;
+    applyGuideSeo({
+      locale: activeLocale,
+      canonical: new URL(guideHomePath(activeLocale), origin).href,
+      title: SITE_UI[activeLocale].homeTitle,
+      description: homeDescription(activeLocale),
+      alternates: homeAlternates(origin),
+    });
+    return () => clearGuideSeo(activeLocale);
+  }, [isHome, activeLocale]);
 
   // Unknown routes: never indexable (the host also answers them with 404, see docs/seo-hosting.md).
   useEffect(() => {

@@ -13,7 +13,7 @@ const screenshots = process.env.SCREENSHOT_DIR || "/tmp/life-uk-travel-page";
 await mkdir(screenshots, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const LOCALES = [
-  ["", "zh-CN", "交通出行", "ltr"],
+  ["/zh-CN", "zh-CN", "交通出行", "ltr"],
   ["/zh-TW", "zh-TW", "交通出行", "ltr"],
   ["/en", "en", "Travel and transport", "ltr"],
   ["/ur", "ur", "سفر اور ٹرانسپورٹ", "rtl"],
@@ -76,13 +76,13 @@ try {
     await page.waitForURL(`${baseURL}/en/travel#roads`);
     assert.equal(await page.locator('.travel-tab[aria-selected="true"]').getAttribute("data-tool"), "roads");
     await page.locator(".travel-page .roads-card").waitFor();
-    await page.goto(`${baseURL}/money`);
+    await page.goto(`${baseURL}/zh-CN/money`);
     // Travel sits in a header menu: open it (Menu on narrow screens, the group otherwise).
     const menu = page.locator(".masthead-menu-button");
     if (await menu.count()) await menu.click();
-    else await page.locator('.masthead-group-button:has(+ .masthead-panel a[href="/travel"])').click();
-    await page.locator('.masthead-link[href="/travel"]').click();
-    await page.waitForURL(`${baseURL}/travel`);
+    else await page.locator('.masthead-group-button:has(+ .masthead-panel a[href="/zh-CN/travel"])').click();
+    await page.locator('.masthead-link[href="/zh-CN/travel"]').click();
+    await page.waitForURL(`${baseURL}/zh-CN/travel`);
     await page.locator(".travel-page h1").waitFor();
     await page.goto(`${baseURL}/hi/health`);
     await page.locator('.site-footer a[href="/hi/travel"]').click();
@@ -217,8 +217,8 @@ try {
   {
     // Language switching from the header keeps the Travel page.
     const { context, page } = await open();
-    await page.goto(`${baseURL}/travel`);
-    for (const [next, path] of [["en", "/en/travel"], ["ur", "/ur/travel"], ["zh-CN", "/travel"]]) {
+    await page.goto(`${baseURL}/zh-CN/travel`);
+    for (const [next, path] of [["en", "/en/travel"], ["ur", "/ur/travel"], ["zh-CN", "/zh-CN/travel"]]) {
       await page.locator(".masthead-language select").selectOption(next);
       await page.waitForURL(`${baseURL}${path}`);
       await page.locator(".travel-page h1").waitFor();

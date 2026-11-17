@@ -3,7 +3,7 @@
 // Guide can only ever appear (and be linked) inside its own section.
 
 import type { GuideMetadata, GuideSource } from "./api";
-import type { GuideLocale } from "./locales.ts";
+import { guideRoutePath, type GuideLocale } from "./locales.ts";
 import {
   GUIDE_LOCALIZED_REFERENCES,
   GUIDE_TITLE_REFERENCES,
@@ -16,7 +16,7 @@ export type GuideDomainId = "health" | "family-visa" | "money" | "work-visa" | "
 
 export type GuideDomain = {
   id: GuideDomainId;
-  /** Route base, e.g. "/health"; Guides live at `${basePath}/${slug}`. */
+  /** Original zh-CN short route base, e.g. "/health" (still routed; links use guideRoutePath). */
   basePath: string;
   /** The only API category this domain renders. */
   category: string;
@@ -227,8 +227,9 @@ export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   renting: RENTING_GUIDE_DOMAIN,
 };
 
+/** A Simplified Chinese Guide's canonical path (`/zh-CN/health/:slug`). */
 export function guidePath(domain: GuideDomain, slug: string): string {
-  return `${domain.basePath}/${slug}`;
+  return guideRoutePath("zh-CN", domain.id, slug);
 }
 
 /** Whether a Guide may render (or be linked) inside the given domain. */

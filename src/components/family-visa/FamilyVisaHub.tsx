@@ -15,6 +15,7 @@ import {
   FamilyVisaLocaleContext,
 } from "../../guides/familyVisaI18n";
 import { GUIDE_LOCALE_LANG, guideRoutePath } from "../../guides/locales";
+import { familyVisaTopicPath } from "../../router";
 import type { GuideLocale } from "../../guides/locales";
 import { Link } from "../Link";
 import { FamilyVisaHeroArt, FamilyVisaNotebookArt } from "./FamilyVisaArt";
@@ -139,7 +140,7 @@ export function FamilyVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
           <ul className="family-special-list">
             <li>
               <Link
-                to={`${guideRoutePath(locale, "family-visa")}/topics/children-from-previous-relationship`}
+                to={familyVisaTopicPath(locale, "children-from-previous-relationship")}
               >
                 {t("孩子来自上一段关系，如何准备英国签证材料？")}
                 <ArrowRight size={15} aria-hidden="true" />

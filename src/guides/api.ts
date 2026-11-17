@@ -164,6 +164,23 @@ export async function primeStartupGuide(slug: string, locale: GuideLocale, signa
   if (list.status === "fulfilled") startup.set(listKey(locale), list.value);
 }
 
+/**
+ * Startup data for a page built from several Guides (a Family & Visa topic
+ * page): the Simplified Chinese list, the listed Guides' details and, for
+ * another locale, their published translations.
+ */
+export async function primeStartupGuides(slugs: readonly string[], locale: GuideLocale, signal?: AbortSignal): Promise<void> {
+  const list = await getGuides(signal);
+  startup.set(listKey("zh-CN"), list);
+  const published = slugs.filter((slug) => list.some((guide) => guide.slug === slug));
+  await Promise.allSettled(
+    published.flatMap((slug) => [
+      getGuide(slug, signal).then((guide) => { startup.set(guideKey("zh-CN", slug), guide); }),
+      ...(locale === "zh-CN" ? [] : [getLocalizedGuide(slug, locale, signal).then((guide) => { startup.set(guideKey(locale, slug), guide); })]),
+    ]),
+  );
+}
+
 /** The startup Guide for this page, if it was fetched before the first render. */
 export function startupGuide(slug: string, locale: GuideLocale): GuideDetail | undefined {
   const value = startup.get(guideKey(locale, slug));

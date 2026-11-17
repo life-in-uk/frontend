@@ -87,7 +87,7 @@ test("settlement is a normal localized Guide domain", () => {
 test("the section is linked from the site navigation in every locale", () => {
   const topic = HOME_TOPICS.find((t) => t.id === "settlement");
   assert.equal(topic?.domain?.id, "settlement");
-  assert.equal(topicHref(topic, "zh-CN"), "/settlement");
+  assert.equal(topicHref(topic, "zh-CN"), "/zh-CN/settlement");
   assert.equal(topicHref(topic, "ur"), "/ur/settlement");
   // Travel and Work Visa stay in the navigation.
   assert.ok(HOME_TOPICS.find((t) => t.id === "travel")?.page);

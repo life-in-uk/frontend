@@ -37,6 +37,11 @@ export const FAMILY_VISA_TOPICS = [
 ] as const;
 export type FamilyVisaTopicId = (typeof FAMILY_VISA_TOPICS)[number];
 
+/** A topic page's canonical path in a locale (`/{locale}/family-visa/topics/{topic}`). */
+export function familyVisaTopicPath(locale: GuideLocale, topic: FamilyVisaTopicId): string {
+  return `${guideRoutePath(locale, "family-visa")}/topics/${topic}`;
+}
+
 // First path segment → Guide domain. A Map, so "/constructor" stays unknown.
 const DOMAIN_BASES = new Map<string, GuideDomainId>([
   ["health", "health"],
@@ -164,7 +169,7 @@ export function localeSwitchPath(route: Route, next: GuideLocale): string | unde
     case "localized-guide":
       return guideRoutePath(next, route.domain, route.slug);
     case "topic":
-      return `${guideRoutePath(next, route.domain)}/topics/${route.topic}`;
+      return familyVisaTopicPath(next, route.topic);
     case "travel":
       return guideRoutePath(next, "travel");
     default:

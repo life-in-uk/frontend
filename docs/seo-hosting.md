@@ -6,7 +6,8 @@ The deployable site is produced only by:
 PUBLIC_ORIGIN=https://lifeinuk.info API_BASE=<Guide API> npm run build:release
 ```
 
-It builds the app, prerenders every published Guide and topic hub from the
+It builds the app, prerenders every published Guide and topic hub, the five
+home pages and each Family Visa topic page whose content is verified, from the
 Guide API, writes `dist/seo-redirects.json`, validates everything against the
 published inventory and the backend sitemap, and exits nonzero on any problem.
 `npm run build` (app only) and `npm run build:static` (local origin) are for
@@ -25,15 +26,20 @@ behaves the same way is suitable; no particular provider is assumed.
    `dist/en/renting/renting-council-tax/index.html` with status 200 (for
    example `try_files $uri $uri/index.html …`). The canonical URL has no
    trailing slash; do not redirect the canonical form to a slash form.
-2. **zh-CN short URLs.** Apply every row of `dist/seo-redirects.json` as a
-   permanent redirect (`/renting/renting-council-tax` → 301 →
-   `/zh-CN/renting/renting-council-tax`), keeping the query string. If the
-   host cannot redirect, serve the alias HTML that the build also writes: its
-   canonical already points at `/zh-CN/…`, so old links keep working and only
-   the `/zh-CN/…` URL is indexed. Short URLs are never sitemap entries.
+2. **zh-CN short URLs and the root.** Apply every row of
+   `dist/seo-redirects.json` as a permanent redirect
+   (`/renting/renting-council-tax` → 301 → `/zh-CN/renting/renting-council-tax`,
+   and `/` → 301 → `/zh-CN`), keeping the query string. If the host cannot
+   redirect, serve the alias HTML that the build also writes: its canonical
+   already points at `/zh-CN/…`, so old links keep working and only the
+   `/zh-CN/…` URL is indexed. The root has no alias page (`dist/index.html` is
+   the app shell); without the redirect it serves the shell, and the app sets
+   the `/zh-CN` canonical when it starts. Short URLs and `/` are never sitemap
+   entries, and no page links to them.
 3. **App-only routes and unknown paths.** `dist/seo-spa-routes.json` lists the
-   app-only routes (home pages, `/travel` and `/{locale}/travel`,
-   `/{locale}/guides`, Family Visa topic pages: exact `paths`) and path
+   app-only routes (the root `/`, `/travel` and `/{locale}/travel`,
+   `/{locale}/guides`, and Family Visa topic pages only while their content is
+   not verified: exact `paths`) and path
    `prefixes` (`/owner/editorial/`). Those return `dist/index.html` with status
    200. **Every other path without a file extension returns `dist/404.html`
    with status 404**: unknown sections, mistyped Guide slugs and Guides not
@@ -80,8 +86,8 @@ reference host `npm run preview:release` shows the expected answers).
 | # | Requirement | How to verify after deployment |
 |---|---|---|
 | 1 | **HTTPS public origin.** The site answers only on `PUBLIC_ORIGIN` (`https://lifeinuk.info`). `http://` and any other host name (for example `www.`) redirect 301 to the same path on that origin. The app writes canonicals from `window.location.origin`, so a page served on another host would name that host. | `curl -sI http://lifeinuk.info/en/renting` → 301 to `https://lifeinuk.info/en/renting` |
-| 2 | **Prerendered pages** (rule 1): all 280 sitemap URLs return 200 with their own HTML, with or without a trailing slash. | `curl -s https://lifeinuk.info/en/renting \| grep '<h1'` |
-| 3 | **zh-CN short URLs** (rule 2): the 56 rows of `seo-redirects.json` are 301s that keep the query string. | `curl -sI 'https://lifeinuk.info/renting?x=1'` → `Location: /zh-CN/renting?x=1` |
+| 2 | **Prerendered pages** (rule 1): all 290 sitemap URLs (250 Guide pages, 30 topic hubs, 5 home pages, 5 Family Visa topic pages) return 200 with their own HTML, with or without a trailing slash. | `curl -s https://lifeinuk.info/en/renting \| grep '<h1'` |
+| 3 | **zh-CN short URLs and root** (rule 2): the 58 rows of `seo-redirects.json` (57 short URLs and `/` → `/zh-CN`) are 301s that keep the query string. | `curl -sI 'https://lifeinuk.info/renting?x=1'` → `Location: /zh-CN/renting?x=1`; `curl -sI https://lifeinuk.info/` → `Location: /zh-CN` |
 | 4 | **SPA route allowlist and real 404s** (rule 3): only `seo-spa-routes.json` paths get the app shell with 200; every other extensionless path gets `404.html` with status 404; missing assets 404. | `curl -so /dev/null -w '%{http_code}' https://lifeinuk.info/en/renting/no-such-guide` → 404 |
 | 5 | **Static asset caching** (rule 6): `/assets/*` `public, max-age=31536000, immutable`. | `curl -sI https://lifeinuk.info/assets/<entry>.js` |
 | 6 | **HTML revalidation** (rule 6): every HTML response, including `404.html` and the app shell, `Cache-Control: no-cache`; a deploy replaces the whole `dist/` (removed pages must disappear). | `curl -sI https://lifeinuk.info/en/renting` |
@@ -89,5 +95,5 @@ reference host `npm run preview:release` shows the expected answers).
 | 8 | **API compression.** The Spring Boot API answers uncompressed (a Guide detail is ~58 kB, ~14 kB gzipped; a Guide page loads ~190 kB of JSON). Enable gzip or Brotli for `application/json`, `application/xml` and `text/*` at the proxy, or `server.compression.enabled=true` with those MIME types in Spring. HTML, JS and CSS from `dist/` should also be compressed. | `curl -sI -H 'Accept-Encoding: gzip' https://lifeinuk.info/api/guides` → `Content-Encoding: gzip` |
 | 9 | **API caching.** The API sends `Cache-Control: no-store`. This is safe (publishing shows immediately) but means every visit re-downloads Guide JSON. Keep it unless a short shared cache with purge-on-publish is added deliberately. | header check |
 | 10 | **Backend public base URL** (rule 5): `life-in-uk.public-base-url=https://lifeinuk.info`, so robots.txt and every sitemap `<loc>`/hreflang use the public origin. `build:release` prints a "Deployment prerequisite" line while it does not. | `curl -s https://lifeinuk.info/robots.txt` → `Sitemap: https://lifeinuk.info/sitemap.xml` |
-| 11 | **Sitemap and robots exposure** (rule 4): `/sitemap.xml` (280 URLs, `application/xml`) and `/robots.txt` are public and served from the backend. | Submit the sitemap in Google Search Console; check "Pages" and "Sitemaps" reports |
+| 11 | **Sitemap and robots exposure** (rule 4): `/sitemap.xml` (290 URLs, `application/xml`) and `/robots.txt` are public and served from the backend. | Submit the sitemap in Google Search Console; check "Pages" and "Sitemaps" reports |
 | 12 | **Owner editorial screen.** `/owner/editorial` is a local owner tool (docs/owner-editorial-local.md). The app marks it `noindex`, but its shell is served with 200. On the public host either do not expose it, or protect it, and do not enable the owner editorial API without HTTPS and the session settings in that document. | `curl -so /dev/null -w '%{http_code}' https://lifeinuk.info/api/owner/editorial` |
