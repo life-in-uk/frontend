@@ -1,22 +1,25 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useSyncExternalStore } from "react";
 import { SiteHeader } from "./components/site/SiteHeader";
 import { SiteFooter } from "./components/site/SiteFooter";
 import { HomePage } from "./pages/HomePage";
-import { HealthHub } from "./components/health/HealthHub";
+import "./routeStyles";
 import { HealthGuidePage } from "./components/health/HealthGuidePage";
 import { NotFoundPage } from "./components/health/NotFoundPage";
-import { FamilyVisaHub } from "./components/family-visa/FamilyVisaHub";
 import { FamilyVisaGuidePage } from "./components/family-visa/FamilyVisaGuidePage";
-import { FamilyVisaTopicPage } from "./components/family-visa/topics/FamilyVisaTopicPage";
-import { MoneyHub } from "./components/money/MoneyHub";
 import { MoneyGuidePage } from "./components/money/MoneyGuidePage";
-import { WorkVisaHub } from "./components/work-visa/WorkVisaHub";
-import { SettlementHub } from "./components/settlement/SettlementHub";
-import { RentingHub } from "./components/renting/RentingHub";
-import { TravelPage } from "./components/travel/TravelPage";
-import { LocalizedGuideIndex } from "./components/guides/LocalizedGuideIndex";
 import { GuidePage } from "./components/guides/GuidePage";
-import { OwnerEditorialPage } from "./pages/OwnerEditorialPage";
+import {
+  FamilyVisaHub,
+  FamilyVisaTopicPage,
+  HealthHub,
+  LocalizedGuideIndex,
+  MoneyHub,
+  OwnerEditorialPage,
+  RentingHub,
+  SettlementHub,
+  TravelPage,
+  WorkVisaHub,
+} from "./routeChunks";
 import { GUIDE_DOMAINS } from "./guides/domains";
 import { applyGuideSeo, clearGuideSeo } from "./guides/seo";
 import { GUIDE_LOCALE_LANG, GUIDE_UI, textDirection } from "./guides/locales";
@@ -93,52 +96,59 @@ function App() {
         {SITE_UI[activeLocale].skipLink}
       </a>
       <SiteHeader current={section} locale={activeLocale} switchPath={headerSwitch} />
-      {route.name === "home" && <HomePage />}
-      {route.name === "localized-home" && <HomePage key={route.locale} locale={route.locale} />}
-      {route.name === "owner-editorial" && <OwnerEditorialPage />}
-      {hubDomain === "health" && <HealthHub />}
-      {hubDomain === "family-visa" && <FamilyVisaHub />}
-      {hubDomain === "money" && <MoneyHub />}
-      {hubDomain === "work-visa" && <WorkVisaHub />}
-      {hubDomain === "settlement" && <SettlementHub />}
-      {hubDomain === "renting" && <RentingHub />}
-      {route.name === "guide" && route.domain === "health" && (
-        <HealthGuidePage key={route.slug} slug={route.slug} />
-      )}
-      {route.name === "guide" && route.domain === "family-visa" && (
-        <FamilyVisaGuidePage key={route.slug} slug={route.slug} />
-      )}
-      {route.name === "topic" && (
-        <FamilyVisaTopicPage key={`${activeLocale}:${route.topic}`} topic={route.topic} locale={activeLocale} />
-      )}
-      {route.name === "guide" && route.domain === "money" && (
-        <MoneyGuidePage key={route.slug} slug={route.slug} />
-      )}
-      {route.name === "guide" && route.domain === "work-visa" && (
-        <GuidePage key={route.slug} domain={GUIDE_DOMAINS["work-visa"]} slug={route.slug} />
-      )}
-      {route.name === "guide" && route.domain === "settlement" && (
-        <GuidePage key={route.slug} domain={GUIDE_DOMAINS.settlement} slug={route.slug} />
-      )}
-      {route.name === "guide" && route.domain === "renting" && (
-        <GuidePage key={route.slug} domain={GUIDE_DOMAINS.renting} slug={route.slug} />
-      )}
-      {route.name === "localized-index" && <LocalizedGuideIndex locale={route.locale} />}
-      {/* Health keeps its editorial landing page and Guide look in every locale. */}
-      {route.name === "localized-hub" && route.domain === "health" && <HealthHub key={route.locale} locale={route.locale} />}
-      {route.name === "localized-hub" && route.domain === "money" && <MoneyHub key={route.locale} locale={route.locale} />}
-      {route.name === "localized-hub" && route.domain === "work-visa" && <WorkVisaHub key={route.locale} locale={route.locale} />}
-      {route.name === "localized-hub" && route.domain === "settlement" && <SettlementHub key={route.locale} locale={route.locale} />}
-      {route.name === "localized-hub" && route.domain === "renting" && <RentingHub key={route.locale} locale={route.locale} />}
-      {route.name === "localized-hub" && route.domain === "family-visa" && <FamilyVisaHub key={route.locale} locale={route.locale} />}
-      {route.name === "localized-guide" && route.domain === "health" && (
-        <HealthGuidePage key={`${route.locale}:${route.slug}`} slug={route.slug} locale={route.locale} />
-      )}
-      {route.name === "localized-guide" && route.domain !== "health" && (
-        <GuidePage key={`${route.locale}:${route.slug}`} domain={GUIDE_DOMAINS[route.domain]} slug={route.slug} locale={route.locale} />
-      )}
-      {route.name === "travel" && <TravelPage key={activeLocale} locale={activeLocale} />}
-      {route.name === "not-found" && <NotFoundPage locale={activeLocale} />}
+      {/* Only in-app navigation to a page whose chunk is not loaded yet shows the
+          fallback; main.tsx loads the first page's chunk before rendering. Keyed
+          by path so the previous page unmounts at once (its head tags and other
+          effects cleaned up), rather than staying mounted, hidden, until the
+          next page's chunk arrives. */}
+      <Suspense key={path} fallback={<main id="main" className="route-loading" aria-busy="true" />}>
+        {route.name === "home" && <HomePage />}
+        {route.name === "localized-home" && <HomePage key={route.locale} locale={route.locale} />}
+        {route.name === "owner-editorial" && <OwnerEditorialPage />}
+        {hubDomain === "health" && <HealthHub />}
+        {hubDomain === "family-visa" && <FamilyVisaHub />}
+        {hubDomain === "money" && <MoneyHub />}
+        {hubDomain === "work-visa" && <WorkVisaHub />}
+        {hubDomain === "settlement" && <SettlementHub />}
+        {hubDomain === "renting" && <RentingHub />}
+        {route.name === "guide" && route.domain === "health" && (
+          <HealthGuidePage key={route.slug} slug={route.slug} />
+        )}
+        {route.name === "guide" && route.domain === "family-visa" && (
+          <FamilyVisaGuidePage key={route.slug} slug={route.slug} />
+        )}
+        {route.name === "topic" && (
+          <FamilyVisaTopicPage key={`${activeLocale}:${route.topic}`} topic={route.topic} locale={activeLocale} />
+        )}
+        {route.name === "guide" && route.domain === "money" && (
+          <MoneyGuidePage key={route.slug} slug={route.slug} />
+        )}
+        {route.name === "guide" && route.domain === "work-visa" && (
+          <GuidePage key={route.slug} domain={GUIDE_DOMAINS["work-visa"]} slug={route.slug} />
+        )}
+        {route.name === "guide" && route.domain === "settlement" && (
+          <GuidePage key={route.slug} domain={GUIDE_DOMAINS.settlement} slug={route.slug} />
+        )}
+        {route.name === "guide" && route.domain === "renting" && (
+          <GuidePage key={route.slug} domain={GUIDE_DOMAINS.renting} slug={route.slug} />
+        )}
+        {route.name === "localized-index" && <LocalizedGuideIndex locale={route.locale} />}
+        {/* Health keeps its editorial landing page and Guide look in every locale. */}
+        {route.name === "localized-hub" && route.domain === "health" && <HealthHub key={route.locale} locale={route.locale} />}
+        {route.name === "localized-hub" && route.domain === "money" && <MoneyHub key={route.locale} locale={route.locale} />}
+        {route.name === "localized-hub" && route.domain === "work-visa" && <WorkVisaHub key={route.locale} locale={route.locale} />}
+        {route.name === "localized-hub" && route.domain === "settlement" && <SettlementHub key={route.locale} locale={route.locale} />}
+        {route.name === "localized-hub" && route.domain === "renting" && <RentingHub key={route.locale} locale={route.locale} />}
+        {route.name === "localized-hub" && route.domain === "family-visa" && <FamilyVisaHub key={route.locale} locale={route.locale} />}
+        {route.name === "localized-guide" && route.domain === "health" && (
+          <HealthGuidePage key={`${route.locale}:${route.slug}`} slug={route.slug} locale={route.locale} />
+        )}
+        {route.name === "localized-guide" && route.domain !== "health" && (
+          <GuidePage key={`${route.locale}:${route.slug}`} domain={GUIDE_DOMAINS[route.domain]} slug={route.slug} locale={route.locale} />
+        )}
+        {route.name === "travel" && <TravelPage key={activeLocale} locale={activeLocale} />}
+        {route.name === "not-found" && <NotFoundPage locale={activeLocale} />}
+      </Suspense>
       <SiteFooter locale={activeLocale} />
     </>
   );

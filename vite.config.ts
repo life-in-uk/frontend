@@ -42,6 +42,12 @@ export default defineConfig(({ mode, command, isPreview }) => {
       familyVisaPreviewBuildGuard(),
       prerenderedPages(),
     ],
+    build: {
+      // One stylesheet for the whole app, as before route-level code
+      // splitting: the cascade order stays the same, and a lazily loaded page
+      // never renders before its styles.
+      cssCodeSplit: false,
+    },
     server: {
       proxy: {
         "/sitemap.xml": { target: backendTarget },

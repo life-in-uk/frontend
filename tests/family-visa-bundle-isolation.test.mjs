@@ -29,20 +29,21 @@ import { fileURLToPath } from "node:url";
 import { localDraftContent } from "./fixtures/familyVisaContent.mjs";
 import { FAMILY_VISA_PUBLISHED_WORDING } from "../src/guides/familyVisaPublishedWording.ts";
 
-// The only code-split chunks allowed besides the single entry: the lazily
-// loaded homepage travel tools (and their shared helpers). Any other chunk,
-// such as one for the Family & Visa wording module, fails isolation.
-const ALLOWED_LAZY_CHUNK = /^(UndergroundCard|RoadsCard|useNow)-[\w-]+\.js$/;
+// The build has one entry plus lazily loaded chunks: the homepage travel tools
+// and, since SEO Phase 4C, the hub and tool pages (src/routeChunks.ts) with
+// their shared helpers, whose names the bundler chooses. Published Family &
+// Visa wording ships in those page chunks by design. The local-only draft
+// module must never become a chunk of its own; the text checks below are what
+// prove no draft wording ships in any chunk.
+const DRAFT_CHUNK = /draft/i;
 function assertOnlyAllowedChunks(jsFiles, message) {
   const names = jsFiles.map((file) => path.basename(file));
   const entries = names.filter((name) => /^index-[\w-]+\.js$/.test(name));
   assert.equal(entries.length, 1, `${message}: one entry chunk (${names.join(", ")})`);
   assert.deepEqual(
-    names.filter(
-      (name) => !entries.includes(name) && !ALLOWED_LAZY_CHUNK.test(name),
-    ),
+    names.filter((name) => DRAFT_CHUNK.test(name)),
     [],
-    `${message}: only travel tool chunks may be split (${names.join(", ")})`,
+    `${message}: no chunk for the draft wording module (${names.join(", ")})`,
   );
 }
 import { CHECKLIST_SECTIONS } from "../src/guides/familyVisaChecklist.ts";

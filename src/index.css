@@ -89,6 +89,10 @@ svg {
 .skip-link:focus {
   top: 16px;
 }
+/* In-app navigation to a page whose chunk is still loading (App.tsx). */
+.route-loading {
+  min-height: 100vh;
+}
 
 /* Prerendered pages (scripts/prerender.mjs): readable before or without
    JavaScript; the app replaces this markup when it starts. */

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2 } from "lucide-react";
-import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError } from "../../guides/api";
+import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError, startupGuide, startupGuides } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, guideRoutePath, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo";
@@ -51,10 +51,19 @@ export function GuidePage({
   locale?: GuideLocale;
   presentation?: GuidePresentation;
 }) {
-  const [state, setState] = useState<State>({ status: "loading" });
-  const [related, setRelated] = useState<ResolvedGuide[]>([]);
+  // On a prerendered page the first render already has the Guide (fetched
+  // before it, see primeStartupGuide), so the static article is replaced in
+  // one step instead of by a loading state.
+  const [state, setState] = useState<State>(() => {
+    const guide = startupGuide(slug, locale);
+    return guide && belongsToDomain(guide, domain) ? { status: "ready", guide } : { status: "loading" };
+  });
+  const [related, setRelated] = useState<ResolvedGuide[]>(() => {
+    const guides = startupGuides(locale);
+    return guides ? relatedLinksFor(domain, slug, guides) : [];
+  });
   // The published list for this locale; it decides which references link.
-  const [published, setPublished] = useState<GuideMetadata[] | undefined>(undefined);
+  const [published, setPublished] = useState<GuideMetadata[] | undefined>(() => startupGuides(locale));
   const references = useMemo(() => titleReferencesFor(domain, locale, published, slug), [domain, locale, published, slug]);
   const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>([locale]);
   const ui = GUIDE_UI[locale];
@@ -78,10 +87,12 @@ export function GuidePage({
         if (!active) return;
         // A Guide from another section is treated as not found here, so its
         // content never appears under the wrong branded domain.
-        setState(
-          belongsToDomain(guide, domain)
-            ? { status: "ready", guide }
-            : { status: "not-found" },
+        setState((current) =>
+          current.status === "ready" && current.guide === guide
+            ? current
+            : belongsToDomain(guide, domain)
+              ? { status: "ready", guide }
+              : { status: "not-found" },
         );
       })
       .catch((error: unknown) => {

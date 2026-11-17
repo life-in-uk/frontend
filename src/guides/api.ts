@@ -146,9 +146,46 @@ export function isGuideDetail(value: unknown): value is GuideDetail {
   );
 }
 
+// Startup data: on a prerendered Guide page, main.tsx fetches the Guide and
+// its locale's list before the app's first render (primeStartupGuide), so that
+// render already shows the article the static HTML showed: no loading state,
+// no layout shift. The data is the live API response, as on any other load.
+// It answers matching requests only until the first in-app navigation.
+const startup = new Map<string, GuideDetail | GuideMetadata[] | LocalizedGuide>();
+const listKey = (locale: GuideLocale) => `list:${locale}`;
+const guideKey = (locale: GuideLocale, slug: string) => `guide:${locale}:${slug}`;
+
+export async function primeStartupGuide(slug: string, locale: GuideLocale, signal?: AbortSignal): Promise<void> {
+  const [guide, list] = await Promise.allSettled([
+    locale === "zh-CN" ? getGuide(slug, signal) : getLocalizedGuide(slug, locale, signal),
+    locale === "zh-CN" ? getGuides(signal) : getLocalizedGuides(locale, signal),
+  ]);
+  if (guide.status === "fulfilled") startup.set(guideKey(locale, slug), guide.value);
+  if (list.status === "fulfilled") startup.set(listKey(locale), list.value);
+}
+
+/** The startup Guide for this page, if it was fetched before the first render. */
+export function startupGuide(slug: string, locale: GuideLocale): GuideDetail | undefined {
+  const value = startup.get(guideKey(locale, slug));
+  if (!value || Array.isArray(value)) return undefined;
+  return "guide" in value ? value.guide : value;
+}
+
+/** The startup Guide list for this locale, if it was fetched before the first render. */
+export function startupGuides(locale: GuideLocale): GuideMetadata[] | undefined {
+  const value = startup.get(listKey(locale));
+  return Array.isArray(value) ? value : undefined;
+}
+
+export function clearStartupData(): void {
+  startup.clear();
+}
+
 export async function getGuides(
   signal?: AbortSignal,
 ): Promise<GuideMetadata[]> {
+  const ready = startupGuides("zh-CN");
+  if (ready) return ready;
   const response = await fetch("/api/guides", { signal });
   if (!response.ok) throw new Error("Guides unavailable");
   const data: unknown = await response.json();
@@ -161,6 +198,8 @@ export async function getGuide(
   signal?: AbortSignal,
 ): Promise<GuideDetail> {
   if (!isGuideSlug(slug)) throw new GuideNotFoundError();
+  const ready = startup.get(guideKey("zh-CN", slug));
+  if (ready && !Array.isArray(ready) && !("guide" in ready)) return ready;
   const response = await fetch(`/api/guides/${encodeURIComponent(slug)}`, {
     signal,
   });
@@ -177,6 +216,9 @@ export async function getLocalizedGuides(
   locale: GuideLocale,
   signal?: AbortSignal,
 ): Promise<GuideMetadata[]> {
+  // The zh-CN startup list comes from /api/guides, so only other locales match here.
+  const ready = locale === "zh-CN" ? undefined : startupGuides(locale);
+  if (ready) return ready;
   const response = await fetch(`/api/guides/locales/${encodeURIComponent(locale)}`, { signal });
   if (response.status === 404) throw new GuideNotFoundError();
   if (!response.ok) throw new Error("Guides unavailable");
@@ -192,6 +234,8 @@ export async function getLocalizedGuide(
   signal?: AbortSignal,
 ): Promise<LocalizedGuide> {
   if (!isGuideSlug(slug)) throw new GuideNotFoundError();
+  const ready = startup.get(guideKey(locale, slug));
+  if (ready && !Array.isArray(ready) && "guide" in ready) return ready;
   const response = await fetch(`/api/guides/${encodeURIComponent(slug)}/locales/${encodeURIComponent(locale)}`, { signal });
   if (response.status === 404) throw new GuideNotFoundError();
   if (!response.ok) throw new Error("Guide unavailable");
