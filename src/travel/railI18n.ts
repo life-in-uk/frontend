@@ -18,6 +18,8 @@ export type RailUi = {
   refresh: string;
   loading: string;
   error: string;
+  /** Too many checks (this visitor's per-minute limit, or the site's overall budget). */
+  rateLimited: string;
   notConfigured: string;
   empty: string;
   coverage: string;
@@ -58,6 +60,7 @@ export const RAIL_UI: Readonly<Record<GuideLocale, RailUi>> = {
     refresh: "刷新",
     loading: "正在加载铁路信息…",
     error: "铁路信息暂不可用，请稍后重试。",
+    rateLimited: "查询次数过多，请等待一分钟后再试。",
     notConfigured:
       "本站尚未接入铁路实时数据，因此无法显示任何列车信息。请查看 National Rail 官方延误信息。",
     empty: "当前车站看板中没有报告延误 10 分钟或以上的列车或取消的列车。",
@@ -100,6 +103,7 @@ export const RAIL_UI: Readonly<Record<GuideLocale, RailUi>> = {
     refresh: "重新整理",
     loading: "正在載入鐵路資訊…",
     error: "鐵路資訊暫時無法使用，請稍後重試。",
+    rateLimited: "查詢次數過多，請等待一分鐘後再試。",
     notConfigured:
       "本站尚未接入鐵路即時資料，因此無法顯示任何列車資訊。請查看 National Rail 官方誤點資訊。",
     empty: "目前車站看板中沒有回報誤點 10 分鐘或以上的列車或取消的列車。",
@@ -142,6 +146,7 @@ export const RAIL_UI: Readonly<Record<GuideLocale, RailUi>> = {
     refresh: "Refresh",
     loading: "Loading rail information…",
     error: "Rail information is unavailable. Please try again later.",
+    rateLimited: "Too many checks right now. Please wait a minute and try again.",
     notConfigured:
       "Live rail data is not connected on this site, so no train information can be shown. Please check National Rail's official disruption information.",
     empty:
@@ -187,6 +192,7 @@ export const RAIL_UI: Readonly<Record<GuideLocale, RailUi>> = {
     refresh: "تازہ کریں",
     loading: "ریل کی معلومات لوڈ ہو رہی ہیں…",
     error: "ریل کی معلومات دستیاب نہیں۔ بعد میں دوبارہ کوشش کریں۔",
+    rateLimited: "ابھی بہت زیادہ بار چیک کیا گیا ہے۔ ایک منٹ انتظار کریں اور دوبارہ کوشش کریں۔",
     notConfigured:
       "اس سائٹ پر تازہ ریل ڈیٹا منسلک نہیں، اس لیے ٹرینوں کی کوئی معلومات نہیں دکھائی جا سکتی۔ براہ کرم National Rail کی سرکاری معلومات دیکھیں۔",
     empty:
@@ -231,6 +237,7 @@ export const RAIL_UI: Readonly<Record<GuideLocale, RailUi>> = {
     refresh: "रीफ़्रेश करें",
     loading: "रेल की जानकारी लोड हो रही है…",
     error: "रेल की जानकारी उपलब्ध नहीं। बाद में फिर कोशिश करें।",
+    rateLimited: "अभी बहुत ज़्यादा बार जाँच की गई है। एक मिनट रुककर फिर कोशिश करें।",
     notConfigured:
       "इस साइट पर लाइव रेल डेटा जुड़ा नहीं है, इसलिए ट्रेनों की कोई जानकारी नहीं दिखाई जा सकती। कृपया National Rail की आधिकारिक जानकारी देखें।",
     empty:

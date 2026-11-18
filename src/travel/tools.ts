@@ -35,13 +35,13 @@ export const TRAVEL_TOOLS: readonly TravelTool[] = [
 ];
 
 /**
- * Rail is not released publicly: the RDM Schedule 2 policies, commercial
- * Departure use and quota still need review. Local development shows the Rail
- * tool by default (the backend's RAIL_ACCESS_ENABLED guard and rate limits
- * still apply). Vite replaces `import.meta.env.DEV` with `false` in
- * production builds, so they never include the Rail tool and always show the
- * "not yet available" notice instead.
+ * Rail is released (owner decision, 2026-11-18). Production builds include
+ * the Rail tool unless built with VITE_RAIL_TOOL=off, which compiles it out
+ * and shows the "not yet available" notice instead. Whether boards are served
+ * is decided at runtime by the backend (RAIL_ACCESS_ENABLED, per-viewer and
+ * per-instance limits): while Rail is off there, the tool says so and links
+ * to National Rail.
  */
 export function railToolEnabled(): boolean {
-  return import.meta.env.DEV;
+  return import.meta.env.VITE_RAIL_TOOL !== "off";
 }
