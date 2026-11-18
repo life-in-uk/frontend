@@ -15,6 +15,7 @@ import { resolve } from "node:path";
 import { aliasFor, expectedPages, loadInventory } from "./seo/inventory.mjs";
 import { resolveReleaseOrigin } from "./seo/origin.mjs";
 import { prerender } from "./seo/prerender.mjs";
+import { withRetryOn429 } from "./seo/retry.mjs";
 import { writeRedirects } from "./seo/redirects.mjs";
 import { formatReport, validateSeoOutput } from "./seo/validate.mjs";
 
@@ -42,7 +43,7 @@ function run(step, command, args) {
 async function checkSitemap(pages, origin) {
   const errors = [];
   const notes = [];
-  const response = await fetch(`${API}/sitemap.xml`);
+  const response = await withRetryOn429(() => fetch(`${API}/sitemap.xml`));
   if (!response.ok) return { errors: [`backend sitemap unavailable (HTTP ${response.status})`], notes };
   const locs = [...(await response.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]));
   const paths = new Set(locs.map((url) => url.pathname));

@@ -1,0 +1,34 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListSiteBucket",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::lifeinuk-site-919693204623-eu-west-2"
+    },
+    {
+      "Sid": "WriteSiteObjects",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::lifeinuk-site-919693204623-eu-west-2/*"
+    },
+    {
+      "Sid": "ViewerRequestFunction",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:DescribeFunction",
+        "cloudfront:UpdateFunction",
+        "cloudfront:TestFunction",
+        "cloudfront:PublishFunction"
+      ],
+      "Resource": "arn:aws:cloudfront::919693204623:function/lifeinuk-viewer-request"
+    },
+    {
+      "Sid": "InvalidateThisDistribution",
+      "Effect": "Allow",
+      "Action": ["cloudfront:CreateInvalidation", "cloudfront:GetInvalidation"],
+      "Resource": "arn:aws:cloudfront::919693204623:distribution/E2VQEY0DI83CFH"
+    }
+  ]
+}

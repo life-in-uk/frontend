@@ -24,6 +24,7 @@ import { gunzipSync, brotliDecompressSync } from "node:zlib";
 import { GUIDE_LOCALE_HREFLANG, GUIDE_LOCALE_LANG } from "../../src/guides/locales.ts";
 import { LOCALES } from "../seo/inventory.mjs";
 import { REDIRECTS_FILE } from "../seo/redirects.mjs";
+import { withRetryOn429 } from "../seo/retry.mjs";
 import { NOT_FOUND_FILE, SPA_ROUTES_FILE } from "../seo/routes.mjs";
 import { IMMUTABLE, uploadObjects } from "./objects.mjs";
 import { BLOCKED_PREFIXES } from "./viewer-request.mjs";
@@ -103,7 +104,8 @@ export async function verifySite({ base, distDir = "dist", host, connectIp, prod
     }
     results.set(group, entry);
   };
-  const get = (path, options = {}) => exchange(new URL(path, baseUrl), { host: publicHost, connectIp, ...options });
+  // The production API rate-limits per viewer; a 429 is retried, never counted as a result.
+  const get = (path, options = {}) => withRetryOn429(() => exchange(new URL(path, baseUrl), { host: publicHost, connectIp, ...options }));
   const attempt = async (group, label, check) => {
     try {
       const message = await check();

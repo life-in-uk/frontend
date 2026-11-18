@@ -17,7 +17,7 @@ import { writeRedirects } from "../scripts/seo/redirects.mjs";
 import { createStaticHost } from "../scripts/seo/static-host.mjs";
 import { createEdgeEmulator } from "../scripts/edge/emulator.mjs";
 import { exchange, verifySite } from "../scripts/edge/verify-site.mjs";
-import { deploySite, uploadGroups } from "../scripts/edge/deploy-site.mjs";
+import { deploySite, staleObjects, uploadGroups } from "../scripts/edge/deploy-site.mjs";
 import { uploadObjects } from "../scripts/edge/objects.mjs";
 import { generateViewerRequest, loadViewerRequest, MAX_FUNCTION_BYTES, viewerEvent } from "../scripts/edge/viewer-request.mjs";
 
@@ -289,7 +289,12 @@ else if (cmd === "test-function") {
   out({ TestResult: { FunctionOutput: JSON.stringify(result.statusCode ? { response: result } : { request: result }) } });
 }
 else if (cmd === "publish-function") out({ FunctionSummary: { Name: "f" } });
-else if (cmd === "list-objects-v2") out(["index.html", "old/removed/index.html"]);
+else if (cmd === "list-objects-v2") out([
+  { Key: "index.html", LastModified: new Date().toISOString() },
+  { Key: "old/removed/index.html", LastModified: new Date().toISOString() },
+  { Key: "assets/previous-release.js", LastModified: new Date().toISOString() },
+  { Key: "assets/long-gone.js", LastModified: "2020-01-01T00:00:00.000Z" },
+]);
 else if (cmd === "delete-objects") { fs.copyFileSync(opt("--delete").slice(7), ${JSON.stringify(join(work, "deleted.json"))}); out({}); }
 else if (cmd === "create-invalidation") out({ Invalidation: { Id: "I1" } });
 `);
@@ -304,8 +309,8 @@ else if (cmd === "create-invalidation") out({ Invalidation: { Id: "I1" } });
   assert.ok(!order.includes(-1), `missing step: ${commands.join(", ")}`);
   assert.deepEqual([...order].sort((a, b) => a - b), order, `deploy order: ${commands.join(", ")}`);
   assert.equal(commands.filter((c) => c === "cloudfront test-function").length, 6, "every sample event is tested in the runtime");
-  // Only the object that is not part of this release is deleted.
-  assert.deepEqual(JSON.parse(readFileSync(join(work, "deleted.json"), "utf8")).Objects, [{ Key: "old/removed/index.html" }]);
+  // Only objects that are not part of this release are deleted; a recent earlier asset stays for open pages.
+  assert.deepEqual(JSON.parse(readFileSync(join(work, "deleted.json"), "utf8")).Objects, [{ Key: "old/removed/index.html" }, { Key: "assets/long-gone.js" }]);
   writeFileSync(state, "");
   process.env.FAKE_WRONG = "1";
   await assert.rejects(run(), /test-function "page": CloudFront gave \{"uri":"\/wrong"\}.*nothing was published/);
@@ -314,4 +319,22 @@ else if (cmd === "create-invalidation") out({ Invalidation: { Id: "I1" } });
   delete process.env.AWS_CLI;
   rmSync(work, { recursive: true });
   rmSync(dir, { recursive: true });
+});
+
+test("deploy: stale objects are bounded, and recent assets of earlier releases are kept", () => {
+  const now = Date.parse("2026-11-18T12:00:00Z");
+  const release = Array.from({ length: 300 }, (_, i) => `en/page-${i}/index.html`);
+  const day = (n) => new Date(now - n * 24 * 3600 * 1000).toISOString();
+  const listed = [
+    ...release.map((Key) => ({ Key, LastModified: day(1) })),
+    { Key: "en/withdrawn/index.html", LastModified: day(30) },
+    { Key: "assets/old-a.js", LastModified: day(2) },
+    { Key: "assets/old-b.js", LastModified: day(8) },
+  ];
+  assert.deepEqual(staleObjects(listed, release, { now }), { remove: ["en/withdrawn/index.html", "assets/old-b.js"], keptAssets: 1 });
+  assert.deepEqual(staleObjects(null, release, { now }), { remove: [], keptAssets: 0 }, "an empty bucket lists nothing");
+  // A wrong bucket or a broken release would remove far more than withdrawn Guides do.
+  const foreign = Array.from({ length: 31 }, (_, i) => ({ Key: `other-project/${i}.html`, LastModified: day(1) }));
+  assert.throws(() => staleObjects([...listed, ...foreign], release, { now }), /refusing to delete 32 objects .*limit 30/);
+  assert.equal(staleObjects([...listed, ...foreign], release, { now, allowLarge: true }).remove.length, 33);
 });

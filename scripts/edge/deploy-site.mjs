@@ -16,7 +16,11 @@
 //      that is not there yet. Build manifests are never uploaded.
 //   4. Update the function (DEVELOPMENT stage), run test-function on sample
 //      events in the real runtime and compare with the local result, publish.
-//   5. Delete objects that are not in this release (withdrawn pages).
+//   5. Delete objects that are not in this release (withdrawn pages). Hashed
+//      assets of earlier releases are kept for ASSET_GRACE_DAYS, so pages
+//      already open in a browser can still load their route chunks. More than
+//      a handful of other deletions stops the deploy unless --allow-large-delete
+//      (a wrong bucket or an unexpected object set is never wiped).
 //   6. Invalidate /* (HTML revalidates anyway; this clears the 404s and
 //      redirects CloudFront may hold for a few seconds).
 import { spawnSync } from "node:child_process";
@@ -28,6 +32,29 @@ import { INTERNAL_FILES, uploadObjects } from "./objects.mjs";
 import { generateViewerRequest, loadViewerRequest, viewerEvent } from "./viewer-request.mjs";
 
 export const RELEASE_ORIGIN = "https://lifeinuk.info";
+export const ASSET_GRACE_DAYS = 7;
+
+/**
+ * Which listed bucket objects ({ Key, LastModified }) a release removes.
+ * Throws when more non-asset objects would go than a normal release removes
+ * (withdrawn Guides): at most max(20, 10 % of the release), unless allowLarge.
+ */
+export function staleObjects(listed, releaseKeys, { now = Date.now(), allowLarge = false } = {}) {
+  const keep = new Set(releaseKeys);
+  const graceMs = ASSET_GRACE_DAYS * 24 * 3600 * 1000;
+  const remove = [];
+  let keptAssets = 0;
+  for (const { Key: key, LastModified: modified } of listed ?? []) {
+    if (keep.has(key)) continue;
+    if (key.startsWith("assets/") && !(now - Date.parse(modified) > graceMs)) keptAssets++;
+    else remove.push(key);
+  }
+  const pages = remove.filter((key) => !key.startsWith("assets/"));
+  const limit = Math.max(20, Math.ceil(keep.size * 0.1));
+  if (pages.length > limit && !allowLarge)
+    throw new Error(`refusing to delete ${pages.length} objects that are not assets (limit ${limit}), e.g. ${pages.slice(0, 5).join(", ")}; check the bucket and the release, then rerun with --allow-large-delete if this is intended`);
+  return { remove, keptAssets };
+}
 
 /** Upload groups: one `aws s3 cp --recursive` per (prefix, extension), each with explicit headers. */
 export function uploadGroups(objects) {
@@ -102,7 +129,7 @@ export function checkRelease({ distDir, markerFile = resolve("release", "build.j
   return errors;
 }
 
-export async function deploySite({ distDir = "dist", bucket, distribution, functionName, execute = false, log = console.log, git, markerFile }) {
+export async function deploySite({ distDir = "dist", bucket, distribution, functionName, execute = false, allowLargeDelete = false, log = console.log, git, markerFile }) {
   const dist = resolve(distDir);
   for (const [name, value] of Object.entries({ bucket, distribution, function: functionName }))
     if (!value) throw new Error(`--${name} is required`);
@@ -155,13 +182,13 @@ export async function deploySite({ distDir = "dist", bucket, distribution, funct
     }
 
     step("Delete objects that are not part of this release");
-    const keep = new Set(objects.map((object) => object.key));
-    const list = ["s3api", "list-objects-v2", "--bucket", bucket, "--query", "Contents[].Key"];
+    const list = ["s3api", "list-objects-v2", "--bucket", bucket, "--query", "Contents[].{Key: Key, LastModified: LastModified}"];
     if (!execute) {
       show(list);
-      log("  then: aws s3api delete-objects --bucket … for every listed key not in this release");
+      log(`  then: aws s3api delete-objects --bucket … for every listed key not in this release (earlier assets kept ${ASSET_GRACE_DAYS} days)`);
     } else {
-      const stale = (aws(list) ?? []).filter((key) => !keep.has(key));
+      const { remove: stale, keptAssets } = staleObjects(aws(list), objects.map((object) => object.key), { allowLarge: allowLargeDelete });
+      if (keptAssets) log(`  ${keptAssets} asset(s) of earlier releases kept for up to ${ASSET_GRACE_DAYS} days`);
       for (let i = 0; i < stale.length; i += 1000) {
         const batch = join(work, `delete-${i}.json`);
         writeFileSync(batch, JSON.stringify({ Objects: stale.slice(i, i + 1000).map((Key) => ({ Key })), Quiet: true }));
@@ -194,6 +221,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       else if (name === "--distribution") args.distribution = argv[++i];
       else if (name === "--function") args.functionName = argv[++i];
       else if (name === "--dist") args.distDir = argv[++i];
+      else if (name === "--allow-large-delete") args.allowLargeDelete = true;
       else throw new Error(`unknown option ${name}`);
     }
     await deploySite(args);

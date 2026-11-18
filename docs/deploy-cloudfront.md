@@ -73,6 +73,11 @@ files, then HTML (each with explicit `Content-Type` and `Cache-Control`),
 updates the function, runs `test-function` on sample events in the real
 CloudFront runtime and compares the results with the local function before
 publishing, deletes objects that are not in the release, and invalidates `/*`.
+Hashed assets of earlier releases stay for 7 days (pages already open in a
+browser still load their route chunks), and if more than max(20, 10 % of the
+release) other objects would be deleted it stops instead
+(`--allow-large-delete` overrides after checking). Production deploys run from
+GitHub Actions (`docs/ci-cd.md`); the commands above remain the manual path.
 
 The `API_BASE` used for the build must serve the same published content as
 production (after a content release, build against production through the SSH
