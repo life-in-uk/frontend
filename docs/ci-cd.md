@@ -60,6 +60,22 @@ missing until the next normal release. Artifacts are kept 90 days; for an
 older commit run a normal release with `ref` = that commit (rebuilt from
 current content).
 
+## Preflight (read-only)
+
+Actions → **Deploy production** with `preflight` ticked (optionally with
+`rollback_run_id`, to preview a rollback). The build job runs as usual (its
+artifact is kept 7 days as `preflight-site`, so it can never be redeployed as
+a rollback). After approval, the deploy job prints its OIDC claims (`sub`,
+`ref`, `environment`, …; never the token), assumes the role and runs
+`scripts/edge/preflight-site.mjs`: the role ARN, the LIVE function compared
+with this release's, the bucket compared with the release (identical,
+changed, new, would delete, and whether the deletion guard would stop the
+deploy), and three probes the role must be **denied** (distribution config,
+IAM, listing all buckets). It makes no upload, deletion, function update,
+publish or invalidation, and fails on any problem.
+
+Run it before the first real deploy, and whenever the role or the setup changes.
+
 ## One-time setup (owner approval required; nothing here has been applied)
 
 **Order matters.** Configure the GitHub `production` environment (below)
@@ -68,6 +84,8 @@ create it automatically **without protection rules**, and the role's trust
 policy only checks the environment name, so the reviewer rule and the
 `main`-only branch rule are what make approval mandatory. In the environment,
 also untick "Allow administrators to bypass configured protection rules".
+That setting exists only in the web UI (Settings → Environments →
+production); the REST API can neither set nor read it.
 
 **AWS** (account 919693204623; the GitHub OIDC provider already exists):
 
@@ -80,9 +98,13 @@ aws iam put-role-policy --role-name LifeInUK-GitHub-FrontendDeploy --policy-name
 ```
 
 The trust policy accepts only jobs of this repository that run in the
-`production` environment (immutable OIDC subject with the repository ID). The
+`production` environment (immutable OIDC subject with the organization and
+repository IDs) for a run on `refs/heads/main` (`token.actions.githubusercontent.com:ref`,
+a GitHub condition key IAM supports), with audience `sts.amazonaws.com`. A
+workflow run from any other branch is refused by AWS even if GitHub's
+environment branch rule were missing. The
 permissions are limited to: list/put/delete objects in the site bucket,
-describe/update/test/publish the `lifeinuk-viewer-request` function, and
+describe/get/update/test/publish the `lifeinuk-viewer-request` function, and
 create/get invalidations of distribution `E2VQEY0DI83CFH`. It cannot change
 the distribution, DNS, certificates, other buckets or other projects.
 

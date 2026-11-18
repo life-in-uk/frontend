@@ -4,6 +4,12 @@
 #   Release:  Run workflow, ref = a commit on main (blank = current main).
 #   Rollback: Run workflow, rollback_run_id = the ID of an earlier successful
 #             run of this workflow; its exact site artifact is redeployed.
+#   Preflight: either of the above with preflight ticked: after approval the
+#             deploy job assumes the role and runs only read calls
+#             (scripts/edge/preflight-site.mjs): the role it got, its OIDC
+#             claims, the LIVE function and bucket compared with the release,
+#             and probes the role must be denied. Nothing is uploaded,
+#             deleted, published or invalidated.
 #
 # The build job has no AWS access. It builds from the public production Guide
 # API, so the release contains exactly the content production serves. The
@@ -24,6 +30,10 @@ on:
         description: "Rollback only: run ID of an earlier successful 'Deploy production' run to redeploy."
         required: false
         default: ""
+      preflight:
+        description: "Preflight only: read-only checks with the deploy role; changes nothing."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -48,6 +58,7 @@ jobs:
     outputs:
       sha: ${{ steps.result.outputs.sha }}
       artifact_run_id: ${{ steps.result.outputs.artifact_run_id }}
+      artifact: ${{ steps.result.outputs.artifact }}
     steps:
       - name: Check inputs
         env:
@@ -92,16 +103,17 @@ jobs:
           npm run build:release
           node scripts/ci/check-release-output.mjs --expect-api "$API_BASE"
 
+      # A preflight's build is kept under another name, so it can never be redeployed as a rollback.
       - name: Keep the release for deployment and later rollback
         if: inputs.rollback_run_id == ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ env.ARTIFACT }}
+          name: ${{ inputs.preflight && 'preflight-site' || env.ARTIFACT }}
           path: |
             dist/
             release/build.json
           if-no-files-found: error
-          retention-days: 90
+          retention-days: ${{ inputs.preflight && 7 || 90 }}
 
       # Only an artifact made by this workflow's own build job on main may be redeployed: any
       # other run (CI, a pull request from a fork, another branch) could upload an artifact with
@@ -120,6 +132,8 @@ jobs:
             echo "::error::run $ROLLBACK is not a successful 'Deploy production' run on main of this repository (workflow $id, $event, $branch, $conclusion, $repo)"
             exit 1
           fi
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ROLLBACK/artifacts" --jq '.artifacts[] | select(.expired | not) | .name' | grep -qx "$ARTIFACT" \
+            || { echo "::error::run $ROLLBACK has no unexpired $ARTIFACT artifact (a preflight run, a rollback run, or older than 90 days)"; exit 1; }
           echo "Rollback source: run $ROLLBACK (Deploy production, main, success)"
 
       - name: Fetch the rollback release
@@ -135,12 +149,16 @@ jobs:
         id: result
         env:
           ROLLBACK: ${{ inputs.rollback_run_id }}
+          UPLOADED: ${{ inputs.preflight && 'preflight-site' || 'production-site' }}
         run: |
           sha=$(node -p 'require("./release/build.json").commit')
           [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::release/build.json has no commit"; exit 1; }
           git merge-base --is-ancestor "$sha" origin/main || { echo "::error::$sha is not on main"; exit 1; }
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          echo "artifact_run_id=${ROLLBACK:-$GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+          {
+            echo "sha=$sha"
+            echo "artifact_run_id=${ROLLBACK:-$GITHUB_RUN_ID}"
+            if [ -n "$ROLLBACK" ]; then echo "artifact=$ARTIFACT"; else echo "artifact=$UPLOADED"; fi
+          } >> "$GITHUB_OUTPUT"
           {
             echo "### ${ROLLBACK:+Rollback }release ready"
             echo "Commit \`$sha\`, artifact from run ${ROLLBACK:-$GITHUB_RUN_ID}"
@@ -148,7 +166,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
-    name: Deploy to S3 + CloudFront and verify
+    name: ${{ inputs.preflight && 'Preflight (read-only) with the deploy role' || 'Deploy to S3 + CloudFront and verify' }}
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -175,7 +193,7 @@ jobs:
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: ${{ env.ARTIFACT }}
+          name: ${{ needs.build.outputs.artifact }}
           run-id: ${{ needs.build.outputs.artifact_run_id }}
           github-token: ${{ github.token }}
           path: .
@@ -189,6 +207,18 @@ jobs:
           DISTRIBUTION: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
           FUNCTION: ${{ vars.CLOUDFRONT_FUNCTION_NAME }}
 
+      # The claims the AWS trust policy evaluates, from this job's own OIDC token. Only the decoded
+      # payload fields below are printed; the token itself (a credential) never is.
+      - name: OIDC claims (preflight)
+        if: inputs.preflight
+        run: |
+          token=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          echo "::add-mask::$token"
+          TOKEN=$token node -e '
+            const c = JSON.parse(Buffer.from(process.env.TOKEN.split(".")[1], "base64url"));
+            const keys = ["sub", "aud", "ref", "environment", "repository", "repository_id", "repository_owner_id", "job_workflow_ref", "event_name"];
+            console.log(JSON.stringify(Object.fromEntries(keys.map((k) => [k, c[k]])), null, 1));' | tee -a "$GITHUB_STEP_SUMMARY"
+
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
@@ -196,7 +226,16 @@ jobs:
           aws-region: eu-west-2
           role-duration-seconds: 1800
 
+      - name: Preflight (read-only)
+        if: inputs.preflight
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          DISTRIBUTION: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+          FUNCTION: ${{ vars.CLOUDFRONT_FUNCTION_NAME }}
+        run: node scripts/edge/preflight-site.mjs --bucket "$SITE_BUCKET" --distribution "$DISTRIBUTION" --function "$FUNCTION"
+
       - name: Deploy (upload, function test + publish, stale objects, invalidation)
+        if: ${{ !inputs.preflight }}
         env:
           SITE_BUCKET: ${{ vars.SITE_BUCKET }}
           DISTRIBUTION: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
@@ -204,6 +243,7 @@ jobs:
         run: node scripts/edge/deploy-site.mjs --bucket "$SITE_BUCKET" --distribution "$DISTRIBUTION" --function "$FUNCTION" --execute
 
       - name: Verify the public site
+        if: ${{ !inputs.preflight }}
         # The function and invalidation take a minute or two to reach every edge.
         run: |
           for attempt in 1 2 3 4; do
@@ -220,9 +260,10 @@ jobs:
           SHA: ${{ needs.build.outputs.sha }}
           ARTIFACT_RUN: ${{ needs.build.outputs.artifact_run_id }}
           JOB_STATUS: ${{ job.status }}
+          MODE: ${{ inputs.preflight && 'preflight (read-only, nothing changed)' || 'deploy' }}
         run: |
           {
-            echo "### Frontend production deploy: $JOB_STATUS"
+            echo "### Frontend production $MODE: $JOB_STATUS"
             echo "| | |"
             echo "|---|---|"
             echo "| Commit | \`$SHA\` |"
