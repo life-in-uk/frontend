@@ -31,7 +31,17 @@ export type TravelUi = {
   };
   /** Tab and homepage labels; the provider name is added in English. */
   tools: Record<TravelToolId, { name: string; description: string }>;
-  home: { meta: string; open: (name: string) => string };
+  home: {
+    meta: string;
+    open: (name: string) => string;
+    /** Link from the homepage panel to the whole Travel page. */
+    all: string;
+    /** Underground status on the homepage: while loading, fresh ("updated"), stale and unavailable. */
+    checking: string;
+    updated: (time: string) => string;
+    stale: (time: string) => string;
+    unavailable: string;
+  };
   common: {
     category: string;
     officialSource: string;
@@ -132,6 +142,11 @@ const ZH_CN: TravelUi = {
   home: {
     meta: "点击打开查询工具。数据过期或无法获取时不显示运行状态，并提供运营方官方信息链接。",
     open: (name) => `，打开${name}查询工具`,
+    all: "全部出行工具",
+    checking: "正在获取线路运行状态…",
+    updated: (time) => `${time}（英国时间）更新`,
+    stale: (time) => `不是最新状态：最后更新于 ${time}（英国时间）`,
+    unavailable: "线路运行状态暂时无法获取",
   },
   common: {
     category: "出行",
@@ -235,6 +250,11 @@ const ZH_TW: TravelUi = {
   home: {
     meta: "點擊開啟查詢工具。資料過期或無法取得時不顯示營運狀態，並提供營運方官方資訊連結。",
     open: (name) => `，開啟${name}查詢工具`,
+    all: "全部出行工具",
+    checking: "正在取得路線營運狀態…",
+    updated: (time) => `${time}（英國時間）更新`,
+    stale: (time) => `不是最新狀態：最後更新於 ${time}（英國時間）`,
+    unavailable: "路線營運狀態暫時無法取得",
   },
   common: {
     category: "出行",
@@ -338,6 +358,11 @@ const EN: TravelUi = {
   home: {
     meta: "Select a tool to open it. When data is out of date or unavailable, no service status is shown and a link to the operator's official information is given instead.",
     open: (name) => `, open the ${name} tool`,
+    all: "All travel tools",
+    checking: "Checking line status…",
+    updated: (time) => `Updated ${time} (UK time)`,
+    stale: (time) => `Not current: last updated ${time} (UK time)`,
+    unavailable: "Line status is unavailable right now",
   },
   common: {
     category: "Travel",
@@ -443,6 +468,11 @@ const UR: TravelUi = {
   home: {
     meta: "ٹول کھولنے کے لیے منتخب کریں۔ جب ڈیٹا پرانا ہو یا دستیاب نہ ہو تو سروس کی صورتحال نہیں دکھائی جاتی اور اس کے بجائے آپریٹر کی سرکاری معلومات کا لنک دیا جاتا ہے۔",
     open: (name) => `، ${name} کا ٹول کھولیں`,
+    all: "سفر کے تمام ٹولز",
+    checking: "لائنوں کی صورتحال معلوم کی جا رہی ہے…",
+    updated: (time) => `${time} (برطانوی وقت) پر اپ ڈیٹ ہوا`,
+    stale: (time) => `تازہ نہیں: آخری اپ ڈیٹ ${time} (برطانوی وقت)`,
+    unavailable: "لائنوں کی صورتحال ابھی دستیاب نہیں",
   },
   common: {
     category: "سفر",
@@ -546,6 +576,11 @@ const HI: TravelUi = {
   home: {
     meta: "टूल खोलने के लिए चुनें। जब डेटा पुराना हो या उपलब्ध न हो, तो सेवा की स्थिति नहीं दिखाई जाती और इसके बजाय ऑपरेटर की आधिकारिक जानकारी का लिंक दिया जाता है।",
     open: (name) => `, ${name} टूल खोलें`,
+    all: "सभी यात्रा टूल",
+    checking: "लाइनों की स्थिति देखी जा रही है…",
+    updated: (time) => `${time} (ब्रिटेन का समय) पर अपडेट`,
+    stale: (time) => `ताज़ा नहीं: आख़िरी अपडेट ${time} (ब्रिटेन का समय)`,
+    unavailable: "लाइनों की स्थिति अभी उपलब्ध नहीं",
   },
   common: {
     category: "यात्रा",

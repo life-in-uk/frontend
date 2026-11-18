@@ -124,6 +124,12 @@ async function newPage(
 /** Opens the Underground tool on /travel from the homepage transport panel. */
 async function openUnderground(page) {
   await page.goto(baseURL);
+  // The homepage panel reads the stored snapshot once; let that read finish
+  // so it is not mistaken for a Travel page read (it may be held by a test).
+  await page
+    .locator('.transport-item[data-tool="underground"] .transport-status:not([data-state="loading"])')
+    .waitFor({ timeout: 3000 })
+    .catch(() => {});
   await page.locator('.transport-item[data-tool="underground"]').click();
   await page.locator(".travel-page .underground-card").waitFor();
 }
@@ -131,7 +137,7 @@ async function assertPage(page, requests, errors, width) {
   // The Travel page, reached from the homepage transport panel.
   assert.equal(await page.locator("h1").count(), 1);
   assert.equal(await page.locator("h1").innerText(), "交通出行");
-  assert.equal(new URL(page.url()).pathname, "/travel");
+  assert.equal(new URL(page.url()).pathname, "/zh-CN/travel"); // the homepage links to the locale route
   assert.equal(new URL(page.url()).hash, "#underground");
   assert.equal(await page.locator(".travel-page").count(), 1);
   assert.equal(
@@ -320,7 +326,8 @@ try {
         fullPage: true,
       });
       // One completed backend read on open (re-read cadence: see below). In
-      // development, React StrictMode aborts a duplicate first request.
+      // development, React StrictMode aborts a duplicate first request; the
+      // homepage panel's read was held too and aborted when the page changed.
       assert.equal(
         responses.filter(
           (url) => new URL(url).pathname === "/api/travel/underground",
@@ -706,12 +713,14 @@ try {
       const { context, page } = await newPage(1440, "reduce", { fresh: false });
       await page.clock.install({ time: FRESH_NOW });
       const state = { started: 0, completed: 0, serve: 0 };
+      // Only the Travel page tool's reads count; the homepage panel reads once on its own.
+      const onTravel = () => new URL(page.url()).pathname.endsWith("/travel");
       page.on("response", (response) => {
-        if (new URL(response.url()).pathname === "/api/travel/underground")
+        if (new URL(response.url()).pathname === "/api/travel/underground" && onTravel())
           state.completed++;
       });
       await page.route("**/api/travel/underground", (route) => {
-        state.started++;
+        if (onTravel()) state.started++;
         return respond(route, state);
       });
       return { context, page, state, card: page.locator(".underground-card") };

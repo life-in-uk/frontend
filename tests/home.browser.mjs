@@ -48,9 +48,22 @@ const HOLIDAYS = {
   ],
 };
 
-async function page(width, { guides = 200, holidays = 200 } = {}) {
+// Stored Underground snapshot observed `ageMinutes` ago (the frontend's freshness limit is 15).
+const underground = (ageMinutes, lines = [
+  ["bakerloo", "Bakerloo", 10, "Good Service"],
+  ["central", "Central", 9, "Minor Delays"],
+  ["district", "District", 5, "Part Closure"],
+  ["victoria", "Victoria", 10, "Good Service"],
+]) => ({
+  observedAt: new Date(Date.now() - ageMinutes * 60_000).toISOString(),
+  lines: lines.map(([lineId, lineName, severity, description]) => ({
+    lineId, lineName, statuses: [{ severity, description, reason: null }],
+  })),
+});
+
+async function page(width, { guides = 200, holidays = 200, tube = null, height = 900 } = {}) {
   const context = await browser.newContext({
-    viewport: { width, height: 900 },
+    viewport: { width, height },
   });
   const p = await context.newPage();
   const errors = [];
@@ -71,6 +84,10 @@ async function page(width, { guides = 200, holidays = 200 } = {}) {
         return holidays === 200
           ? route.fulfill({ json: HOLIDAYS })
           : route.fulfill({ status: holidays, json: {} });
+      if (path === "/api/travel/underground")
+        return tube
+          ? route.fulfill({ json: tube })
+          : route.fulfill({ status: 404, json: { code: "UNDERGROUND_UNAVAILABLE" } });
       return route.fulfill({ status: 404, json: {} });
     });
   }
@@ -166,26 +183,33 @@ try {
       await holiday.locator(".holiday-name").waitFor();
     }
     assert.match(await holiday.innerText(), /England & Wales/);
-    // Transport: entries into /travel only (no service data or requests on
-    // the homepage); Rail is shown in development (production builds show
-    // "暂未开放", see travel-production-isolation).
+    // Transport, directly under the search: Underground status read from the
+    // stored snapshot (one no-store GET; never a provider call), Roads and
+    // Rail entries. Rail is shown in development (production builds show
+    // "暂未开放", see travel-production-isolation). No snapshot here: the
+    // Underground entry says so and claims no status.
     const transport = p.locator(".transport-panel");
+    await transport.locator('[data-tool="underground"] .transport-status[data-state="unavailable"]').waitFor();
     assert.deepEqual(await transport.locator(".transport-status").allInnerTexts(), [
-      "线路运行状态",
-      "车站延误查询",
+      "线路运行状态暂时无法获取",
       "按地点查附近道路异常",
+      "车站延误查询",
     ]);
     assert.deepEqual(
       await transport.locator("a.transport-item").evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-      ["/zh-CN/travel#underground", "/zh-CN/travel#rail", "/zh-CN/travel#roads"],
+      ["/zh-CN/travel#underground", "/zh-CN/travel#roads", "/zh-CN/travel#rail"],
     );
+    assert.equal(await transport.locator("a.transport-all").getAttribute("href"), "/zh-CN/travel");
     // The Rail tool's own label "车站延误查询" (station delay checker) is not a status.
     assert.doesNotMatch(
       (await transport.innerText()).replace("车站延误查询", ""),
-      /Good Service|Delay|延误|拥堵|畅通|正常运行/,
+      /Good Service|Delay|延误|拥堵|畅通|正常运行|实时/,
     );
     assert.equal(await p.locator(".underground-card, .roads-card, .rail-card").count(), 0);
-    assert.ok(requests.every((path) => path === "/api/guides" || path === "/api/bank-holidays"));
+    if (!REAL)
+      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/travel/underground"]);
+    assert.equal(requests.filter((path) => path === "/api/travel/underground").length, 1);
+    assert.ok(!requests.some((path) => /^\/api\/(travel\/roads|places|rail)/.test(path)));
     // About and footer.
     assert.equal(await p.locator("#about h2").count(), 1);
     assert.match(await p.locator("footer").innerText(), /与 NHS 及英国政府无隶属关系/);
@@ -279,6 +303,60 @@ try {
     assert.deepEqual(await p.locator(".topic-card-count").allInnerTexts(), ["", "", "", "", "", ""]);
     console.log("PASS unavailable Guides and Bank Holidays");
     await context.close();
+  }
+
+  if (!REAL) {
+    // Underground on the homepage: fresh, stale and unavailable, in every locale.
+    const LOCALES = {
+      "zh-CN": { fresh: /4 条线路中有 2 条报告异常/, updated: /（英国时间）更新/, stale: /不是最新状态：最后更新于 .*（英国时间）/, none: "线路运行状态暂时无法获取" },
+      "zh-TW": { fresh: /4 條路線中有 2 條/, updated: /（英國時間）更新/, stale: /不是最新狀態：最後更新於/, none: "路線營運狀態暫時無法取得" },
+      en: { fresh: /2 of 4 lines reporting problems/, updated: /^Updated \d\d:\d\d \(UK time\)$/, stale: /^Not current: last updated .+ \(UK time\)$/, none: "Line status is unavailable right now" },
+      ur: { fresh: /4/, updated: /برطانوی وقت/, stale: /تازہ نہیں/, none: "لائنوں کی صورتحال ابھی دستیاب نہیں" },
+      hi: { fresh: /4/, updated: /ब्रिटेन का समय/, stale: /ताज़ा नहीं/, none: "लाइनों की स्थिति अभी उपलब्ध नहीं" },
+    };
+    for (const [locale, text] of Object.entries(LOCALES)) {
+      for (const [state, tube] of [["fresh", underground(3)], ["stale", underground(16)], ["unavailable", null]]) {
+        const { p, context, errors } = await page(390, { tube, height: 844 });
+        await p.goto(`${baseURL}/${locale}/`);
+        const item = p.locator('.transport-item[data-tool="underground"]');
+        const status = item.locator(`.transport-status[data-state="${state}"]`);
+        await status.waitFor();
+        const shown = await item.innerText();
+        if (state === "fresh") {
+          assert.match(await status.locator(".transport-summary").innerText(), text.fresh);
+          assert.match(await status.locator(".transport-updated").innerText(), text.updated);
+          // Affected lines with TfL's own text, in TfL's order; good-service lines are not listed.
+          assert.deepEqual(await item.locator(".transport-line").allInnerTexts(), ["Central: Minor Delays", "District: Part Closure"]);
+          assert.equal(await status.locator("time").getAttribute("datetime"), tube.observedAt);
+        } else {
+          // Stale or missing data: no counts, no line statuses, nothing presented as current.
+          assert.equal(await item.locator(".transport-line, .transport-summary").count(), 0);
+          assert.doesNotMatch(shown, /Minor Delays|Part Closure|Good Service/);
+          if (state === "stale") {
+            assert.match(await status.innerText(), text.stale);
+            assert.equal(await status.locator("time").getAttribute("datetime"), tube.observedAt);
+          } else assert.equal(await status.innerText(), text.none);
+        }
+        // Reachable on a phone: the panel starts within the first screen (zh-CN) or just below it.
+        const top = await p.locator(".transport-panel").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+        assert.ok(top < (locale === "zh-CN" ? 700 : 900), `${locale}: travel panel at ${top}px`);
+        assert.equal(await noOverflow(p), true, `${locale} ${state}: overflow`);
+        assert.deepEqual(errors, []);
+        await context.close();
+      }
+    }
+    // A snapshot that turns stale while the page is open stops being shown as current.
+    {
+      const { p, context } = await page(390, { tube: underground(14.9) });
+      await p.clock.install();
+      await p.goto(`${baseURL}/en/`);
+      await p.locator('.transport-status[data-state="fresh"]').waitFor();
+      await p.clock.fastForward("02:00");
+      await p.locator('.transport-status[data-state="stale"]').waitFor();
+      assert.equal(await p.locator(".transport-line").count(), 0);
+      await context.close();
+    }
+    console.log("PASS homepage Underground status: fresh, stale (also while open), unavailable × 5 locales; panel near the top on mobile");
   }
 
   // Responsive: no horizontal overflow, usable touch targets, screenshots.

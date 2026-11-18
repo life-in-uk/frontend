@@ -172,10 +172,13 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       dir={translatedPage ? textDirection(locale) : undefined}
     >
       <HomeHero locale={locale} index={searchIndex} />
+      {/* Travel sits directly under the search so it is reachable on a phone without scrolling far. */}
+      <div className="home-container home-travel">
+        <TransportSummary locale={locale} />
+      </div>
       <TopicGrid locale={locale} topics={HOME_TOPICS} counts={content?.counts} />
       <div className="home-container home-practical">
         <BankHolidaySummary locale={locale} />
-        <TransportSummary locale={locale} />
       </div>
       <FeaturedGuides locale={locale} status={status} guides={content?.featured ?? []} />
       {content && (
