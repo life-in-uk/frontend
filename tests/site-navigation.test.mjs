@@ -5,7 +5,7 @@
 // rendered layout in every locale and width.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { HOME_TOPICS, NAV_GROUPS, navGroupTopics, topicHref, visibleNavGroups } from "../src/home/topics.ts";
+import { availableHomeTopics, HOME_TOPICS, NAV_GROUPS, navGroupTopics, topicHref, visibleNavGroups } from "../src/home/topics.ts";
 import { SITE_UI } from "../src/guides/siteUi.ts";
 import { GUIDE_LOCALES } from "../src/guides/locales.ts";
 
@@ -25,9 +25,15 @@ test("the header uses the five approved categories in order", () => {
 
 test("published sections sit in their approved category", () => {
   for (const [group, ids] of Object.entries(APPROVED)) {
-    const published = navGroupTopics(group).filter((topic) => topic.domain || topic.page).map((topic) => topic.id);
+    const published = navGroupTopics(group, availableHomeTopics(false)).filter((topic) => topic.domain || topic.page).map((topic) => topic.id);
     assert.deepEqual(published, ids, group);
   }
+});
+
+test("university joins Health and Education when the locale has published Guides", () => {
+  const published = navGroupTopics("health-education", availableHomeTopics(true))
+    .filter((topic) => topic.domain || topic.page).map((topic) => topic.id);
+  assert.deepEqual(published, ["health", "university-applications-student-visas"]);
 });
 
 test("only categories with a published section are shown", () => {

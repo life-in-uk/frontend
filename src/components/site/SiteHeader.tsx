@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { BusFront, ChevronDown, Coins, GraduationCap, HeartPulse, House, IdCard, Menu, Search, X } from "lucide-react";
-import { navGroupTopics, topicHref, visibleNavGroups, type NavGroupId, type TopicIcon } from "../../home/topics";
+import type { GuideDomainId } from "../../guides/domains";
+import { availableHomeTopics, navGroupTopics, topicHref, visibleNavGroups, type NavGroupId, type TopicIcon } from "../../home/topics";
 import { Link } from "../Link";
 import { GUIDE_UI, guideHomePath, type GuideLocale } from "../../guides/locales";
 import { SITE_UI } from "../../guides/siteUi";
@@ -10,7 +11,8 @@ import "./Site.css";
 
 type SiteHeaderProps = {
   /** The launched section currently shown, for aria-current. */
-  current: "home" | "health" | "money" | "family-visa" | "work-visa" | "settlement" | "renting" | "travel" | undefined;
+  current: "home" | GuideDomainId | "travel" | undefined;
+  universityAvailable?: boolean;
   locale?: GuideLocale;
   /**
    * Same page in another language. Given only on pages without their own
@@ -87,7 +89,7 @@ function onPanelKeyDown(event: KeyboardEvent<HTMLElement>) {
 }
 
 /** Shared site header: brand, section navigation, search, language and About. */
-export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeaderProps) {
+export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAvailable = false }: SiteHeaderProps) {
   const ui = SITE_UI[locale];
   const home = guideHomePath(locale);
   const homeAnchor = (id: string) => (home === "/" ? `/#${id}` : `${home}#${id}`);
@@ -95,7 +97,8 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
   // Width the wide bar needed when it last did not fit, or null while it fits.
   const [needed, setNeeded] = useState<number | null>(null);
   const compact = narrow || needed !== null;
-  const navGroups = visibleNavGroups(locale);
+  const topics = availableHomeTopics(universityAvailable);
+  const navGroups = visibleNavGroups(locale, topics);
   const innerRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLUListElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
@@ -116,7 +119,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
   }
 
   // Labels and the language selector change what fits: measure the wide bar again.
-  const content = `${locale}|${switchPath ? "language" : ""}`;
+  const content = `${locale}|${switchPath ? "language" : ""}|${universityAvailable}`;
   const [measured, setMeasured] = useState(content);
   if (measured !== content) {
     setMeasured(content);
@@ -235,11 +238,11 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
   }
 
   const groupHasCurrent = (group: NavGroupId) =>
-    navGroupTopics(group).some((topic) => topic.id === current);
+    navGroupTopics(group, topics).some((topic) => topic.id === current);
 
   const topicList = (group: NavGroupId, labelledBy: string) => (
     <ul className="masthead-menu-list" aria-labelledby={labelledBy}>
-      {navGroupTopics(group).map((topic) => {
+      {navGroupTopics(group, topics).map((topic) => {
         const href = topicHref(topic, locale);
         const title = ui.topics[topic.id]?.title ?? topic.title;
         return href ? (

@@ -3,8 +3,8 @@ import { ArrowRight } from "lucide-react";
 import { getLocalizedGuides } from "../../guides/api";
 import type { GuideMetadata } from "../../guides/api";
 import { GUIDE_DOMAINS, type GuideDomainId } from "../../guides/domains";
-import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
-import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates } from "../../guides/seo";
+import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, UNIVERSITY_COPY, textDirection, type GuideLocale } from "../../guides/locales";
+import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates, hubAlternates } from "../../guides/seo";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
 import "./Guide.css";
@@ -20,6 +20,9 @@ const copy: Record<GuideLocale, { title: string; description: string; loading: s
 export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; domain?: GuideDomainId }) {
   const [state, setState] = useState<{ status: "loading" } | { status: "error" } | { status: "ready"; guides: GuideMetadata[] }>({ status: "loading" });
   const strings = copy[locale];
+  const title = domain ? GUIDE_UI[locale].domain[domain] : strings.title;
+  const description = domain ? UNIVERSITY_COPY[locale].description : strings.description;
+  const [available, setAvailable] = useState<GuideLocale[]>([locale]);
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -30,24 +33,44 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
   }, [locale, domain]);
 
   useEffect(() => {
+    if (!domain || state.status !== "ready" || state.guides.length === 0) return;
+    const controller = new AbortController();
+    const other = GUIDE_LOCALES.filter((candidate) => candidate !== locale);
+    Promise.allSettled(other.map(async (candidate) => {
+      const list = await getLocalizedGuides(candidate, controller.signal);
+      return list.some((guide) => guide.category === GUIDE_DOMAINS[domain].category) ? candidate : null;
+    })).then((results) => {
+      if (controller.signal.aborted) return;
+      const locales = results.flatMap((result) => result.status === "fulfilled" && result.value ? [result.value] : []);
+      setAvailable([locale, ...locales]);
+    });
+    return () => controller.abort();
+  }, [domain, locale, state]);
+
+  useEffect(() => {
+    if (domain && state.status === "loading") return;
     const canonicalPath = domain ? localizedGuidePath(locale, domain) : `/${locale}/guides`;
-    const candidates = GUIDE_LOCALES.filter((candidate) => candidate === locale);
-    applyGuideSeo({ locale, canonical: new URL(canonicalPath, window.location.origin).href,
-      title: `${domain ? GUIDE_UI[locale].domain[domain] : strings.title} · Life in UK`,
-      description: strings.description,
-      alternates: localizedIndexAlternates(window.location.origin, candidates) });
+    const origin = window.location.origin;
+    const hasContent = !domain || (state.status === "ready" && state.guides.length > 0);
+    applyGuideSeo({ locale, canonical: hasContent ? new URL(canonicalPath, origin).href : null,
+      title: `${title} · Life in UK`,
+      description,
+      noIndex: !hasContent,
+      alternates: !hasContent ? [] : domain
+        ? hubAlternates(origin, domain).filter(({ locale: candidate }) => available.includes(candidate))
+        : localizedIndexAlternates(origin, [locale]) });
     document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
     document.documentElement.dir = textDirection(locale);
     return () => clearGuideSeo();
-  }, [locale, domain, strings]);
+  }, [locale, domain, title, description, state, available]);
 
   return (
     <main id="main" className="guide-page localized-guide-index" lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
-      <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} /></div>
+      <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} available={domain ? available : undefined} /></div>
       <header className="guide-index-header">
         <p className="guide-kicker">Life in UK</p>
-        <h1>{domain ? GUIDE_UI[locale].domain[domain] : strings.title}</h1>
-        <p className="guide-summary">{strings.description}</p>
+        <h1>{title}</h1>
+        <p className="guide-summary">{description}</p>
       </header>
       {state.status === "loading" && <p role="status" className="guide-status">{strings.loading}</p>}
       {state.status === "error" && <div className="guide-status-card" role="alert"><p>{strings.failed}</p></div>}

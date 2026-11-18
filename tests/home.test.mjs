@@ -9,7 +9,7 @@ import {
 } from "../src/home/featured.ts";
 import {
   FEATURED_GUIDE_SLUGS,
-  HOME_TOPICS,
+  availableHomeTopics,
   launchedTopics,
 } from "../src/home/topics.ts";
 import {
@@ -61,12 +61,12 @@ const GUIDES = [
 const DOMAINS = launchedTopics().map((topic) => topic.domain);
 const ANSWERS = [{ set: MONEY_QUICK_ANSWERS, domain: MONEY_GUIDE_DOMAIN }];
 
-test("Health, Money, Family & Visa, Work Visa, Settlement and Renting are launched (locally)", () => {
+test("the six existing Guide sections remain linked before university content is online", () => {
   assert.deepEqual(
-    launchedTopics().map((topic) => topic.id),
+    launchedTopics(availableHomeTopics(false)).map((topic) => topic.id),
     ["health", "money", "family-visa", "work-visa", "settlement", "renting"],
   );
-  assert.equal(HOME_TOPICS.length, 9);
+  assert.equal(availableHomeTopics(false).length, 9);
   assert.ok(DOMAINS.includes(FAMILY_VISA_GUIDE_DOMAIN));
 });
 

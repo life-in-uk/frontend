@@ -12,7 +12,9 @@ import {
   RELATED_GUIDES,
 } from "./catalog.ts";
 
-export type GuideDomainId = "health" | "family-visa" | "money" | "work-visa" | "settlement" | "renting";
+export const UNIVERSITY_CATEGORY = "university-applications-student-visas";
+
+export type GuideDomainId = typeof UNIVERSITY_CATEGORY | "health" | "family-visa" | "money" | "work-visa" | "settlement" | "renting";
 
 export type GuideDomain = {
   id: GuideDomainId;
@@ -218,6 +220,16 @@ export const RENTING_GUIDE_DOMAIN: GuideDomain = {
   },
 };
 
+export const UNIVERSITY_GUIDE_DOMAIN: GuideDomain = {
+  id: UNIVERSITY_CATEGORY,
+  basePath: `/${UNIVERSITY_CATEGORY}`,
+  category: UNIVERSITY_CATEGORY,
+  label: "大学申请与学生签证",
+  backLabel: "回到大学申请与学生签证",
+  titleReferences: {},
+  relatedGuides: {},
+};
+
 export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   health: HEALTH_GUIDE_DOMAIN,
   "family-visa": FAMILY_VISA_GUIDE_DOMAIN,
@@ -225,6 +237,7 @@ export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   "work-visa": WORK_VISA_GUIDE_DOMAIN,
   settlement: SETTLEMENT_GUIDE_DOMAIN,
   renting: RENTING_GUIDE_DOMAIN,
+  [UNIVERSITY_CATEGORY]: UNIVERSITY_GUIDE_DOMAIN,
 };
 
 /** A Simplified Chinese Guide's canonical path (`/zh-CN/health/:slug`). */

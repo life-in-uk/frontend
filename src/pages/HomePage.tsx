@@ -12,14 +12,14 @@ import { TrustSection } from "../components/home/TrustSection";
 import { getLocalizedGuides } from "../guides/api";
 import type { GuideMetadata } from "../guides/api";
 import { HEALTH_QUICK_LINKS } from "../guides/catalog";
-import { guidePath, HEALTH_GUIDE_DOMAIN, MONEY_GUIDE_DOMAIN } from "../guides/domains";
+import { UNIVERSITY_CATEGORY, guidePath, HEALTH_GUIDE_DOMAIN, MONEY_GUIDE_DOMAIN } from "../guides/domains";
 import { GUIDE_LOCALE_LANG, GUIDE_UI, guideRoutePath, textDirection, type GuideLocale } from "../guides/locales";
 import { SITE_UI } from "../guides/siteUi";
 import { MONEY_QUICK_ANSWERS } from "../guides/moneyQuickAnswers";
 import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales";
 import { byRecentUpdate, localizeHomeGuides, selectFeatured } from "../home/featured";
 import { buildSearchIndex } from "../home/search";
-import { FEATURED_GUIDE_SLUGS, HOME_TOPICS, launchedTopics } from "../home/topics";
+import { FEATURED_GUIDE_SLUGS, availableHomeTopics, launchedTopics } from "../home/topics";
 import { usePublishedGuides } from "../home/usePublishedGuides";
 import "../components/home/Home.css";
 
@@ -74,6 +74,8 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   // Translated home cards can show labelled Chinese fallbacks. Search uses
   // only the selected locale's public list, independently of those cards.
   const searchSource = translatedPage ? localized : source;
+  const universityAvailable = searchSource.status === "ready" &&
+    searchSource.guides.some((guide) => guide.category === UNIVERSITY_CATEGORY);
   const searchIndex = useMemo(() => {
     if (searchSource.status === "loading") return null;
     if (searchSource.status === "error") return "error";
@@ -157,12 +159,12 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       featured,
       more,
       questionGroups,
-      sections: LAUNCHED.map((topic) => ({
+      sections: LAUNCHED.filter((topic) => topic.id !== UNIVERSITY_CATEGORY || universityAvailable).map((topic) => ({
         domain: topic.domain,
         total: counts.get(topic.id)?.guides ?? 0,
       })),
     };
-  }, [guides, translations, locale, translatedPage, ui]);
+  }, [guides, translations, locale, translatedPage, ui, universityAvailable]);
 
   return (
     <main
@@ -176,7 +178,7 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       <div className="home-container home-travel">
         <TransportSummary locale={locale} />
       </div>
-      <TopicGrid locale={locale} topics={HOME_TOPICS} counts={content?.counts} />
+      <TopicGrid locale={locale} topics={availableHomeTopics(universityAvailable)} counts={content?.counts} />
       <div className="home-container home-practical">
         <BankHolidaySummary locale={locale} />
       </div>
