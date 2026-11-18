@@ -1,0 +1,81 @@
+# Frontend CI (docs/ci-cd.md). No AWS access and no secrets: safe for pull requests from forks.
+#
+# One job, because every step needs the previous one's output: lint and unit
+# tests, the production release build (type-check, prerender, SEO validation
+# against the inventory and backend sitemap), release-output checks, the
+# generated CloudFront function, and the whole hosting contract on the local
+# edge emulator. The build reads the public production Guide API
+# (https://lifeinuk.info/api, read-only GETs) so pages are checked against the
+# content that is actually published; page counts come from that inventory and
+# are never hardcoded.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, test, release build, SEO and edge checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PUBLIC_ORIGIN: https://lifeinuk.info
+      API_BASE: https://lifeinuk.info
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint workflow files
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install (locked)
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Release build (type-check, prerender, SEO validation)
+        run: npm run build:release
+
+      - name: Release output (local URLs, noindex, build origin and API, robots.txt)
+        run: node scripts/ci/check-release-output.mjs --expect-api "$API_BASE"
+
+      - name: CloudFront function (generated from this build; size and routing self-checks)
+        run: npm run edge:function
+
+      - name: Hosting contract on the edge emulator (redirects, 404s, caching, sitemap, robots)
+        run: |
+          node scripts/edge/emulator.mjs dist 4180 "$API_BASE" > emulator.log 2>&1 &
+          for _ in $(seq 1 30); do curl -fsS -o /dev/null http://127.0.0.1:4180/en 2>/dev/null && break; sleep 1; done
+          node scripts/edge/verify-site.mjs --base http://127.0.0.1:4180 --host lifeinuk.info --skip-api-details | grep -v '^… '
+
+      - name: Upload release build
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-${{ github.sha }}
+          path: |
+            dist/
+            release/
+            emulator.log
+          include-hidden-files: false
+          if-no-files-found: ignore
+          retention-days: 14

@@ -6,6 +6,7 @@ import { GUIDE_DOMAINS } from "../../src/guides/domains.ts";
 import { GUIDE_LOCALES, guideHomePath, localizedGuidePath } from "../../src/guides/locales.ts";
 import { FAMILY_VISA_TOPICS, familyVisaTopicPath } from "../../src/router.ts";
 import { STATIC_HUB_DOMAINS, staticTopic } from "../../src/seo/staticPages.ts";
+import { withRetryOn429 } from "./retry.mjs";
 
 export const LOCALES = GUIDE_LOCALES;
 export const HOME_PATHS = new Set(["/", "/zh-CN", "/zh-TW", "/en", "/ur", "/hi"]);
@@ -16,7 +17,7 @@ export const domainIdFor = (category) => domainByCategory.get(category);
 async function getJson(api, path) {
   let response;
   try {
-    response = await fetch(api + path);
+    response = await withRetryOn429(() => fetch(api + path));
   } catch (error) {
     throw new Error(`Guide API unreachable at ${api} (${error.cause?.code ?? error.message}); start the backend or set API_BASE`);
   }
