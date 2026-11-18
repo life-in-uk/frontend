@@ -50,7 +50,10 @@ that are not in the release.
 Actions → **Deploy production** → `rollback_run_id` = the run ID of the last
 good deploy (from its summary, or
 `gh run list --workflow deploy-production.yml --status success`). The exact
-artifact of that run is redeployed and verified; nothing is rebuilt.
+artifact of that run is redeployed and verified; nothing is rebuilt. The run
+must be a successful **Deploy production** run on `main` of this repository;
+any other run ID (CI, pull requests, other branches) is refused, because those
+could carry an artifact of the same name built from unreviewed code.
 
 A rollback restores the pages of that moment: Guides published later are
 missing until the next normal release. Artifacts are kept 90 days; for an
@@ -58,6 +61,13 @@ older commit run a normal release with `ref` = that commit (rebuilt from
 current content).
 
 ## One-time setup (owner approval required; nothing here has been applied)
+
+**Order matters.** Configure the GitHub `production` environment (below)
+*before* creating the IAM role. A job that names an environment makes GitHub
+create it automatically **without protection rules**, and the role's trust
+policy only checks the environment name, so the reviewer rule and the
+`main`-only branch rule are what make approval mandatory. In the environment,
+also untick "Allow administrators to bypass configured protection rules".
 
 **AWS** (account 919693204623; the GitHub OIDC provider already exists):
 
@@ -78,7 +88,7 @@ the distribution, DNS, certificates, other buckets or other projects.
 
 **GitHub** (repository settings):
 
-- Environment `production`: required reviewer = owner; deployment branches =
+- Environment `production`: required reviewer = owner; administrators may not bypass; deployment branches =
   `main` only; prevent self-review off (single owner).
 - Variables (repository or environment): `AWS_FRONTEND_DEPLOY_ROLE_ARN`
   = `arn:aws:iam::919693204623:role/LifeInUK-GitHub-FrontendDeploy`,

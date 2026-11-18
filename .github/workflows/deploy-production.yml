@@ -103,6 +103,25 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+      # Only an artifact made by this workflow's own build job on main may be redeployed: any
+      # other run (CI, a pull request from a fork, another branch) could upload an artifact with
+      # the same name and a forged release/build.json.
+      - name: Check the rollback run
+        if: inputs.rollback_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROLLBACK: ${{ inputs.rollback_run_id }}
+        run: |
+          workflow=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy-production.yml" --jq .id)
+          IFS=$'\t' read -r id event branch conclusion repo < <(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$ROLLBACK" \
+            --jq '[.workflow_id, .event, .head_branch, .conclusion, .head_repository.full_name] | @tsv')
+          if [ "$id" != "$workflow" ] || [ "$event" != workflow_dispatch ] || [ "$branch" != main ] \
+             || [ "$conclusion" != success ] || [ "$repo" != "$GITHUB_REPOSITORY" ]; then
+            echo "::error::run $ROLLBACK is not a successful 'Deploy production' run on main of this repository (workflow $id, $event, $branch, $conclusion, $repo)"
+            exit 1
+          fi
+          echo "Rollback source: run $ROLLBACK (Deploy production, main, success)"
+
       - name: Fetch the rollback release
         if: inputs.rollback_run_id != ''
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
