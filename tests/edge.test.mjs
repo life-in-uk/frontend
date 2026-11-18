@@ -18,6 +18,8 @@ import { createStaticHost } from "../scripts/seo/static-host.mjs";
 import { createEdgeEmulator } from "../scripts/edge/emulator.mjs";
 import { exchange, verifySite } from "../scripts/edge/verify-site.mjs";
 import { deploySite, staleObjects, uploadGroups } from "../scripts/edge/deploy-site.mjs";
+import { compareBucket, preflightSite, READ_ONLY_CALLS } from "../scripts/edge/preflight-site.mjs";
+import { createHash } from "node:crypto";
 import { uploadObjects } from "../scripts/edge/objects.mjs";
 import { generateViewerRequest, loadViewerRequest, MAX_FUNCTION_BYTES, viewerEvent } from "../scripts/edge/viewer-request.mjs";
 
@@ -337,4 +339,61 @@ test("deploy: stale objects are bounded, and recent assets of earlier releases a
   const foreign = Array.from({ length: 31 }, (_, i) => ({ Key: `other-project/${i}.html`, LastModified: day(1) }));
   assert.throws(() => staleObjects([...listed, ...foreign], release, { now }), /refusing to delete 32 objects .*limit 30/);
   assert.equal(staleObjects([...listed, ...foreign], release, { now, allowLarge: true }).remove.length, 33);
+});
+
+test("preflight: read-only calls only; reports identical, changed, new and stale objects; fails if the role is too broad", async () => {
+  const dir = await build();
+  const objects = uploadObjects(dir);
+  const md5 = (file) => createHash("md5").update(readFileSync(file)).digest("hex");
+  const { code } = generateViewerRequest({ distDir: dir });
+  const calls = [];
+  // A fake AWS: the bucket holds the release with one changed page, one page missing and one stale page.
+  const fakeAws = ({ liveCode = code, allow = [] } = {}) => (args) => {
+    const name = args.slice(0, 2).join(" ");
+    calls.push(name);
+    assert.ok(READ_ONLY_CALLS.has(name), `unexpected call ${name}`);
+    const ok = (json) => ({ ok: true, json, error: "" });
+    const denied = { ok: false, json: null, error: `An error occurred (AccessDenied) when calling ${name}` };
+    if (name === "sts get-caller-identity") return ok({ Arn: "arn:aws:sts::1:assumed-role/LifeInUK-GitHub-FrontendDeploy/x" });
+    if (name === "cloudfront describe-function") return ok({ FunctionSummary: { Status: "DEPLOYED" } });
+    if (name === "cloudfront get-function") { writeFileSync(args.at(-1), liveCode); return ok({}); }
+    if (name === "s3api list-objects-v2") return ok([
+      ...objects.slice(2).map((o, i) => ({ Key: o.key, ETag: `"${i === 0 ? "0".repeat(32) : md5(o.file)}"`, LastModified: new Date().toISOString() })),
+      { Key: "en/withdrawn/index.html", ETag: '"x"', LastModified: new Date().toISOString() },
+    ]);
+    return allow.includes(name) ? ok({}) : denied;
+  };
+  const lines = [];
+  const run = (aws) => preflightSite({ distDir: dir, bucket: "b", distribution: "E123", functionName: "f", markerFile: release(dir), git: cleanGit, aws, log: (l) => lines.push(l) });
+
+  let result = await run(fakeAws());
+  assert.deepEqual(result.problems, []);
+  const out = lines.join("\n");
+  assert.match(out, /identical/);
+  assert.match(out, new RegExp(`${objects.length - 3} identical, 1 changed, 2 new; a deploy would delete 1`));
+  assert.match(out, /would delete: en\/withdrawn\/index\.html/);
+  assert.match(out, /Function f: LIVE DEPLOYED; this release's code \(\d+ bytes\) is identical/);
+  assert.ok(calls.every((c) => READ_ONLY_CALLS.has(c)), calls.join(", "));
+  for (const write of ["s3 cp", "s3api delete-objects", "cloudfront update-function", "cloudfront publish-function", "cloudfront create-invalidation"])
+    assert.ok(!READ_ONLY_CALLS.has(write) && !calls.includes(write), `${write} must never be called`);
+
+  lines.length = 0;
+  result = await run(fakeAws({ liveCode: "function handler(e){return e.request}", allow: ["s3api list-buckets"] }));
+  assert.match(lines.join("\n"), /DIFFERENT \(a deploy would update and publish it\)/);
+  assert.deepEqual(result.problems, ["the role is allowed aws s3api list-buckets, which it must not be"]);
+
+  result = await run((args) => (args[0] === "sts" ? { ok: false, json: null, error: "Not authorized to perform sts:AssumeRoleWithWebIdentity" } : fakeAws()(args)));
+  assert.match(result.problems[0], /AWS identity: Not authorized/);
+  await assert.rejects(Promise.resolve().then(() => preflightSite({ distDir: dir, bucket: "b", distribution: "E", functionName: "f", markerFile: release(dir), git: cleanGit,
+    aws: (args) => { if (args[1] === "list-objects-v2") throw new Error("boom"); return fakeAws()(args); }, log() {} })), /boom/);
+  rmSync(dir, { recursive: true });
+});
+
+test("preflight: multipart ETags count as changed and the deploy guard is reported, not thrown", () => {
+  const objects = [{ key: "a.html", file: "a" }, { key: "assets/x.js", file: "x" }];
+  const listed = [{ Key: "a.html", ETag: '"abc-2"', LastModified: "2026-11-18T00:00:00Z" }, ...Array.from({ length: 25 }, (_, i) => ({ Key: `other/${i}.html`, ETag: '"1"', LastModified: "2026-11-18T00:00:00Z" }))];
+  const plan = compareBucket(listed, objects, { md5: () => "abc" });
+  assert.deepEqual(plan.changed, ["a.html"]);
+  assert.deepEqual(plan.added, ["assets/x.js"]);
+  assert.match(plan.guard, /refusing to delete 25 objects/);
 });
