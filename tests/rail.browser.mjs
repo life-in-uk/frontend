@@ -129,6 +129,27 @@ try {
     console.log("PASS Rail not configured / disabled: honest unavailable state with the National Rail link (en, zh-CN, ur)");
   }
   {
+    // Rate limits: this visitor's per-minute limit (429) and the site-wide
+    // budget or provider throttling (503 codes) say "wait a minute", never an empty board.
+    for (const [prefix, status, code, text] of [
+      ["/en", 429, "RAIL_CLIENT_RATE_LIMIT", "Too many checks right now. Please wait a minute and try again."],
+      ["", 503, "RAIL_RATE_LIMIT", "查询次数过多，请等待一分钟后再试。"],
+      ["/zh-TW", 503, "RAIL_UPSTREAM_RATE_LIMIT", "查詢次數過多，請等待一分鐘後再試。"],
+      ["/ur", 429, "RAIL_CLIENT_RATE_LIMIT", "ایک منٹ انتظار کریں"],
+      ["/hi", 429, "RAIL_CLIENT_RATE_LIMIT", "एक मिनट रुककर फिर कोशिश करें"],
+    ]) {
+      const { page, card } = await openRail(prefix, (route) =>
+        route.fulfill({ status, headers: { "Retry-After": "30" }, json: { code, message: "limited" } }));
+      await card.locator("#rail-station").fill("shf");
+      await card.locator(".rail-station-results button", { hasText: "Sheffield" }).first().click();
+      await card.locator(".rail-check").click();
+      await card.locator('[data-state="rate-limited"]').getByText(text).waitFor();
+      assert.equal(await card.locator(".rail-state-empty, .rail-results-heading").count(), 0, "no board");
+      await page.close();
+    }
+    console.log("PASS Rail rate limits: per-visitor 429 and site/provider 503 say wait a minute (en, zh-CN, zh-TW, ur, hi)");
+  }
+  {
     // Mobile layout of the disclaimer in both original languages.
     for (const [prefix, language] of [["/en", "en"], ["", "zh"]]) {
       const { page, card, state } = await openRail(prefix, (route, direction) => route.fulfill(board(direction)));

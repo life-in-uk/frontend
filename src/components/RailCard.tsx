@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, MapPin, Search, TrainFront } from "lucide-react";
-import { getDisruptions, RailNotConfiguredError } from "../rail/api";
+import { getDisruptions, RailNotConfiguredError, RailRateLimitedError } from "../rail/api";
 import { GUIDE_LOCALE_LANG, type GuideLocale } from "../guides/locales";
 import { TRAVEL_UI } from "../travel/i18n";
 import { RAIL_UI } from "../travel/railI18n";
@@ -9,7 +9,7 @@ import type { Board, Direction } from "../rail/api";
 import type { Station } from "../rail/stations";
 import "./RailCard.css";
 
-type State = { status: "idle" | "loading" | "error" | "notConfigured" } | { status: "ready"; board: Board };
+type State = { status: "idle" | "loading" | "error" | "notConfigured" | "rateLimited" } | { status: "ready"; board: Board };
 export function RailCard({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   const lang = GUIDE_LOCALE_LANG[locale];
   const [query, setQuery] = useState("");
@@ -25,7 +25,7 @@ export function RailCard({ locale = "zh-CN" }: { locale?: GuideLocale }) {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 10000);
     let active = true;
-    getDisruptions(request.crs, request.direction, controller.signal).then(board => { if (active) setState({ status: "ready", board }); }).catch((error: unknown) => { if (active) setState({ status: error instanceof RailNotConfiguredError ? "notConfigured" : "error" }); }).finally(() => window.clearTimeout(timeout));
+    getDisruptions(request.crs, request.direction, controller.signal).then(board => { if (active) setState({ status: "ready", board }); }).catch((error: unknown) => { if (active) setState({ status: error instanceof RailNotConfiguredError ? "notConfigured" : error instanceof RailRateLimitedError ? "rateLimited" : "error" }); }).finally(() => window.clearTimeout(timeout));
     return () => { active = false; window.clearTimeout(timeout); controller.abort(); };
   }, [request]);
   function check() {
@@ -56,6 +56,7 @@ export function RailCard({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       <div className="rail-results" aria-live="polite">
         {state.status === "loading" && <div className="rail-state rail-state-loading" role="status"><Clock3 size={20} aria-hidden="true" /><p>{t.loading}</p></div>}
         {state.status === "error" && <div className="rail-state rail-state-error" role="status"><AlertCircle size={21} aria-hidden="true" /><p>{t.error}</p></div>}
+        {state.status === "rateLimited" && <div className="rail-state rail-state-error" role="status" data-state="rate-limited"><AlertCircle size={21} aria-hidden="true" /><p>{t.rateLimited}</p></div>}
         {state.status === "notConfigured" && <div className="rail-state rail-state-error" role="status"><AlertCircle size={21} aria-hidden="true" /><p>{t.notConfigured} <a href="https://www.nationalrail.co.uk/status-and-disruptions/"><span lang="en">National Rail</span></a></p></div>}
         {state.status === "ready" && <>
           <div className="rail-results-heading"><div><span className="rail-results-label">{direction === "arrivals" ? t.arr : t.dep}</span><h3><MapPin size={19} aria-hidden="true" />{state.board.stationName}</h3></div>

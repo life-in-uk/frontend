@@ -111,7 +111,7 @@ export type TravelUi = {
     miles: (value: string) => string;
     underTenth: string;
   };
-  /** Released-build Rail panel only; the Rail tool's own text is in railI18n.ts (dev-only). */
+  /** Notice for builds without the Rail tool (VITE_RAIL_TOOL=off); the Rail tool's own text is in railI18n.ts. */
   rail: {
     unreleasedTitle: string;
     unreleased: string;

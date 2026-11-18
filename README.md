@@ -175,7 +175,7 @@ The homepage transport panel opens one accessible dialog (`src/components/travel
 
 **Freshness (product rules, not provider guarantees)** — `src/travel/freshness.ts`: Underground snapshots older than **10 minutes** and Roads snapshots older than **30 minutes** are stale. Missing, invalid or implausibly future timestamps count as stale. A stale tool hides every current-status claim (line statuses, disruptions, counts, "none nearby") and instead shows the source observation time with the operator's official page as fallback. The check is re-evaluated while the dialog is open. The backend currently has no scheduled acquisition, so today's stored snapshots are always shown as stale.
 
-**Rail is not released.** Production builds contain no Rail tool code (`import.meta.env.DEV` gate; verified by `tests/travel-production-isolation.browser.mjs`); the Rail tab shows 暂未开放 with the National Rail link. In development, `/?rail-preview` enables the existing tool for review and for the Rail browser suites.
+**Rail is released (2026-11-18).** Production builds include the Rail tool as a lazy chunk; it makes a request only when a visitor checks a station. Whether boards are served is the backend's decision (`RAIL_ACCESS_ENABLED`, per-viewer and per-instance limits): while Rail is off there, the tool says so with the National Rail link, and rate-limited checks ask the visitor to wait a minute. Building with `VITE_RAIL_TOOL=off` compiles the tool out and shows 暂未开放 instead. Both builds are verified by `tests/travel-production-isolation.browser.mjs`.
 
 **Attribution** (shown with each tool's results):
 
@@ -187,11 +187,11 @@ Tests (development server; `PLAYWRIGHT_MODULE` and `FRONTEND_URL` as above):
 
 ```sh
 npm run test:travel:browser              # dialog a11y, focus, lazy loading, Rail unavailable, responsive
-npm run test:travel-production:browser   # builds production; no Rail code; lazy tool chunks
+npm run test:travel-production:browser   # production builds: Rail lazy and on demand; VITE_RAIL_TOOL=off has no Rail code
 npm run test:underground:browser         # REAL_BACKEND=1 checks the stored snapshot (stale → no claims)
 npm run test:roads:browser
 npm run test:browser                     # Bank Holidays (homepage summary)
-npm run test:rail:browser                # via /?rail-preview
+npm run test:rail:browser
 ```
 
 ## Crawlable Guide pages (static prerendering)

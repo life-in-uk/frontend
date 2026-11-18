@@ -25,6 +25,18 @@ export type Board = {
  * off (RAIL_DISABLED). Either way no train data exists to show.
  */
 export const RAIL_NOT_ENABLED_CODES: readonly string[] = ["RAIL_NOT_CONFIGURED", "RAIL_DISABLED"];
+/**
+ * Too many checks: 429 RAIL_CLIENT_RATE_LIMIT (this visitor's per-minute
+ * limit), or 503 when the site's per-minute budget is used up or the provider
+ * throttles (RAIL_RATE_LIMIT, RAIL_UPSTREAM_RATE_LIMIT). Waiting helps.
+ */
+export const RAIL_BUSY_CODES: readonly string[] = ["RAIL_CLIENT_RATE_LIMIT", "RAIL_RATE_LIMIT", "RAIL_UPSTREAM_RATE_LIMIT"];
+export class RailRateLimitedError extends Error {
+  constructor() {
+    super("Rail checks rate limited");
+    this.name = "RailRateLimitedError";
+  }
+}
 export class RailNotConfiguredError extends Error {
   constructor() {
     super("Rail provider not configured");
@@ -46,10 +58,11 @@ function validDisruption(value: unknown): boolean {
 export async function getDisruptions(crs: string, direction: Direction, signal: AbortSignal): Promise<Board> {
   const response = await fetch(`/api/rail/stations/${encodeURIComponent(crs)}/disruptions?direction=${direction}`, { signal });
   if (!response.ok) {
-    if (response.status === 503) {
+    if (response.status === 503 || response.status === 429) {
       const body: unknown = await response.json().catch(() => null);
-      if (record(body) && typeof body.code === "string" && RAIL_NOT_ENABLED_CODES.includes(body.code))
-        throw new RailNotConfiguredError();
+      const code = record(body) && typeof body.code === "string" ? body.code : "";
+      if (response.status === 503 && RAIL_NOT_ENABLED_CODES.includes(code)) throw new RailNotConfiguredError();
+      if (response.status === 429 || RAIL_BUSY_CODES.includes(code)) throw new RailRateLimitedError();
     }
     throw new Error("Rail data unavailable");
   }

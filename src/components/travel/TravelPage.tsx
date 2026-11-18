@@ -16,8 +16,8 @@ const UndergroundCard = lazy(() =>
 const RoadsCard = lazy(() =>
   import("../RoadsCard").then((m) => ({ default: m.RoadsCard })),
 );
-// Production builds never contain the Rail tool (see railToolEnabled).
-const RailCard = import.meta.env.DEV
+// Builds with VITE_RAIL_TOOL=off contain no Rail tool code (see railToolEnabled).
+const RailCard = import.meta.env.VITE_RAIL_TOOL !== "off"
   ? lazy(() => import("../RailCard").then((m) => ({ default: m.RailCard })))
   : null;
 
@@ -197,7 +197,7 @@ function toolContent(tool: TravelToolId, active: boolean, locale: GuideLocale): 
   return <RailUnavailable locale={locale} />;
 }
 
-/** Released builds: Rail is clearly not available, with the official fallback. */
+/** Builds without the Rail tool: Rail is clearly not available, with the official fallback. */
 function RailUnavailable({ locale }: { locale: GuideLocale }) {
   const ui = TRAVEL_UI[locale];
   return (
