@@ -194,9 +194,21 @@
   color: var(--home-muted);
 }
 .home-search-title {
+  display: block;
   font-size: 15px;
   font-weight: 600;
   line-height: 1.5;
+}
+.home-search-result-copy {
+  overflow-wrap: anywhere;
+}
+.home-search-summary {
+  display: block;
+  font-size: 14px;
+  color: var(--home-muted);
+}
+[dir="rtl"] .home-search-arrow {
+  transform: scaleX(-1);
 }
 .home-search-empty {
   padding: 0 12px 6px;

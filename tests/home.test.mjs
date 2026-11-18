@@ -18,6 +18,7 @@ import {
   MONEY_GUIDE_DOMAIN,
 } from "../src/guides/domains.ts";
 import { MONEY_QUICK_ANSWERS } from "../src/guides/moneyQuickAnswers.ts";
+import { GUIDE_UI } from "../src/guides/locales.ts";
 
 const guide = (slug, category, title, summary, updatedAt) => ({
   slug,
@@ -125,6 +126,26 @@ test("search matches Chinese and Latin queries deterministically", () => {
   assert.deepEqual(searchEntries(index, "火车时刻表"), []);
   assert.deepEqual(searchEntries(index, "   "), []);
   assert.deepEqual(searchEntries(index, "牙疼"), searchEntries(index, "牙疼"));
+});
+
+test("Guide search uses locale-specific routes, titles, summaries and section metadata", () => {
+  for (const [locale, title, summaryQuery] of [
+    ["zh-CN", "全科医生", "地址证明"],
+    ["zh-TW", "家庭醫師", "設籍證明"],
+    ["en", "GP registration", "temporary address"],
+    ["ur", "ڈاکٹر کے ساتھ اندراج", "رَجِسٹریشن"],
+    ["hi", "जीपी में पंजीकरण", "दुभाषिया"],
+  ]) {
+    const published = guide("gp-registration", "health-nhs", title,
+      locale === "ur" ? "رجسٹریشن" : summaryQuery, "2026-11-17T14:00:00Z");
+    const unknown = { ...published, slug: "unroutable", category: "unknown" };
+    const index = buildSearchIndex([published, unknown], DOMAINS, ANSWERS, locale);
+    assert.equal(index.length, 1, locale);
+    assert.equal(index[0].href, `/${locale}/health/gp-registration`);
+    assert.equal(index[0].sectionLabel, GUIDE_UI[locale].domain.health);
+    for (const query of [title, summaryQuery, "gp-registration"])
+      assert.equal(searchEntries(index, query)[0]?.key, "guide:gp-registration", `${locale} ${query}`);
+  }
 });
 
 test("featured: preferred slugs first, then most recent; skips missing", () => {
