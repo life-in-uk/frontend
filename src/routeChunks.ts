@@ -2,6 +2,7 @@
 // pages and the 404 page stay in the entry chunk: they are the usual landing
 // pages, and Guides are most of the prerendered site.
 import { lazyRoute } from "./lazyRoute";
+import { UNIVERSITY_CATEGORY } from "./guides/domains";
 import type { Route } from "./router";
 
 export const HealthHub = lazyRoute(() => import("./components/health/HealthHub").then((m) => m.HealthHub));
@@ -26,6 +27,7 @@ const HUBS = {
   "work-visa": WorkVisaHub,
   settlement: SettlementHub,
   renting: RentingHub,
+  [UNIVERSITY_CATEGORY]: LocalizedGuideIndex,
 } as const;
 
 /** Loads the chunk the page for `route` (as given by pageRoute) renders, if it has one. */

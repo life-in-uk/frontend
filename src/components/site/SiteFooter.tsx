@@ -1,11 +1,11 @@
-import { HOME_TOPICS, topicHref } from "../../home/topics";
+import { availableHomeTopics, topicHref } from "../../home/topics";
 import { Link } from "../Link";
 import { guideHomePath, type GuideLocale } from "../../guides/locales";
 import { SITE_UI } from "../../guides/siteUi";
 import "./Site.css";
 
 /** Shared site footer: section navigation, About and the independence note. */
-export function SiteFooter({ locale = "zh-CN" }: { locale?: GuideLocale }) {
+export function SiteFooter({ locale = "zh-CN", universityAvailable = false }: { locale?: GuideLocale; universityAvailable?: boolean }) {
   const ui = SITE_UI[locale];
   const home = guideHomePath(locale);
   const about = home === "/" ? "/#about" : `${home}#about`;
@@ -24,7 +24,7 @@ export function SiteFooter({ locale = "zh-CN" }: { locale?: GuideLocale }) {
           <div>
             <h2>{ui.footer.topics}</h2>
             <ul>
-              {HOME_TOPICS.map((topic) => (
+              {availableHomeTopics(universityAvailable).map((topic) => (
                 <li key={topic.id}>
                   {topicHref(topic, locale) ? (
                     <Link to={topicHref(topic, locale)!}>{ui.topics[topic.id]?.title ?? topic.title}</Link>

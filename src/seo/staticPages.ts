@@ -55,7 +55,7 @@ import { familyVisaTopicPath } from "../router.ts";
 import type { FamilyVisaTopicId } from "../router.ts";
 
 /** Hubs that are crawlable topic pages, in navigation order. */
-export const STATIC_HUB_DOMAINS: readonly GuideDomainId[] = ["family-visa", "work-visa", "settlement", "renting", "health", "money"];
+export const STATIC_HUB_DOMAINS: readonly GuideDomainId[] = ["family-visa", "work-visa", "settlement", "renting", "health", "money", "university-applications-student-visas"];
 
 type Localized = Readonly<Record<GuideLocale, string>>;
 

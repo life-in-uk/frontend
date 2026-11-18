@@ -308,3 +308,35 @@ test("rebuilding never creates freshness: identical pages from the same inventor
     rmSync(second, { recursive: true });
   }
 });
+
+test("university Guides add five-language pages and only published locale hubs", async () => {
+  const category = "university-applications-student-visas";
+  const locales = ["zh-CN", "zh-TW", "en", "ur", "hi"];
+  const baseline = expectedPages(inventory(BASE));
+  const spec = Object.fromEntries(locales.map((locale) => [
+    locale, [...(BASE[locale] ?? []), ...Array.from({ length: 9 }, (_, i) => [`university-fixture-${i}`, category])],
+  ]));
+  const inv = inventory(spec);
+  const pages = expectedPages(inv);
+  assert.deepEqual(pages.filter((row) => row.domainId !== category), baseline);
+  assert.equal(pages.length - baseline.length, 50);
+  const { matchRoute, localeSwitchPath } = await import("../src/router.ts");
+  const path = `/ur/${category}/university-fixture-0`;
+  const route = matchRoute(path);
+  assert.deepEqual(route, { name: "localized-guide", locale: "ur", domain: category, slug: "university-fixture-0" });
+  assert.equal(localeSwitchPath(route, "zh-TW"), path.replace("/ur/", "/zh-TW/"));
+  assert.deepEqual(matchRoute(`/en/${category}`), { name: "localized-hub", locale: "en", domain: category });
+  const { availableHomeTopics } = await import("../src/home/topics.ts");
+  assert.equal(availableHomeTopics(false).some(({ id }) => id === category), false);
+  assert.equal(availableHomeTopics(true).filter(({ id }) => id === category).length, 1);
+  const dir = await build(inv);
+  try {
+    const { errors } = await validate(dir, inv);
+    assert.deepEqual(errors, []);
+    const html = readFileSync(join(dir, path, "index.html"), "utf8");
+    assert.match(html, /<html lang="ur" dir="rtl"/);
+    assert.match(html, /hreflang="en-GB"/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
