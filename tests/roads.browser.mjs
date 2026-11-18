@@ -255,7 +255,7 @@ async function assertSafe({ page, card, requests, errors, geo }, width) {
     await card.locator(".travel-attribution").innerText(),
     NH_ATTRIBUTION,
   );
-  assert.equal(new URL(page.url()).pathname, "/travel");
+  assert.equal(new URL(page.url()).pathname, "/zh-CN/travel"); // the homepage links to the locale route
   assert.equal(await page.locator(".travel-page").count(), 1);
   assert.equal(
     await page.evaluate(() => document.documentElement.scrollWidth),

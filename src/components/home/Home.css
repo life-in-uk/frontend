@@ -328,8 +328,13 @@ a.topic-card-body:hover {
 .home-practical {
   margin-top: 32px;
   display: grid;
-  grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
+}
+/* Travel panel: overlaps the hero's lower edge, directly under the search. */
+.home-travel {
+  position: relative;
+  margin-top: -24px;
 }
 .home-panel {
   display: flex;
@@ -434,7 +439,7 @@ a.topic-card-body:hover {
   border: 0;
   background: transparent;
   font: inherit;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -468,8 +473,7 @@ a.topic-card-body:hover {
   font-size: 16px;
   font-weight: 700;
 }
-.transport-name span {
-  display: block;
+.transport-name > span {
   font-weight: 500;
   font-size: 13px;
   color: var(--home-muted);
@@ -481,6 +485,59 @@ a.topic-card-body:hover {
   margin-top: 4px;
 }
 .transport-item > svg {
+  color: var(--home-muted);
+}
+[dir="rtl"] .transport-item > svg,
+[dir="rtl"] .transport-all > svg {
+  transform: scaleX(-1);
+}
+.transport-all {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-brand);
+  text-decoration: none;
+}
+.transport-all:hover {
+  text-decoration: underline;
+}
+.transport-summary {
+  display: block;
+  color: var(--home-ink);
+  font-weight: 600;
+}
+.transport-updated {
+  display: block;
+  font-size: 12px;
+}
+.transport-status[data-state="stale"] {
+  color: var(--color-warning);
+}
+.transport-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 4px;
+}
+.transport-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--home-ink);
+}
+.transport-line-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.transport-line-more {
   color: var(--home-muted);
 }
 
@@ -879,7 +936,13 @@ a.topic-card-body:hover {
 }
 @media (max-width: 560px) {
   .home-hero {
-    padding-block: 28px 32px;
+    padding-block: 28px 40px;
+  }
+  .home-travel {
+    margin-top: -28px;
+  }
+  .home-travel .home-panel-meta {
+    display: none;
   }
   .home-hero-break {
     display: none;

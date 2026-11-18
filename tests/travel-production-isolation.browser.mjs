@@ -84,7 +84,13 @@ try {
     await page.goto(url);
     await page.waitForLoadState("networkidle");
     const scriptsBefore = requests.filter((p) => p.endsWith(".js")).length;
-    assert(!requests.some((p) => /^\/api\/(travel|places|rail)/.test(p)));
+    // The homepage reads only the stored Underground snapshot; Roads, places and Rail wait for the user.
+    assert(!requests.some((p) => /^\/api\/(travel\/roads|places|rail)/.test(p)));
+    assert.equal(requests.filter((p) => p === "/api/travel/underground").length, 1);
+    assert.match(
+      await page.locator('.transport-item[data-tool="underground"] .transport-status').innerText(),
+      /线路运行状态暂时无法获取/,
+    );
     assert.match(
       await page.locator('.transport-item[data-tool="rail"]').innerText(),
       /暂未开放/,
