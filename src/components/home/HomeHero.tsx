@@ -3,19 +3,15 @@ import type { FormEvent, KeyboardEvent } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import { searchEntries } from "../../home/search";
 import type { SearchEntry } from "../../home/search";
-import { shortGuideTitle, shortLocalizedTitle } from "../../guides/format";
 import { GUIDE_UI, guideRoutePath, type GuideLocale } from "../../guides/locales";
 import { SITE_UI } from "../../guides/siteUi";
 import { Link } from "../Link";
-import { FallbackBadge, ForeignText } from "../site/FallbackLabel";
 
 type HomeHeroProps = {
   /** null while the published list is loading; "error" if it failed. */
   index: SearchEntry[] | null | "error";
   locale?: GuideLocale;
 };
-
-const MAX_RESULTS = 8;
 
 export function HomeHero({ index, locale = "zh-CN" }: HomeHeroProps) {
   const ui = SITE_UI[locale];
@@ -67,7 +63,7 @@ function HomeSearch({ index, locale = "zh-CN" }: HomeHeroProps) {
     inputRef.current?.focus();
   }
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Escape" && query) {
+    if (event.key === "Escape" && !event.nativeEvent.isComposing && query) {
       event.preventDefault();
       setQuery("");
     }
@@ -84,7 +80,7 @@ function HomeSearch({ index, locale = "zh-CN" }: HomeHeroProps) {
       : index === "error"
         ? copy.error
         : results.length === 0
-          ? copy.none(trimmed)
+          ? copy.none(`\u2068${trimmed}\u2069`)
           : copy.found(results.length);
 
   return (
@@ -103,6 +99,7 @@ function HomeSearch({ index, locale = "zh-CN" }: HomeHeroProps) {
           ref={inputRef}
           id="home-search"
           type="search"
+          dir="auto"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={onKeyDown}
@@ -128,29 +125,23 @@ function HomeSearch({ index, locale = "zh-CN" }: HomeHeroProps) {
         </ul>
       </div>
       <div className="home-search-results" hidden={!trimmed}>
-        <p id={resultsId} role="status" className="home-search-status">
+        <p id={resultsId} role="status" aria-atomic="true" className="home-search-status">
           {status}
         </p>
         {results.length > 0 && (
           <ul className="home-search-list">
-            {results.slice(0, MAX_RESULTS).map((entry) => (
+            {results.map((entry) => (
               <li key={entry.key}>
                 <Link to={entry.href}>
                   <span className="home-search-kind">
                     {entry.sectionLabel} ·{" "}
                     {entry.kind === "guide" ? copy.guide : copy.answer}
                   </span>
-                  <span className="home-search-title">
-                    <ForeignText lang={entry.lang}>
-                      {entry.kind !== "guide"
-                        ? entry.title
-                        : locale === "zh-CN" || entry.lang === "zh-CN"
-                          ? shortGuideTitle(entry.title)
-                          : shortLocalizedTitle(entry.title)}
-                    </ForeignText>
-                    <FallbackBadge label={entry.fallback && ui.fallbackBadge} />
+                  <span className="home-search-result-copy">
+                    <span className="home-search-title">{entry.title}</span>
+                    {entry.text && <span className="home-search-summary">{entry.text}</span>}
                   </span>
-                  <ArrowRight size={16} aria-hidden="true" />
+                  <ArrowRight className="home-search-arrow" size={16} aria-hidden="true" />
                 </Link>
               </li>
             ))}

@@ -228,6 +228,21 @@
 .masthead-search:hover {
   background: #f3f6f1;
 }
+.masthead-search-text {
+  display: none;
+}
+.masthead:not(.masthead--compact) .masthead-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  padding-inline: 10px;
+  text-decoration: none;
+}
+.masthead:not(.masthead--compact) .masthead-search-text {
+  display: inline;
+  white-space: nowrap;
+}
 .masthead-about {
   display: inline-flex;
   align-items: center;

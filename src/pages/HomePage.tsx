@@ -19,7 +19,6 @@ import { MONEY_QUICK_ANSWERS } from "../guides/moneyQuickAnswers";
 import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales";
 import { byRecentUpdate, localizeHomeGuides, selectFeatured } from "../home/featured";
 import { buildSearchIndex } from "../home/search";
-import type { SearchEntry } from "../home/search";
 import { FEATURED_GUIDE_SLUGS, HOME_TOPICS, launchedTopics } from "../home/topics";
 import { usePublishedGuides } from "../home/usePublishedGuides";
 import "../components/home/Home.css";
@@ -72,6 +71,14 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
         : "loading";
   const guides = source.status === "ready" ? source.guides : undefined;
   const translations = localized.status === "ready" ? localized.guides : undefined;
+  // Translated home cards can show labelled Chinese fallbacks. Search uses
+  // only the selected locale's public list, independently of those cards.
+  const searchSource = translatedPage ? localized : source;
+  const searchIndex = useMemo(() => {
+    if (searchSource.status === "loading") return null;
+    if (searchSource.status === "error") return "error";
+    return buildSearchIndex(searchSource.guides, DOMAINS, QUICK_ANSWER_SOURCES, locale);
+  }, [searchSource, locale]);
 
   // Arriving at /#about from another page: scroll once the section exists.
   useEffect(() => {
@@ -145,18 +152,6 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
         hub: { href: guideRoutePath(locale, "money"), label: ui.questions.enter(label("money")) },
       },
     ];
-    const index: SearchEntry[] = translatedPage
-      ? items.map((item) => ({
-          kind: "guide",
-          key: `guide:${item.guide.slug}`,
-          title: item.guide.title,
-          text: item.guide.summary,
-          href: item.href,
-          sectionLabel: label(item.domain.id as "health" | "money"),
-          lang: item.locale === locale ? undefined : GUIDE_LOCALE_LANG[item.locale],
-          fallback: item.fallback,
-        }))
-      : buildSearchIndex(guides, DOMAINS, QUICK_ANSWER_SOURCES);
     return {
       counts,
       featured,
@@ -166,7 +161,6 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
         domain: topic.domain,
         total: counts.get(topic.id)?.guides ?? 0,
       })),
-      index,
     };
   }, [guides, translations, locale, translatedPage, ui]);
 
@@ -177,10 +171,7 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       lang={translatedPage ? GUIDE_LOCALE_LANG[locale] : undefined}
       dir={translatedPage ? textDirection(locale) : undefined}
     >
-      <HomeHero
-        locale={locale}
-        index={status === "error" ? "error" : (content?.index ?? null)}
-      />
+      <HomeHero locale={locale} index={searchIndex} />
       <TopicGrid locale={locale} topics={HOME_TOPICS} counts={content?.counts} />
       <div className="home-container home-practical">
         <BankHolidaySummary locale={locale} />

@@ -1,9 +1,8 @@
 // Small deterministic site search over published content.
 //
-// Indexed: published Guide titles and summaries from GET /api/guides (only
-// for launched sections), and reviewed Money Quick Answer questions when
-// their Guide is published. Nothing is generated, ranked by popularity or
-// fetched from an external service.
+// Index only the selected locale's published Guide list and its route metadata.
+// Simplified Chinese also includes reviewed Money Quick Answers when their
+// supporting Guide is published.
 //
 // Chinese has no word boundaries, so matching combines character coverage
 // (are the query's meaningful characters present?) with at least one
@@ -11,21 +10,19 @@
 
 import type { GuideMetadata } from "../guides/api";
 import type { GuideDomain } from "../guides/domains";
-import { belongsToDomain, guidePath } from "../guides/domains.ts";
-import { guideRoutePath } from "../guides/locales.ts";
+import { belongsToDomain } from "../guides/domains.ts";
+import { GUIDE_UI, guideRoutePath, type GuideLocale } from "../guides/locales.ts";
 import type { QuickAnswerSet } from "../guides/moneyQuickAnswers";
 
 export type SearchEntry = {
   kind: "guide" | "answer";
   key: string;
   title: string;
-  /** Additional searchable text (Guide summary); not shown for answers. */
+  /** Published Guide summary, empty for quick answers. */
   text: string;
   href: string;
   sectionLabel: string;
-  /** Language of `title` when it differs from the page (a Simplified Chinese fallback). */
-  lang?: string;
-  fallback?: boolean;
+  slug?: string;
 };
 
 export type QuickAnswerSource = {
@@ -37,6 +34,7 @@ export function buildSearchIndex(
   guides: readonly GuideMetadata[],
   domains: readonly GuideDomain[],
   answers: readonly QuickAnswerSource[] = [],
+  locale: GuideLocale = "zh-CN",
 ): SearchEntry[] {
   const entries: SearchEntry[] = [];
   for (const guide of guides) {
@@ -47,10 +45,12 @@ export function buildSearchIndex(
       key: `guide:${guide.slug}`,
       title: guide.title,
       text: guide.summary,
-      href: guidePath(domain, guide.slug),
-      sectionLabel: domain.label,
+      href: guideRoutePath(locale, domain.id, guide.slug),
+      sectionLabel: GUIDE_UI[locale].domain[domain.id],
+      slug: guide.slug,
     });
   }
+  if (locale !== "zh-CN") return entries;
   for (const { set, domain } of answers) {
     const published = guides.some(
       (guide) =>
@@ -64,7 +64,7 @@ export function buildSearchIndex(
         title: answer.question,
         text: "",
         href: guideRoutePath("zh-CN", domain.id),
-        sectionLabel: domain.label,
+        sectionLabel: GUIDE_UI[locale].domain[domain.id],
       });
   }
   return entries;
@@ -82,6 +82,9 @@ export function normalize(text: string): string {
   return text
     .normalize("NFKC")
     .toLowerCase()
+    // Ignore optional Arabic-script vocalization and joining controls while
+    // keeping Devanagari vowel marks and other letters intact.
+    .replace(/[\u0610-\u061a\u064b-\u065f\u0670\u200c\u200d]/gu, "")
     // Combining marks (\p{M}) are part of Devanagari and Urdu words.
     .replace(/[^\p{L}\p{M}\p{N}&\s]/gu, " ")
     .replace(/\s+/g, " ")
@@ -130,7 +133,7 @@ export function searchEntries(
   const scored: { entry: SearchEntry; score: number; position: number }[] = [];
   index.forEach((entry, position) => {
     const title = normalize(entry.title);
-    const body = `${title} ${normalize(entry.text)}`;
+    const body = `${title} ${normalize(entry.text)} ${normalize(entry.sectionLabel)} ${normalize(entry.slug ?? "")}`;
     const covered = units.chars.filter((ch) => body.includes(ch)).length;
     const coverage = covered / units.chars.length;
     let wordHits = 0;

@@ -283,6 +283,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath }: SiteHeader
         onClick={onHomeSection(home, "home-search", true, closeAll)}
       >
         <Search size={21} aria-hidden="true" />
+        <span className="masthead-search-text" aria-hidden="true">{ui.search.button}</span>
       </Link>
       {!compact && (
         <Link to={homeAnchor("about")} className="masthead-about" onClick={onHomeSection(home, "about", false)}>
