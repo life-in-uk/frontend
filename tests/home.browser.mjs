@@ -61,13 +61,36 @@ const underground = (ageMinutes, lines = [
   })),
 });
 
-async function page(width, { guides = 200, holidays = 200, tube = null, height = 900 } = {}) {
+// Met Office step for the current hour, as /api/weather/current returns it.
+const weatherFor = (city, { code = 7, temperature = 7.4 } = {}) => {
+  const hour = new Date();
+  hour.setUTCMinutes(0, 0, 0);
+  return {
+    city,
+    forecastTime: hour.toISOString().replace(".000", ""),
+    modelRunAt: new Date(hour.getTime() - 3 * 3600_000).toISOString().replace(".000", ""),
+    fetchedAt: new Date().toISOString().replace(/\.\d{3}/, ""),
+    temperatureC: temperature,
+    feelsLikeC: temperature - 2.6,
+    weatherCode: code,
+    precipitationProbability: 20,
+    attribution: "Data supplied by the Met Office",
+  };
+};
+
+async function page(width, { guides = 200, holidays = 200, tube = null, weather = null, height = 900 } = {}) {
   const context = await browser.newContext({
     viewport: { width, height },
   });
   const p = await context.newPage();
   const errors = [];
   const requests = [];
+  // Completed requests only: in development, React StrictMode starts and aborts a first effect run.
+  const finished = [];
+  p.on("requestfinished", (r) => {
+    const url = new URL(r.url());
+    if (url.pathname.startsWith("/api/")) finished.push(url.pathname);
+  });
   p.on("pageerror", (e) => errors.push(e.message));
   p.on("request", (r) => {
     const url = new URL(r.url());
@@ -88,13 +111,17 @@ async function page(width, { guides = 200, holidays = 200, tube = null, height =
         return tube
           ? route.fulfill({ json: tube })
           : route.fulfill({ status: 404, json: { code: "UNDERGROUND_UNAVAILABLE" } });
+      if (path === "/api/weather/current")
+        return weather
+          ? route.fulfill({ json: weather(new URL(route.request().url()).searchParams.get("city")) })
+          : route.fulfill({ status: 503, json: { code: "WEATHER_NOT_CONFIGURED" } });
       return route.fulfill({ status: 404, json: {} });
     });
   }
   await p.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/, (route) =>
     route.abort(),
   );
-  return { p, context, errors, requests };
+  return { p, context, errors, requests, finished };
 }
 const noOverflow = (p) =>
   p.evaluate(
@@ -107,7 +134,7 @@ const loaded = (p) => p.locator(".featured-card-link").first().waitFor();
 try {
   // Structure, truthfulness and SEO basics.
   {
-    const { p, context, errors, requests } = await page(1440);
+    const { p, context, errors, requests, finished } = await page(1440);
     await p.goto(`${baseURL}/`);
     await loaded(p);
     await p.locator(".holiday-panel time").first().waitFor();
@@ -183,32 +210,54 @@ try {
       await holiday.locator(".holiday-name").waitFor();
     }
     assert.match(await holiday.innerText(), /England & Wales/);
-    // Transport, directly under the search: Underground status read from the
-    // stored snapshot (one no-store GET; never a provider call), Roads and
-    // Rail entries. Rail is shown in development (production builds show
-    // "暂未开放", see travel-production-isolation). No snapshot here: the
-    // Underground entry says so and claims no status.
-    const transport = p.locator(".transport-panel");
+    // Live Services, directly under the search: heading and subtitle, the
+    // headline and two market cards as "coming soon" placeholders (no value,
+    // no link, no request), then four shortcuts. Underground status is read
+    // from the stored snapshot (one no-store GET; never a provider call); Rail
+    // is shown in development (production builds show "暂未开放", see
+    // travel-production-isolation). No snapshot and no weather here: both
+    // tiles say so and claim nothing.
+    const live = p.locator(".live-panel");
+    assert.equal(await live.locator("h2").innerText(), "实时服务");
+    assert.equal(await live.locator(".live-subtitle").innerText(), "您的一站式英国实时生活信息中心");
+    const cards = live.locator('.live-card[data-state="coming-soon"]');
+    assert.deepEqual(await cards.locator(".live-card-label").allInnerTexts(), ["今日英国头条", "美国股指", "英国股指"]);
+    assert.deepEqual(await cards.locator(".live-badge").allInnerTexts(), ["即将推出", "即将推出", "即将推出"]);
+    assert.deepEqual(await cards.locator(".live-card-items").allInnerTexts(), [
+      "S&P 500 · Nasdaq Composite · Dow Jones",
+      "FTSE 100 · FTSE 250",
+    ]);
+    assert.equal(await cards.locator("a, button, input, select").count(), 0);
+    // Placeholders carry no figures or source branding (only the index names' own numbers).
+    const placeholderText = (await cards.allInnerTexts()).join(" ").replace(/S&P 500|FTSE 100|FTSE 250/g, "");
+    assert.doesNotMatch(placeholderText, /\d|BBC|%|▲|▼/);
+    const transport = live.locator(".live-shortcuts");
     await transport.locator('[data-tool="underground"] .transport-status[data-state="unavailable"]').waitFor();
+    await transport.locator('[data-tool="weather"] .transport-status[data-state="unavailable"]').waitFor();
+    assert.deepEqual(await transport.locator(".transport-item").evaluateAll((items) => items.map((el) => el.dataset.tool)),
+      ["underground", "rail", "roads", "weather"]);
     assert.deepEqual(await transport.locator(".transport-status").allInnerTexts(), [
       "线路运行状态暂时无法获取",
-      "按地点查附近道路异常",
       "车站延误查询",
+      "按地点查附近道路异常",
+      "天气暂时无法获取",
     ]);
     assert.deepEqual(
       await transport.locator("a.transport-item").evaluateAll((links) => links.map((a) => a.getAttribute("href"))),
-      ["/zh-CN/travel#underground", "/zh-CN/travel#roads", "/zh-CN/travel#rail"],
+      ["/zh-CN/travel#underground", "/zh-CN/travel#rail", "/zh-CN/travel#roads"],
     );
-    assert.equal(await transport.locator("a.transport-all").getAttribute("href"), "/zh-CN/travel");
+    assert.equal(await live.locator("a.transport-all").getAttribute("href"), "/zh-CN/travel");
+    assert.equal(await transport.locator(".weather-attribution").innerText(), "Data supplied by the Met Office");
     // The Rail tool's own label "车站延误查询" (station delay checker) is not a status.
     assert.doesNotMatch(
       (await transport.innerText()).replace("车站延误查询", ""),
-      /Good Service|Delay|延误|拥堵|畅通|正常运行|实时/,
+      /Good Service|Delay|延误|拥堵|畅通|正常运行|实时|°C/,
     );
     assert.equal(await p.locator(".underground-card, .roads-card, .rail-card").count(), 0);
     if (!REAL)
-      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/travel/underground"]);
+      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/guides/locales/zh-CN", "/api/travel/underground", "/api/weather/current"]);
     assert.equal(requests.filter((path) => path === "/api/travel/underground").length, 1);
+    assert.equal(finished.filter((path) => path === "/api/weather/current").length, 1);
     assert.ok(!requests.some((path) => /^\/api\/(travel\/roads|places|rail)/.test(path)));
     // About and footer.
     assert.equal(await p.locator("#about h2").count(), 1);
@@ -338,7 +387,7 @@ try {
           } else assert.equal(await status.innerText(), text.none);
         }
         // Reachable on a phone: the panel starts within the first screen (zh-CN) or just below it.
-        const top = await p.locator(".transport-panel").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+        const top = await p.locator(".live-panel").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
         assert.ok(top < (locale === "zh-CN" ? 700 : 900), `${locale}: travel panel at ${top}px`);
         assert.equal(await noOverflow(p), true, `${locale} ${state}: overflow`);
         assert.deepEqual(errors, []);
@@ -359,6 +408,184 @@ try {
     console.log("PASS homepage Underground status: fresh, stale (also while open), unavailable × 5 locales; panel near the top on mobile");
   }
 
+  if (!REAL) {
+    // Weather tile: Met Office step for the current hour, city choice remembered, every locale, Urdu RTL.
+    const WEATHER = {
+      "zh-CN": { condition: "多云", forecast: /^Met Office \d\d:00 预报，\d\d:00 发布（英国时间）$/, city: "爱丁堡" },
+      "zh-TW": { condition: "多雲", forecast: /^Met Office \d\d:00 預報，\d\d:00 發布（英國時間）$/, city: "愛丁堡" },
+      en: { condition: "Cloudy", forecast: /^Met Office forecast for \d\d:00, issued \d\d:00 \(UK time\)$/, city: "Edinburgh" },
+      ur: { condition: "ابر آلود", forecast: /^Met Office کی پیشگوئی \d\d:00 کے لیے، \d\d:00 پر جاری \(برطانوی وقت\)$/, city: "ایڈنبرا" },
+      hi: { condition: "बादल", forecast: /^Met Office पूर्वानुमान \d\d:00 के लिए, \d\d:00 पर जारी \(ब्रिटेन का समय\)$/, city: "एडिनबरा" },
+    };
+    for (const [locale, text] of Object.entries(WEATHER)) {
+      const { p, context, errors, finished } = await page(390, { weather: (city) => weatherFor(city), height: 844 });
+      await p.goto(`${baseURL}/${locale}/`);
+      const tile = p.locator('.weather-item[data-tool="weather"]');
+      await tile.locator('.transport-status[data-state="fresh"]').waitFor();
+      assert.equal(await tile.locator(".weather-temp").innerText(), "7°C");
+      assert.equal(await tile.locator(".weather-condition").innerText(), text.condition);
+      assert.match(await tile.locator(".transport-updated").innerText(), text.forecast);
+      assert.equal(await tile.locator("select.weather-city").inputValue(), "london");
+      assert.equal(await tile.locator("select.weather-city").evaluate((el) => el.labels.length), 1);
+      await tile.locator("select.weather-city").selectOption("edinburgh");
+      await p.waitForFunction(() => document.querySelector(".weather-item [data-state='fresh']") !== null);
+      assert.equal(await tile.locator("select.weather-city option:checked").innerText(), text.city);
+      assert.equal(finished.filter((path) => path === "/api/weather/current").length, 2);
+      // Remembered for the next visit.
+      await p.reload();
+      await tile.locator('.transport-status[data-state="fresh"]').waitFor();
+      assert.equal(await tile.locator("select.weather-city").inputValue(), "edinburgh");
+      const dir = await p.locator("main").getAttribute("dir");
+      if (locale === "ur") assert.equal(dir, "rtl");
+      else assert.notEqual(dir, "rtl");
+      if (locale === "ur") {
+        // RTL: the first tile (Underground) sits at the right of its row.
+        const [first, second] = await p.locator(".live-shortcuts > li").evaluateAll((els) => els.slice(0, 2).map((el) => el.getBoundingClientRect().left));
+        assert.ok(first > second, "Urdu shortcuts run right to left");
+      }
+      assert.equal(await noOverflow(p), true, `${locale} weather: overflow`);
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    // A step that is no longer for the current hour is not shown; an unknown code shows the temperature only.
+    {
+      const old = (city) => ({ ...weatherFor(city), forecastTime: new Date(Date.now() - 3 * 3600_000).toISOString().replace(/\.\d{3}/, "") });
+      const { p, context } = await page(1280, { weather: old });
+      await p.goto(`${baseURL}/en/`);
+      await p.locator('.weather-item .transport-status[data-state="unavailable"]').waitFor();
+      assert.doesNotMatch(await p.locator(".weather-item").innerText(), /°C/);
+      await context.close();
+    }
+    {
+      const { p, context } = await page(1280, { weather: (city) => weatherFor(city, { code: 4 }) });
+      await p.goto(`${baseURL}/en/`);
+      await p.locator('.weather-item .transport-status[data-state="fresh"]').waitFor();
+      assert.equal(await p.locator(".weather-condition").count(), 0);
+      assert.equal(await p.locator(".weather-temp").innerText(), "7°C");
+      await context.close();
+    }
+    // A long-open tab: the label names the step's hour and its issue time; the tile reads again just after
+    // the hour ends, only while visible (a hidden tab reads when shown again), and 10 minutes after a failure.
+    {
+      const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}/, "");
+      let fail = false;
+      const served = [];
+      const { p, context, errors, finished } = await page(1280);
+      await p.route("**/api/weather/current?*", async (route) => {
+        // The step for the page's current hour, issued three hours before it.
+        const now = await p.evaluate(() => Date.now());
+        const hour = Math.floor(now / 3_600_000) * 3_600_000;
+        served.push(iso(hour));
+        if (fail) return route.fulfill({ status: 502, json: { code: "WEATHER_UNAVAILABLE" } });
+        return route.fulfill({ json: { ...weatherFor("london"), forecastTime: iso(hour), modelRunAt: iso(hour - 3 * 3_600_000), fetchedAt: iso(now) } });
+      });
+      const reads = () => finished.filter((path) => path === "/api/weather/current").length;
+      // Request events reach the test a moment after the page updates: wait (real time) for the expected count.
+      const readsReach = async (n) => {
+        for (let i = 0; i < 100 && reads() < n; i++) await new Promise((resolve) => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.equal(reads(), n, `weather reads: ${JSON.stringify(served)}`);
+      };
+      const setVisible = (visible) => p.evaluate((v) => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (v ? "visible" : "hidden") });
+        document.dispatchEvent(new Event("visibilitychange"));
+      }, visible);
+      await p.clock.install({ time: new Date("2026-11-19T08:20:00Z") });
+      await p.goto(`${baseURL}/en/`);
+      const tile = p.locator(".weather-item");
+      await tile.locator('.transport-status[data-state="fresh"]').waitFor();
+      assert.equal(await tile.locator(".transport-updated").innerText(), "Met Office forecast for 08:00, issued 05:00 (UK time)");
+      assert.equal(await tile.locator(".transport-updated time").getAttribute("datetime"), "2026-11-19T08:00:00Z");
+      await readsReach(1);
+      await p.clock.fastForward("30:00"); // 08:50: still the 08:00 hour, no read
+      await readsReach(1);
+      await setVisible(false);
+      await p.clock.fastForward("40:00"); // 09:30, hidden: the 08:00 step is no longer shown and nothing is read
+      await tile.locator('.transport-status[data-state="unavailable"]').waitFor();
+      await readsReach(1);
+      await setVisible(true); // shown again: one read, the 09:00 step
+      await p.waitForFunction(() => document.querySelector(".weather-item time")?.getAttribute("datetime") === "2026-11-19T09:00:00Z");
+      assert.equal(await tile.locator(".transport-updated").innerText(), "Met Office forecast for 09:00, issued 06:00 (UK time)");
+      await readsReach(2);
+      fail = true;
+      await p.clock.fastForward("31:00"); // 10:01: the hour ended; the read fails
+      await tile.locator('.transport-status[data-state="unavailable"]').waitFor();
+      await readsReach(3);
+      await p.clock.fastForward("05:00");
+      await readsReach(3); // no retry within 10 minutes of a failure
+      fail = false;
+      await p.clock.fastForward("05:30"); // 10 minutes after the failure: one retry
+      await tile.locator('.transport-status[data-state="fresh"]').waitFor();
+      await readsReach(4);
+      // In development React StrictMode starts and aborts one extra first request; completed reads are counted above.
+      assert.deepEqual(served.filter((hour, i) => i === 0 || hour !== "2026-11-19T08:00:00Z"),
+        ["2026-11-19T08:00:00Z", "2026-11-19T09:00:00Z", "2026-11-19T10:00:00Z", "2026-11-19T10:00:00Z"]);
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    // A re-read in flight is never aborted or duplicated by the tab being hidden and shown again.
+    {
+      const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}/, "");
+      let hold = null;
+      const { p, context, errors, requests } = await page(1280);
+      const aborted = [];
+      p.on("requestfailed", (r) => { if (new URL(r.url()).pathname === "/api/weather/current") aborted.push(r.failure()?.errorText); });
+      await p.route("**/api/weather/current?*", async (route) => {
+        const now = await p.evaluate(() => Date.now());
+        const hour = Math.floor(now / 3_600_000) * 3_600_000;
+        if (hold) await hold.promise;
+        return route.fulfill({ json: { ...weatherFor("london"), forecastTime: iso(hour), modelRunAt: iso(hour - 3 * 3_600_000), fetchedAt: iso(now) } });
+      });
+      const started = () => requests.filter((path) => path === "/api/weather/current").length;
+      const setVisible = (visible) => p.evaluate((v) => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (v ? "visible" : "hidden") });
+        document.dispatchEvent(new Event("visibilitychange"));
+      }, visible);
+      await p.clock.install({ time: new Date("2026-11-19T08:20:00Z") });
+      await p.goto(`${baseURL}/en/`);
+      const tile = p.locator(".weather-item");
+      await tile.locator('.transport-status[data-state="fresh"]').waitFor();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      aborted.length = 0; // development StrictMode aborts one extra first request
+      const before = started();
+      let release;
+      hold = { promise: new Promise((resolve) => { release = resolve; }) };
+      await p.clock.fastForward("41:30"); // 09:01:30: the hourly re-read starts and is held
+      for (let i = 0; i < 100 && started() === before; i++) await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.equal(started(), before + 1);
+      for (let i = 0; i < 3; i++) {
+        await setVisible(false);
+        await setVisible(true);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.equal(started(), before + 1, "visibility changes started another read");
+      assert.deepEqual(aborted, [], "the read in flight was aborted");
+      release();
+      await p.waitForFunction(() => document.querySelector(".weather-item time")?.getAttribute("datetime") === "2026-11-19T09:00:00Z");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.equal(started(), before + 1);
+      assert.deepEqual(aborted, []);
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    // Live data never moves the layout below the section: same height loading and loaded.
+    {
+      const { p, context } = await page(390, { weather: (city) => weatherFor(city), tube: underground(3), height: 844 });
+      await p.goto(`${baseURL}/en/`);
+      await p.locator('.weather-item .transport-status[data-state="fresh"]').waitFor();
+      await p.locator('.transport-item[data-tool="underground"] .transport-status[data-state="fresh"]').waitFor();
+      const shift = await p.evaluate(() => new Promise((resolve) => {
+        let total = 0;
+        new PerformanceObserver((list) => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) total += entry.value; })
+          .observe({ type: "layout-shift", buffered: true });
+        setTimeout(() => resolve(total), 500);
+      }));
+      assert.ok(shift < 0.1, `layout shift ${shift}`);
+      await context.close();
+    }
+    console.log("PASS Live Services weather: current-hour Met Office step with issue time, city choice remembered × 5 locales, Urdu RTL; old step hidden; long-open tab re-reads hourly, only when visible, 10 min after failure, never aborts or duplicates a read in flight; CLS < 0.1");
+  }
+
   // Responsive: no horizontal overflow, usable touch targets, screenshots.
   for (const width of WIDTHS) {
     const { p, context } = await page(width);
@@ -367,7 +594,7 @@ try {
     await p.locator(".holiday-panel .holiday-name, .holiday-panel .holiday-message").first().waitFor();
     assert.equal(await noOverflow(p), true, `overflow at ${width}`);
     const small = await p
-      .locator(".masthead a, .topic-card a, .home-search-button, .transport-item")
+      .locator(".masthead a, .topic-card a, .home-search-button, .transport-item, .weather-city")
       .evaluateAll((els) =>
         els
           .filter((el) => el.getClientRects().length > 0)
@@ -380,6 +607,19 @@ try {
       .evaluateAll((els) => new Set(els.map((el) => el.getBoundingClientRect().top)).size);
     if (width >= 1280) assert.ok(topicColumns === 3, "nine topics in three even rows (3 + 3 + 3)");
     if (width <= 390) assert.ok(topicColumns >= 3, "topics reflow on mobile");
+    // Live Services: market cards side by side; four equal shortcuts in one row on wide screens, 2 × 2 on phones.
+    const boxes = (selector) => p.locator(selector).evaluateAll((els) => els.map((el) => {
+      const r = el.getBoundingClientRect();
+      return { top: Math.round(r.top), width: Math.round(r.width) };
+    }));
+    const markets = await boxes(".live-markets .live-card");
+    // Below 360px (e.g. 320) everything stacks in one column.
+    if (width >= 360) assert.equal(markets[0].top, markets[1].top, `market cards side by side at ${width}`);
+    else assert.ok(markets[1].top > markets[0].top, `market cards stacked at ${width}`);
+    const tiles = await boxes(".live-shortcuts > li");
+    const rows = new Set(tiles.map((tile) => tile.top)).size;
+    assert.equal(rows, width > 1100 ? 1 : width >= 360 ? 2 : 4, `shortcut rows at ${width}`);
+    assert.ok(Math.max(...tiles.map((t) => t.width)) - Math.min(...tiles.map((t) => t.width)) <= 1, `equal shortcuts at ${width}`);
     await p.screenshot({ path: `${screenshots}/home-${width}.png`, fullPage: true });
     await context.close();
   }

@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
-  BusFront,
   Route,
   TrainFront,
   TrainFrontTunnel,
 } from "lucide-react";
 import type { GuideLocale } from "../../guides/locales";
-import { SITE_UI } from "../../guides/siteUi";
 import { Link } from "../Link";
 import { railToolEnabled, TRAVEL_TOOLS } from "../../travel/tools";
 import type { TravelToolId } from "../../travel/tools";
@@ -19,8 +17,6 @@ import { useNow } from "../../travel/useNow";
 import { classifyStatus, lineColour, summariseLines } from "../../underground/presentation";
 import type { UndergroundResponse } from "../../underground/api";
 
-// Homepage order: the status that needs no input first.
-const HOME_ORDER: readonly TravelToolId[] = ["underground", "roads", "rail"];
 const AFFECTED_SHOWN = 3;
 
 const ICONS: Record<TravelToolId, ReactNode> = {
@@ -143,59 +139,42 @@ function UndergroundStatus({ locale }: { locale: GuideLocale }) {
 }
 
 /**
- * Homepage Travel panel, directly under the search: Underground line status
- * with its update time (nothing is presented as current once the stored
- * snapshot is older than the freshness limit), and entries for Roads and
- * Rail. Each entry opens that tool on /travel.
+ * One travel shortcut tile of the homepage Live Services row: Underground line
+ * status with its update time (nothing is presented as current once the stored
+ * snapshot is older than the freshness limit), or the Roads / Rail tool. Each
+ * tile opens that tool on /travel.
  */
-export function TransportSummary({ locale = "zh-CN" }: { locale?: GuideLocale }) {
+export function TransportShortcut({ locale, id }: { locale: GuideLocale; id: TravelToolId }) {
   const ui = TRAVEL_UI[locale];
+  const mode = TRAVEL_TOOLS.find((item) => item.id === id)!;
+  const name = ui.tools[id].name;
+  const unavailable = id === "rail" && !railToolEnabled();
   return (
-    <section className="home-panel transport-panel" aria-labelledby="transport-title">
-      <div className="home-panel-head">
-        <BusFront size={24} aria-hidden="true" />
-        <h2 id="transport-title">{SITE_UI[locale].transport.title}</h2>
-        <Link to={travelPath(locale)} className="transport-all">
-          {ui.home.all}
-          <ArrowRight size={16} aria-hidden="true" />
-        </Link>
-      </div>
-      <ul className="transport-list">
-        {HOME_ORDER.map((id) => {
-          const mode = TRAVEL_TOOLS.find((item) => item.id === id)!;
-          const name = ui.tools[id].name;
-          const unavailable = id === "rail" && !railToolEnabled();
-          return (
-            <li key={id}>
-              <Link to={travelPath(locale, id)} className="transport-item" data-tool={id}>
-                <span className="transport-icon">{ICONS[id]}</span>
-                <span className="transport-text">
-                  <span className="transport-name">
-                    {name}
-                    {/* Skip the operator when the name already contains it. */}
-                    {!name.includes(mode.operator) && (
-                      <>
-                        {" "}
-                        <span lang="en">{mode.operator}</span>
-                      </>
-                    )}
-                  </span>
-                  {id === "underground" ? (
-                    <UndergroundStatus locale={locale} />
-                  ) : (
-                    <span className="transport-status" data-state={unavailable ? "unavailable" : "tool"}>
-                      {unavailable ? ui.common.notReleased : ui.tools[id].description}
-                    </span>
-                  )}
-                  <span className="sr-only">{ui.home.open(name)}</span>
-                </span>
-                <ArrowRight size={18} aria-hidden="true" />
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="home-panel-meta">{ui.home.meta}</p>
-    </section>
+    <li>
+      <Link to={travelPath(locale, id)} className="transport-item" data-tool={id}>
+        <span className="transport-icon">{ICONS[id]}</span>
+        <span className="transport-text">
+          <span className="transport-name">
+            {name}
+            {/* Skip the operator when the name already contains it. */}
+            {!name.includes(mode.operator) && (
+              <>
+                {" "}
+                <span lang="en">{mode.operator}</span>
+              </>
+            )}
+          </span>
+          {id === "underground" ? (
+            <UndergroundStatus locale={locale} />
+          ) : (
+            <span className="transport-status" data-state={unavailable ? "unavailable" : "tool"}>
+              {unavailable ? ui.common.notReleased : ui.tools[id].description}
+            </span>
+          )}
+          <span className="sr-only">{ui.home.open(name)}</span>
+        </span>
+        <ArrowRight size={18} aria-hidden="true" />
+      </Link>
+    </li>
   );
 }

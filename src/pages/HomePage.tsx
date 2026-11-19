@@ -3,7 +3,7 @@ import { HomeHero } from "../components/home/HomeHero";
 import { TopicGrid } from "../components/home/TopicGrid";
 import type { TopicCount } from "../components/home/TopicGrid";
 import { BankHolidaySummary } from "../components/home/BankHolidaySummary";
-import { TransportSummary } from "../components/home/TransportSummary";
+import { LiveServices } from "../components/home/LiveServices";
 import { FeaturedGuides } from "../components/home/FeaturedGuides";
 import { GuideIndex } from "../components/home/GuideIndex";
 import { CommonQuestions } from "../components/home/CommonQuestions";
@@ -174,9 +174,9 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       dir={translatedPage ? textDirection(locale) : undefined}
     >
       <HomeHero locale={locale} index={searchIndex} />
-      {/* Travel sits directly under the search so it is reachable on a phone without scrolling far. */}
+      {/* Live Services sit directly under the search so they are reachable on a phone without scrolling far. */}
       <div className="home-container home-travel">
-        <TransportSummary locale={locale} />
+        <LiveServices locale={locale} />
       </div>
       <TopicGrid locale={locale} topics={availableHomeTopics(universityAvailable)} counts={content?.counts} />
       <div className="home-container home-practical">

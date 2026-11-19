@@ -73,6 +73,9 @@ export default defineConfig(({ mode, command, isPreview }) => {
         "/api/bank-holidays": {
           target: backendTarget,
         },
+        "/api/weather": {
+          target: backendTarget,
+        },
       },
     },
   };
