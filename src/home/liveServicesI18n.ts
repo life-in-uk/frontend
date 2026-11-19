@@ -15,19 +15,12 @@ export type LiveServicesUi = {
   markets: { us: string; uk: string };
   weather: {
     name: string;
-    city: string;
     checking: string;
     unavailable: string;
     /** "Met Office forecast for 14:00, issued 11:00 (UK time)": the step's hour and its model run. */
     forecastFor: (time: string, issued: string) => string;
     feelsLike: (temperature: string) => string;
-    /** Accessible name of the city button: the city shown and that it can be changed. */
-    changeCity: (city: string) => string;
-    /** Title of the city selector. */
-    chooseCity: string;
-    search: string;
-    noMatch: string;
-    /** The selector entry that goes back to the automatic city. */
+    /** Tooltip of the automatic tag: how the city was chosen. */
     automatic: string;
     /** Short visible tag next to an automatically chosen city (an approximation, not the visitor's position). */
     autoTag: string;
@@ -46,15 +39,10 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     markets: { us: "美国股指", uk: "英国股指" },
     weather: {
       name: "天气",
-      city: "城市",
       checking: "正在获取天气…",
       unavailable: "天气暂时无法获取",
       forecastFor: (time, issued) => `Met Office ${time} 预报，${issued} 发布（英国时间）`,
       feelsLike: (temperature) => `体感 ${temperature}`,
-      changeCity: (city) => `天气城市：${city}，更改城市`,
-      chooseCity: "选择城市",
-      search: "搜索城市",
-      noMatch: "没有匹配的城市",
       automatic: "自动（离您最近的城市，按网络大致位置）",
       autoTag: "自动",
       rainChance: (percent) => `降水概率 ${percent}%`,
@@ -103,15 +91,10 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     markets: { us: "美國股指", uk: "英國股指" },
     weather: {
       name: "天氣",
-      city: "城市",
       checking: "正在取得天氣…",
       unavailable: "天氣暫時無法取得",
       forecastFor: (time, issued) => `Met Office ${time} 預報，${issued} 發布（英國時間）`,
       feelsLike: (temperature) => `體感 ${temperature}`,
-      changeCity: (city) => `天氣城市：${city}，更改城市`,
-      chooseCity: "選擇城市",
-      search: "搜尋城市",
-      noMatch: "沒有符合的城市",
       automatic: "自動（離您最近的城市，依網路大致位置）",
       autoTag: "自動",
       rainChance: (percent) => `降雨機率 ${percent}%`,
@@ -160,15 +143,10 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     markets: { us: "US indices", uk: "UK indices" },
     weather: {
       name: "Weather",
-      city: "City",
       checking: "Checking the weather…",
       unavailable: "Weather is unavailable right now",
       forecastFor: (time, issued) => `Met Office forecast for ${time}, issued ${issued} (UK time)`,
       feelsLike: (temperature) => `Feels like ${temperature}`,
-      changeCity: (city) => `Weather city: ${city}. Change city`,
-      chooseCity: "Choose a city",
-      search: "Search cities",
-      noMatch: "No matching city",
       automatic: "Automatic (nearest city to your approximate network location)",
       autoTag: "auto",
       rainChance: (percent) => `${percent}% chance of rain`,
@@ -217,15 +195,10 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     markets: { us: "امریکی انڈیکس", uk: "برطانوی انڈیکس" },
     weather: {
       name: "موسم",
-      city: "شہر",
       checking: "موسم کی معلومات حاصل کی جا رہی ہیں…",
       unavailable: "موسم کی معلومات ابھی دستیاب نہیں",
       forecastFor: (time, issued) => `Met Office کی پیشگوئی ${time} کے لیے، ${issued} پر جاری (برطانوی وقت)`,
       feelsLike: (temperature) => `محسوس ہونے والا درجہ ${temperature}`,
-      changeCity: (city) => `موسم کا شہر: ${city}۔ شہر بدلیں`,
-      chooseCity: "شہر منتخب کریں",
-      search: "شہر تلاش کریں",
-      noMatch: "کوئی مماثل شہر نہیں",
       automatic: "خودکار (آپ کے نیٹ ورک کے اندازاً مقام سے قریب ترین شہر)",
       autoTag: "خودکار",
       rainChance: (percent) => `بارش کا امکان ${percent}%`,
@@ -274,15 +247,10 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     markets: { us: "अमेरिकी सूचकांक", uk: "ब्रिटेन के सूचकांक" },
     weather: {
       name: "मौसम",
-      city: "शहर",
       checking: "मौसम की जानकारी ली जा रही है…",
       unavailable: "मौसम की जानकारी अभी उपलब्ध नहीं",
       forecastFor: (time, issued) => `Met Office पूर्वानुमान ${time} के लिए, ${issued} पर जारी (ब्रिटेन का समय)`,
       feelsLike: (temperature) => `महसूस ${temperature}`,
-      changeCity: (city) => `मौसम का शहर: ${city}। शहर बदलें`,
-      chooseCity: "शहर चुनें",
-      search: "शहर खोजें",
-      noMatch: "कोई मिलता-जुलता शहर नहीं",
       automatic: "स्वचालित (आपके नेटवर्क की अनुमानित जगह से निकटतम शहर)",
       autoTag: "स्वचालित",
       rainChance: (percent) => `बारिश की संभावना ${percent}%`,
