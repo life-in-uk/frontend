@@ -10,6 +10,7 @@ import {
   CloudRain,
   CloudSnow,
   CloudSun,
+  MapPin,
   Moon,
   Sun,
   Thermometer,
@@ -17,31 +18,28 @@ import {
 import type { GuideLocale } from "../../guides/locales";
 import { LIVE_SERVICES_UI } from "../../home/liveServicesI18n";
 import { useNow } from "../../travel/useNow";
-import { clearStoredCity, readStoredCity, storeCity } from "../../weather/cities";
-import type { WeatherCity } from "../../weather/cities";
 import { weatherCodeInfo } from "../../weather/codes";
 import type { WeatherCodeInfo } from "../../weather/codes";
 import { getWeather, isCurrentStep, MET_OFFICE_ATTRIBUTION, nextWeatherReadAt } from "../../weather/api";
 import type { WeatherResponse } from "../../weather/api";
-import { WeatherCityPicker } from "./WeatherCityPicker";
 
 type WeatherState =
   | { status: "loading" }
   | { status: "unavailable" }
   | { status: "ready"; data: WeatherResponse };
 
-type WeatherResult = { city: WeatherCity | null; state: WeatherState; readAt: number };
+type WeatherResult = { state: WeatherState; readAt: number };
 
 /**
- * Reads /api/weather/current for the chosen city after the page has rendered
+ * Reads /api/weather/current after the page has rendered; the backend picks the
+ * nearest supported city to the visitor's approximate location (London if none)
  * (the prerendered page never depends on it). A page left open reads again
  * only when the shown hour has ended, or 10 minutes after a failed read, and
  * only while the tab is visible: a hidden tab waits and reads when it is shown
  * again. No polling: at most one read per hour while things work. The backend
  * serves stored Met Office forecasts, so reads never add Met Office calls.
  */
-function useWeather(city: WeatherCity | null): WeatherState {
-  // The result is kept with the city it belongs to, so a new choice reads as "loading" until its answer arrives.
+function useWeather(): WeatherState {
   const [result, setResult] = useState<WeatherResult | null>(null);
   const [reads, setReads] = useState(0);
   // True from asking for a re-read until its answer: a re-read is never started (and so the outstanding one
@@ -55,9 +53,9 @@ function useWeather(city: WeatherCity | null): WeatherState {
     const done = (state: WeatherState) => {
       if (!active) return;
       reading.current = false;
-      setResult({ city, state, readAt: Date.now() });
+      setResult({ state, readAt: Date.now() });
     };
-    getWeather(city, controller.signal)
+    getWeather(null, controller.signal)
       .then((data) => done({ status: "ready", data }))
       .catch(() => done({ status: "unavailable" }))
       .finally(() => window.clearTimeout(timeout));
@@ -66,10 +64,10 @@ function useWeather(city: WeatherCity | null): WeatherState {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [city, reads]);
+  }, [reads]);
 
   useEffect(() => {
-    if (result?.city !== city) return;
+    if (!result) return;
     const due = nextWeatherReadAt(result.state.status === "ready" ? result.state.data.forecastTime : null, result.readAt);
     let timer: number | undefined;
     const check = () => {
@@ -87,9 +85,9 @@ function useWeather(city: WeatherCity | null): WeatherState {
       window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", check);
     };
-  }, [result, city]);
+  }, [result]);
 
-  return result?.city === city ? result.state : { status: "loading" };
+  return result?.state ?? { status: "loading" };
 }
 
 function conditionIcon(info: WeatherCodeInfo | null): ReactNode {
@@ -153,19 +151,10 @@ function ukHour(instant: string): string {
  */
 export function WeatherShortcut({ locale }: { locale: GuideLocale }) {
   const ui = LIVE_SERVICES_UI[locale].weather;
-  // The page is rendered in the browser (createRoot), so a remembered choice can be read up front. null: the
-  // backend picks the nearest supported city to the visitor's approximate location (London if none).
-  const [choice, setChoice] = useState<WeatherCity | null>(readStoredCity);
-  const state = useWeather(choice);
+  const state = useWeather();
   const now = useNow();
-
-  const choose = (city: WeatherCity | null) => {
-    if (city === null) clearStoredCity();
-    else storeCity(city);
-    setChoice(city);
-  };
-  const shown = choice ?? (state.status === "ready" ? state.data.city : null);
-  const automatic = choice === null;
+  // Plain text, not a control: the backend chooses the city from the visitor's approximate network location.
+  const city = state.status === "ready" ? state.data.city : null;
 
   const current = state.status === "ready" && isCurrentStep(state.data.forecastTime, now) ? state.data : null;
   const info = current ? weatherCodeInfo(current.weatherCode) : null;
@@ -208,14 +197,15 @@ export function WeatherShortcut({ locale }: { locale: GuideLocale }) {
         <span className="transport-text">
           <span className="weather-head">
             <span className="transport-name">{ui.name}</span>
-            <WeatherCityPicker
-              labels={ui}
-              englishNames={LIVE_SERVICES_UI.en.weather.cities}
-              shown={shown}
-              automatic={automatic}
-              manual={!automatic}
-              onChoose={choose}
-            />
+            {city && (
+              <span className="weather-city">
+                <MapPin size={14} aria-hidden="true" />
+                <span className="weather-city-name" title={ui.cities[city]}>{ui.cities[city]}</span>
+                <span className="weather-city-auto" title={ui.automatic}>
+                  {ui.autoTag}
+                </span>
+              </span>
+            )}
           </span>
           <span aria-live="polite">{status}</span>
           <span className="weather-attribution" lang="en" dir="ltr">
