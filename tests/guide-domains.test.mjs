@@ -40,6 +40,7 @@ test("each domain owns one route base and one API category", () => {
     "settlement",
     "renting",
     "university-applications-student-visas",
+    "education",
   ]);
   // Route bases and categories never overlap between domains.
   const domains = Object.values(GUIDE_DOMAINS);

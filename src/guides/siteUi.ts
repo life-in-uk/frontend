@@ -1,3 +1,4 @@
+import { EDUCATION_COPY } from "./education.ts";
 import { UNIVERSITY_COPY } from "./locales.ts";
 // Shared site interface text (header, footer, home page, not-found) for the
 // five supported locales. Page chrome only: Guide titles, summaries and
@@ -100,7 +101,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       "family-visa": { title: "签证与家庭", description: "配偶/伴侣签证的路线、收入和关系要求，以及按你情况生成的材料清单。" },
       "work-visa": { title: "工作签证", description: "技术工人签证：雇主担保、职业和工资要求、家属、换工作和永居。" },
       settlement: { title: "永居与入籍", description: "永居（ILR）各路线的条件、离境天数、英语和材料，拿到永居以后，以及入籍；改革方案单独标明。" },
-      education: { title: "教育与学习", description: "学校申请、大学与学生生活等内容正在规划中。" },
+      education: EDUCATION_COPY["zh-CN"],
       "university-applications-student-visas": UNIVERSITY_COPY["zh-CN"],
       renting: { title: "租房与入住", description: "在英格兰通过中介租房：找房看房、审查和担保人、定金押金和费用、签约前检查，以及分步骤的租房清单。" },
       "daily-life": { title: "日常生活", description: "账单与通信等内容正在规划中。" },
@@ -205,7 +206,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       "family-visa": { title: "簽證與家庭", description: "配偶／伴侶簽證的路線、收入和關係要求，以及依你的情況產生的材料清單。" },
       "work-visa": { title: "工作簽證", description: "技術工人簽證：僱主擔保、職業和薪資要求、家屬、換工作和永居。" },
       settlement: { title: "永居與入籍", description: "永居（ILR）各路線的條件、離境天數、英語和材料，拿到永居以後，以及入籍；改革方案單獨標明。" },
-      education: { title: "教育與學習", description: "學校申請、大學與學生生活等內容正在規劃中。" },
+      education: EDUCATION_COPY["zh-TW"],
       "university-applications-student-visas": UNIVERSITY_COPY["zh-TW"],
       renting: { title: "租房與入住", description: "在英格蘭透過仲介租房：找房看房、審查和擔保人、定金押金和費用、簽約前檢查，以及分步驟的租房清單。" },
       "daily-life": { title: "日常生活", description: "帳單與通訊等內容正在規劃中。" },
@@ -310,7 +311,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       "family-visa": { title: "Visas and family", description: "Spouse and partner visa routes, income and relationship requirements, and a document checklist built for your situation." },
       "work-visa": { title: "Work visas", description: "The Skilled Worker visa: employer sponsorship, occupation and salary rules, family members, changing jobs and settlement." },
       settlement: { title: "Settlement and citizenship", description: "Indefinite leave to remain on each route, days outside the UK, English and documents, life after ILR, and citizenship; reform proposals are clearly marked." },
-      education: { title: "Education and study", description: "Content on school applications, university and student life is being planned." },
+      education: EDUCATION_COPY["en"],
       "university-applications-student-visas": UNIVERSITY_COPY["en"],
       renting: { title: "Renting and moving in", description: "Renting through a letting agent in England: finding and viewing, checks and guarantors, deposits and fees, what to check before signing, and a step-by-step renting checklist." },
       "daily-life": { title: "Daily life", description: "Content on bills, phone and internet is being planned." },
@@ -415,7 +416,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       "family-visa": { title: "ویزا اور خاندان", description: "شریکِ حیات اور پارٹنر ویزا کے راستے، آمدنی اور رشتے کی شرائط، اور آپ کی صورتحال کے مطابق کاغذات کی فہرست۔" },
       "work-visa": { title: "ورک ویزا", description: "اسکلڈ ورکر ویزا: آجر کی اسپانسرشپ، پیشے اور تنخواہ کے تقاضے، اہلِ خانہ، ملازمت کی تبدیلی اور مستقل رہائش۔" },
       settlement: { title: "مستقل رہائش اور شہریت", description: "ہر راستے پر مستقل رہائش (ILR) کی شرائط، برطانیہ سے باہر کے دن، انگریزی اور دستاویزات، ILR کے بعد کی زندگی، اور شہریت؛ اصلاحاتی تجاویز الگ سے نشان زد ہیں۔" },
-      education: { title: "تعلیم", description: "اسکول میں داخلے، یونیورسٹی اور طلبہ کی زندگی سے متعلق مواد کی منصوبہ بندی ہو رہی ہے۔" },
+      education: EDUCATION_COPY["ur"],
       "university-applications-student-visas": UNIVERSITY_COPY["ur"],
       renting: { title: "کرایہ داری اور منتقلی", description: "انگلینڈ میں لیٹنگ ایجنٹ کے ذریعے کرایہ داری: گھر تلاش کرنا اور دیکھنا، جانچ اور ضامن، ڈپازٹ اور فیسیں، دستخط سے پہلے کیا دیکھیں، اور مرحلہ وار کرایہ داری چیک لسٹ۔" },
       "daily-life": { title: "روزمرہ زندگی", description: "بل اور فون و انٹرنیٹ سے متعلق مواد کی منصوبہ بندی ہو رہی ہے۔" },
@@ -520,7 +521,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       "family-visa": { title: "वीज़ा और परिवार", description: "पति/पत्नी और पार्टनर वीज़ा के रास्ते, आय और रिश्ते की शर्तें, और आपकी स्थिति के अनुसार दस्तावेज़ों की सूची।" },
       "work-visa": { title: "वर्क वीज़ा", description: "स्किल्ड वर्कर वीज़ा: नियोक्ता प्रायोजन, व्यवसाय और वेतन की शर्तें, परिवार, नौकरी बदलना और स्थायी निवास।" },
       settlement: { title: "स्थायी निवास और नागरिकता", description: "हर रास्ते पर स्थायी निवास (ILR) की शर्तें, ब्रिटेन से बाहर के दिन, अंग्रेज़ी और दस्तावेज़, ILR के बाद का जीवन, और नागरिकता; सुधार प्रस्ताव अलग से चिह्नित हैं।" },
-      education: { title: "शिक्षा और पढ़ाई", description: "स्कूल में दाख़िले, यूनिवर्सिटी और छात्र जीवन से जुड़ी सामग्री की योजना बन रही है।" },
+      education: EDUCATION_COPY["hi"],
       "university-applications-student-visas": UNIVERSITY_COPY["hi"],
       renting: { title: "किराए पर घर और रहने आना", description: "इंग्लैंड में लेटिंग एजेंट के ज़रिए किराए पर घर: खोजना और देखना, जाँच और गारंटर, डिपॉज़िट और फ़ीस, हस्ताक्षर से पहले क्या जाँचें, और चरण-दर-चरण किराया चेकलिस्ट।" },
       "daily-life": { title: "रोज़मर्रा की ज़िंदगी", description: "बिल और फ़ोन-इंटरनेट से जुड़ी सामग्री की योजना बन रही है।" },

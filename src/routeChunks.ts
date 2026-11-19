@@ -28,6 +28,7 @@ const HUBS = {
   settlement: SettlementHub,
   renting: RentingHub,
   [UNIVERSITY_CATEGORY]: LocalizedGuideIndex,
+  education: LocalizedGuideIndex,
 } as const;
 
 /** Loads the chunk the page for `route` (as given by pageRoute) renders, if it has one. */

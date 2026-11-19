@@ -76,6 +76,8 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   const searchSource = translatedPage ? localized : source;
   const universityAvailable = searchSource.status === "ready" &&
     searchSource.guides.some((guide) => guide.category === UNIVERSITY_CATEGORY);
+  const educationAvailable = searchSource.status === "ready" &&
+    searchSource.guides.some((guide) => guide.category === "education");
   const searchIndex = useMemo(() => {
     if (searchSource.status === "loading") return null;
     if (searchSource.status === "error") return "error";
@@ -159,12 +161,12 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       featured,
       more,
       questionGroups,
-      sections: LAUNCHED.filter((topic) => topic.id !== UNIVERSITY_CATEGORY || universityAvailable).map((topic) => ({
+      sections: LAUNCHED.filter((topic) => (topic.id !== UNIVERSITY_CATEGORY || universityAvailable) && (topic.id !== "education" || educationAvailable)).map((topic) => ({
         domain: topic.domain,
         total: counts.get(topic.id)?.guides ?? 0,
       })),
     };
-  }, [guides, translations, locale, translatedPage, ui, universityAvailable]);
+  }, [guides, translations, locale, translatedPage, ui, universityAvailable, educationAvailable]);
 
   return (
     <main
@@ -178,7 +180,7 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       <div className="home-container home-travel">
         <LiveServices locale={locale} />
       </div>
-      <TopicGrid locale={locale} topics={availableHomeTopics(universityAvailable)} counts={content?.counts} />
+      <TopicGrid locale={locale} topics={availableHomeTopics(universityAvailable, educationAvailable)} counts={content?.counts} />
       <div className="home-container home-practical">
         <BankHolidaySummary locale={locale} />
       </div>

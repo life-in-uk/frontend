@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { getLocalizedGuides } from "../../guides/api";
 import type { GuideMetadata } from "../../guides/api";
-import { GUIDE_DOMAINS, type GuideDomainId } from "../../guides/domains";
+import { EDUCATION_COPY, educationSections } from "../../guides/education";
+import { GUIDE_DOMAINS, UNIVERSITY_CATEGORY, type GuideDomainId } from "../../guides/domains";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, UNIVERSITY_COPY, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates, hubAlternates } from "../../guides/seo";
 import { Link } from "../Link";
@@ -18,16 +19,17 @@ const copy: Record<GuideLocale, { title: string; description: string; loading: s
 };
 
 export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; domain?: GuideDomainId }) {
-  const [state, setState] = useState<{ status: "loading" } | { status: "error" } | { status: "ready"; guides: GuideMetadata[] }>({ status: "loading" });
+  const [state, setState] = useState<{ status: "loading" } | { status: "error" } | { status: "ready"; guides: GuideMetadata[]; universityAvailable: boolean }>({ status: "loading" });
   const strings = copy[locale];
   const title = domain ? GUIDE_UI[locale].domain[domain] : strings.title;
-  const description = domain ? UNIVERSITY_COPY[locale].description : strings.description;
+  const education = domain === "education" ? EDUCATION_COPY[locale] : undefined;
+  const description = education?.description ?? (domain ? UNIVERSITY_COPY[locale].description : strings.description);
   const [available, setAvailable] = useState<GuideLocale[]>([locale]);
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
     getLocalizedGuides(locale, controller.signal)
-      .then((guides) => { if (active) setState({ status: "ready", guides: domain ? guides.filter((item) => item.category === GUIDE_DOMAINS[domain].category) : guides }); })
+      .then((guides) => { if (active) setState({ status: "ready", guides: domain ? guides.filter((item) => item.category === GUIDE_DOMAINS[domain].category) : guides, universityAvailable: guides.some((guide) => guide.category === UNIVERSITY_CATEGORY) }); })
       .catch(() => { if (active) setState({ status: "error" }); });
     return () => { active = false; controller.abort(); };
   }, [locale, domain]);
@@ -75,19 +77,33 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
       {state.status === "loading" && <p role="status" className="guide-status">{strings.loading}</p>}
       {state.status === "error" && <div className="guide-status-card" role="alert"><p>{strings.failed}</p></div>}
       {state.status === "ready" && state.guides.length === 0 && <p className="guide-status" role="status">{strings.empty}</p>}
-      {state.status === "ready" && state.guides.length > 0 && (
-        <ul className="localized-guide-list">
-          {state.guides.map((guide) => (
-            <li key={guide.slug}>
-              <Link to={localizedGuidePath(locale, domainForCategory(guide.category) ?? "guides", guide.slug)}>
-                <span><strong>{guide.title}</strong><span>{guide.summary}</span><time dateTime={guide.updatedAt}>{strings.updated}: {new Intl.DateTimeFormat(GUIDE_LOCALE_LANG[locale], { dateStyle: "medium", timeZone: "Europe/London" }).format(new Date(guide.updatedAt))}</time></span>
-                <ArrowRight size={18} aria-hidden="true" />
-              </Link>
-            </li>
+      {state.status === "ready" && state.guides.length > 0 && (education ? (
+        <>
+          {educationSections(state.guides).map(({ id, guides }) => (
+            <section key={id} aria-labelledby={`education-${id}`}>
+              <h2 id={`education-${id}`}>{education[id]}</h2>
+              {guideList(guides, locale)}
+            </section>
           ))}
-        </ul>
-      )}
+          {state.universityAvailable && <p><Link to={localizedGuidePath(locale, UNIVERSITY_CATEGORY)}>{UNIVERSITY_COPY[locale].title}</Link></p>}
+        </>
+      ) : guideList(state.guides, locale))}
     </main>
+  );
+}
+
+function guideList(guides: readonly GuideMetadata[], locale: GuideLocale) {
+  return (
+    <ul className="localized-guide-list">
+      {guides.map((guide) => (
+        <li key={guide.slug}>
+          <Link to={localizedGuidePath(locale, domainForCategory(guide.category) ?? "guides", guide.slug)}>
+            <span><strong>{guide.title}</strong><span>{guide.summary}</span><time dateTime={guide.updatedAt}>{copy[locale].updated}: {new Intl.DateTimeFormat(GUIDE_LOCALE_LANG[locale], { dateStyle: "medium", timeZone: "Europe/London" }).format(new Date(guide.updatedAt))}</time></span>
+            <ArrowRight size={18} aria-hidden="true" />
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 

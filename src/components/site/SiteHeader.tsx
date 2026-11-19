@@ -12,7 +12,7 @@ import "./Site.css";
 type SiteHeaderProps = {
   /** The launched section currently shown, for aria-current. */
   current: "home" | GuideDomainId | "travel" | undefined;
-  universityAvailable?: boolean;
+  universityAvailable?: boolean; educationAvailable?: boolean;
   locale?: GuideLocale;
   /**
    * Same page in another language. Given only on pages without their own
@@ -89,7 +89,7 @@ function onPanelKeyDown(event: KeyboardEvent<HTMLElement>) {
 }
 
 /** Shared site header: brand, section navigation, search, language and About. */
-export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAvailable = false }: SiteHeaderProps) {
+export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAvailable = false, educationAvailable = false }: SiteHeaderProps) {
   const ui = SITE_UI[locale];
   const home = guideHomePath(locale);
   const homeAnchor = (id: string) => (home === "/" ? `/#${id}` : `${home}#${id}`);
@@ -97,7 +97,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAv
   // Width the wide bar needed when it last did not fit, or null while it fits.
   const [needed, setNeeded] = useState<number | null>(null);
   const compact = narrow || needed !== null;
-  const topics = availableHomeTopics(universityAvailable);
+  const topics = availableHomeTopics(universityAvailable, educationAvailable);
   const navGroups = visibleNavGroups(locale, topics);
   const innerRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLUListElement>(null);
@@ -119,7 +119,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAv
   }
 
   // Labels and the language selector change what fits: measure the wide bar again.
-  const content = `${locale}|${switchPath ? "language" : ""}|${universityAvailable}`;
+  const content = `${locale}|${switchPath ? "language" : ""}|${universityAvailable}|${educationAvailable}`;
   const [measured, setMeasured] = useState(content);
   if (measured !== content) {
     setMeasured(content);

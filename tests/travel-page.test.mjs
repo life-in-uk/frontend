@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { localeSwitchPath, matchRoute, pageRoute } from "../src/router.ts";
-import { HOME_TOPICS, launchedTopics, topicHref } from "../src/home/topics.ts";
+import { availableHomeTopics, HOME_TOPICS, launchedTopics, topicHref } from "../src/home/topics.ts";
 import { GUIDE_LOCALES } from "../src/guides/locales.ts";
 import { OFFICIAL_STATUS, TRAVEL_UI } from "../src/travel/i18n.ts";
 import { RAIL_UI } from "../src/travel/railI18n.ts";
@@ -41,7 +41,7 @@ test("the Travel topic is linked in every locale but never counted or searched a
   assert.equal(topicHref(travel, "ur"), "/ur/travel");
   assert.ok(!launchedTopics().some((topic) => topic.id === "travel"));
   // Upcoming sections stay unlinked.
-  assert.equal(topicHref(HOME_TOPICS.find((topic) => topic.id === "education"), "en"), undefined);
+  assert.equal(topicHref(availableHomeTopics(false).find((topic) => topic.id === "education"), "en"), undefined);
 });
 
 function shape(value) {

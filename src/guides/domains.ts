@@ -2,6 +2,7 @@
 // A domain fixes the route base and the one API category it may show, so a
 // Guide can only ever appear (and be linked) inside its own section.
 
+import { EDUCATION_ARRIVALS, EDUCATION_COPY } from "./education.ts";
 import type { GuideMetadata, GuideSource } from "./api";
 import { guideRoutePath, type GuideLocale } from "./locales.ts";
 import {
@@ -12,9 +13,25 @@ import {
   RELATED_GUIDES,
 } from "./catalog.ts";
 
+export const EDUCATION_GUIDE_DOMAIN: GuideDomain = {
+  id: "education",
+  basePath: "/education",
+  category: "education",
+  label: EDUCATION_COPY["zh-CN"].title,
+  backLabel: "回到教育与学习",
+  titleReferences: {},
+  relatedGuides: {
+    [EDUCATION_ARRIVALS]: ["in-year-school-admissions-england", "joining-school-during-gcses-england", "sixth-form-or-fe-college-england"],
+    "uk-school-stages-and-year-groups": [EDUCATION_ARRIVALS, "in-year-school-admissions-england"],
+    "in-year-school-admissions-england": [EDUCATION_ARRIVALS, "joining-school-during-gcses-england"],
+    "joining-school-during-gcses-england": ["in-year-school-admissions-england", "sixth-form-or-fe-college-england"],
+    "sixth-form-or-fe-college-england": ["joining-school-during-gcses-england", EDUCATION_ARRIVALS],
+  },
+};
+
 export const UNIVERSITY_CATEGORY = "university-applications-student-visas";
 
-export type GuideDomainId = typeof UNIVERSITY_CATEGORY | "health" | "family-visa" | "money" | "work-visa" | "settlement" | "renting";
+export type GuideDomainId = typeof UNIVERSITY_CATEGORY | "education" | "health" | "family-visa" | "money" | "work-visa" | "settlement" | "renting";
 
 export type GuideDomain = {
   id: GuideDomainId;
@@ -238,6 +255,7 @@ export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   settlement: SETTLEMENT_GUIDE_DOMAIN,
   renting: RENTING_GUIDE_DOMAIN,
   [UNIVERSITY_CATEGORY]: UNIVERSITY_GUIDE_DOMAIN,
+  education: EDUCATION_GUIDE_DOMAIN,
 };
 
 /** A Simplified Chinese Guide's canonical path (`/zh-CN/health/:slug`). */
