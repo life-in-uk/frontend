@@ -100,7 +100,23 @@ try {
           assert.equal(await page.locator("html").getAttribute("dir"), locale === "ur" ? "rtl" : "ltr");
           assert.equal(await page.locator('head link[rel="canonical"]').getAttribute("href"), url);
           assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-          assert.equal(await page.locator("main .evidence-toggle").count(), guide.evidence.length);
+          const toggles = page.locator("main .evidence-toggle");
+          assert.equal(await toggles.count(), guide.evidence.length);
+          const reviewedKeys = new Set(["wales", "exam-years", "start-options", "attendance", "meal-types"]);
+          for (const [index, evidence] of guide.evidence.entries()) {
+            if (!reviewedKeys.has(evidence.key)) continue;
+            const toggle = toggles.nth(index);
+            await toggle.click();
+            const panel = page.locator(`[id="${await toggle.getAttribute("aria-controls")}"]`);
+            await panel.waitFor();
+            assert.equal(await panel.locator(".evidence-statement").textContent(), evidence.statement);
+            const links = await panel.locator(".evidence-source-link").evaluateAll((items) =>
+              items.map((item) => item.getAttribute("href")));
+            assert.deepEqual(links, evidence.supports.map(({ sourceKey }) =>
+              guide.sources.find(({ key }) => key === sourceKey).url));
+            assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+            await toggle.click();
+          }
         }
       }
       const count = [...privateGuides.values()].reduce((total, items) => total + items.length, 0);
