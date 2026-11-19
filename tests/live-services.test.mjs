@@ -6,9 +6,13 @@ import { MET_OFFICE_CODES, WEATHER_CONDITIONS, weatherCodeInfo } from "../src/we
 import { DEFAULT_WEATHER_CITY, WEATHER_CITIES, isWeatherCity } from "../src/weather/cities.ts";
 import {
   MET_OFFICE_ATTRIBUTION,
-  WEATHER_STEP_TOLERANCE_MS,
+  WEATHER_CLOCK_SKEW_MS,
+  WEATHER_MIN_GAP_MS,
+  WEATHER_NEXT_HOUR_DELAY_MS,
+  WEATHER_RETRY_MS,
   getWeather,
   isCurrentStep,
+  nextWeatherReadAt,
   isWeatherResponse,
 } from "../src/weather/api.ts";
 
@@ -30,8 +34,12 @@ test("Live Services copy: owner-approved headings and every string in all five l
     for (const value of [...Object.values(ui.weather.cities), ...Object.values(ui.weather.conditions)])
       assert.ok(filled(value), `${locale}: empty city or condition`);
     // Templates keep their argument and name the source and UK time.
-    assert.match(ui.weather.forecastFor("14:00"), /14:00/);
-    assert.match(ui.weather.forecastFor("14:00"), /Met Office/);
+    // The forecast label names the step's hour and when the forecast was issued, both in UK time.
+    const label = ui.weather.forecastFor("14:00", "11:00");
+    assert.match(label, /14:00/);
+    assert.match(label, /11:00/);
+    assert.ok(label.indexOf("14:00") < label.indexOf("11:00"), `${locale}: hour before issue time`);
+    assert.match(label, /Met Office/);
     assert.match(ui.weather.feelsLike("5°C"), /5°C/);
     assert.match(ui.weather.rainChance(30), /30%/);
     // Translated locales really are translated.
@@ -93,13 +101,36 @@ test("weather response validation: only the backend contract with Met Office att
   assert.equal(isWeatherResponse([]), false);
 });
 
-test("a forecast step is shown only while it is for the current hour", () => {
+test("a forecast step is shown only during its own hour (5-minute clock allowance), never a neighbouring hour", () => {
   const step = Date.parse("2026-11-19T08:00:00Z");
+  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step), true);
   assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step + 59 * 60_000), true);
-  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step + WEATHER_STEP_TOLERANCE_MS), true);
-  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step + WEATHER_STEP_TOLERANCE_MS + 1), false);
-  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step - WEATHER_STEP_TOLERANCE_MS - 1), false);
+  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step + 60 * 60_000 + WEATHER_CLOCK_SKEW_MS - 1), true);
+  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step + 60 * 60_000 + WEATHER_CLOCK_SKEW_MS), false);
+  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step + 90 * 60_000), false);
+  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step - WEATHER_CLOCK_SKEW_MS), true);
+  assert.equal(isCurrentStep("2026-11-19T08:00:00Z", step - WEATHER_CLOCK_SKEW_MS - 1), false);
   assert.equal(isCurrentStep("not a time", step), false);
+});
+
+test("a long-open page reads again just after the shown hour ends, 10 minutes after a failure, never within a minute", () => {
+  const read = Date.parse("2026-11-19T08:20:00Z");
+  // Shown 08:00 step: next read at 09:01, once.
+  assert.equal(nextWeatherReadAt("2026-11-19T08:00:00Z", read), Date.parse("2026-11-19T09:00:00Z") + WEATHER_NEXT_HOUR_DELAY_MS);
+  // Failed or unusable read: 10 minutes later (the backend backs off for as long).
+  assert.equal(nextWeatherReadAt(null, read), read + WEATHER_RETRY_MS);
+  assert.equal(nextWeatherReadAt("garbage", read), read + WEATHER_RETRY_MS);
+  // A step whose hour is already over (clock difference) does not cause a burst of reads.
+  assert.equal(nextWeatherReadAt("2026-11-19T06:00:00Z", read), read + WEATHER_MIN_GAP_MS);
+  // Reads in one day of an open, visible tab: at most one an hour (plus the first).
+  let at = Date.parse("2026-11-19T00:10:00Z");
+  let count = 1;
+  while (at < Date.parse("2026-11-20T00:10:00Z")) {
+    const hour = new Date(Math.floor(at / 3_600_000) * 3_600_000).toISOString().replace(/\.\d{3}/, "");
+    at = nextWeatherReadAt(hour, at);
+    count += 1;
+  }
+  assert.ok(count <= 26, `${count} reads a day`);
 });
 
 test("getWeather: one GET to the backend; errors and mismatched cities are failures", async (t) => {

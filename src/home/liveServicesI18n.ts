@@ -18,8 +18,8 @@ export type LiveServicesUi = {
     city: string;
     checking: string;
     unavailable: string;
-    /** "Met Office forecast for 14:00 (UK time)". */
-    forecastFor: (time: string) => string;
+    /** "Met Office forecast for 14:00, issued 11:00 (UK time)": the step's hour and its model run. */
+    forecastFor: (time: string, issued: string) => string;
     feelsLike: (temperature: string) => string;
     rainChance: (percent: number) => string;
     cities: Record<WeatherCity, string>;
@@ -39,7 +39,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       city: "城市",
       checking: "正在获取天气…",
       unavailable: "天气暂时无法获取",
-      forecastFor: (time) => `Met Office ${time}（英国时间）预报`,
+      forecastFor: (time, issued) => `Met Office ${time} 预报，${issued} 发布（英国时间）`,
       feelsLike: (temperature) => `体感 ${temperature}`,
       rainChance: (percent) => `降水概率 ${percent}%`,
       cities: {
@@ -90,7 +90,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       city: "城市",
       checking: "正在取得天氣…",
       unavailable: "天氣暫時無法取得",
-      forecastFor: (time) => `Met Office ${time}（英國時間）預報`,
+      forecastFor: (time, issued) => `Met Office ${time} 預報，${issued} 發布（英國時間）`,
       feelsLike: (temperature) => `體感 ${temperature}`,
       rainChance: (percent) => `降雨機率 ${percent}%`,
       cities: {
@@ -141,7 +141,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       city: "City",
       checking: "Checking the weather…",
       unavailable: "Weather is unavailable right now",
-      forecastFor: (time) => `Met Office forecast for ${time} (UK time)`,
+      forecastFor: (time, issued) => `Met Office forecast for ${time}, issued ${issued} (UK time)`,
       feelsLike: (temperature) => `Feels like ${temperature}`,
       rainChance: (percent) => `${percent}% chance of rain`,
       cities: {
@@ -192,7 +192,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       city: "شہر",
       checking: "موسم کی معلومات حاصل کی جا رہی ہیں…",
       unavailable: "موسم کی معلومات ابھی دستیاب نہیں",
-      forecastFor: (time) => `Met Office کی پیشگوئی، ${time} (برطانوی وقت)`,
+      forecastFor: (time, issued) => `Met Office کی پیشگوئی ${time} کے لیے، ${issued} پر جاری (برطانوی وقت)`,
       feelsLike: (temperature) => `محسوس ہونے والا درجہ ${temperature}`,
       rainChance: (percent) => `بارش کا امکان ${percent}%`,
       cities: {
@@ -243,7 +243,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       city: "शहर",
       checking: "मौसम की जानकारी ली जा रही है…",
       unavailable: "मौसम की जानकारी अभी उपलब्ध नहीं",
-      forecastFor: (time) => `Met Office पूर्वानुमान, ${time} (ब्रिटेन का समय)`,
+      forecastFor: (time, issued) => `Met Office पूर्वानुमान ${time} के लिए, ${issued} पर जारी (ब्रिटेन का समय)`,
       feelsLike: (temperature) => `महसूस ${temperature}`,
       rainChance: (percent) => `बारिश की संभावना ${percent}%`,
       cities: {

@@ -21,7 +21,7 @@ import { readStoredCity, storeCity, WEATHER_CITIES, isWeatherCity } from "../../
 import type { WeatherCity } from "../../weather/cities";
 import { weatherCodeInfo } from "../../weather/codes";
 import type { WeatherCodeInfo } from "../../weather/codes";
-import { getWeather, isCurrentStep, MET_OFFICE_ATTRIBUTION } from "../../weather/api";
+import { getWeather, isCurrentStep, MET_OFFICE_ATTRIBUTION, nextWeatherReadAt } from "../../weather/api";
 import type { WeatherResponse } from "../../weather/api";
 
 type WeatherState =
@@ -29,29 +29,55 @@ type WeatherState =
   | { status: "unavailable" }
   | { status: "ready"; data: WeatherResponse };
 
+type WeatherResult = { city: WeatherCity; state: WeatherState; readAt: number };
+
 /**
- * One read of /api/weather/current for the chosen city, after the page has
- * rendered (the prerendered page never depends on it). The backend serves a
- * stored Met Office forecast: a page view never causes more than one
- * Met Office request per city per hour.
+ * Reads /api/weather/current for the chosen city after the page has rendered
+ * (the prerendered page never depends on it). A page left open reads again
+ * only when the shown hour has ended, or 10 minutes after a failed read, and
+ * only while the tab is visible: a hidden tab waits and reads when it is shown
+ * again. No polling: at most one read per hour while things work. The backend
+ * serves stored Met Office forecasts, so reads never add Met Office calls.
  */
 function useWeather(city: WeatherCity): WeatherState {
   // The result is kept with the city it belongs to, so a new choice reads as "loading" until its answer arrives.
-  const [result, setResult] = useState<{ city: WeatherCity; state: WeatherState } | null>(null);
+  const [result, setResult] = useState<WeatherResult | null>(null);
+  const [reads, setReads] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
     const timeout = window.setTimeout(() => controller.abort(), 10_000);
+    const done = (state: WeatherState) => { if (active) setResult({ city, state, readAt: Date.now() }); };
     getWeather(city, controller.signal)
-      .then((data) => { if (active) setResult({ city, state: { status: "ready", data } }); })
-      .catch(() => { if (active) setResult({ city, state: { status: "unavailable" } }); })
+      .then((data) => done({ status: "ready", data }))
+      .catch(() => done({ status: "unavailable" }))
       .finally(() => window.clearTimeout(timeout));
     return () => {
       active = false;
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [city]);
+  }, [city, reads]);
+
+  useEffect(() => {
+    if (result?.city !== city) return;
+    const due = nextWeatherReadAt(result.state.status === "ready" ? result.state.data.forecastTime : null, result.readAt);
+    let timer: number | undefined;
+    const check = () => {
+      window.clearTimeout(timer);
+      if (document.visibilityState !== "visible") return; // read when the tab is shown again
+      const wait = due - Date.now();
+      if (wait <= 0) setReads((count) => count + 1);
+      else timer = window.setTimeout(check, Math.min(wait, 2_147_483_647));
+    };
+    check();
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [result, city]);
+
   return result?.city === city ? result.state : { status: "loading" };
 }
 
@@ -109,9 +135,10 @@ function ukHour(instant: string): string {
 
 /**
  * Weather tile of the Live Services row: the Met Office forecast for the
- * current hour at one of the fixed cities, with the forecast time and the
- * attribution the Met Office licence requires. A step that is no longer for
- * the current hour is not shown.
+ * current hour at one of the fixed cities, labelled with the hour it is for
+ * and when that forecast was issued (it is a forecast, not an observation),
+ * and the attribution the Met Office licence requires. A step that is no
+ * longer for the current hour is not shown.
  */
 export function WeatherShortcut({ locale }: { locale: GuideLocale }) {
   const ui = LIVE_SERVICES_UI[locale].weather;
@@ -154,7 +181,9 @@ export function WeatherShortcut({ locale }: { locale: GuideLocale }) {
           </span>
         )}
         <span className="transport-updated">
-          <time dateTime={current.forecastTime}>{ui.forecastFor(ukHour(current.forecastTime))}</time>
+          <time dateTime={current.forecastTime}>
+            {ui.forecastFor(ukHour(current.forecastTime), ukHour(current.modelRunAt))}
+          </time>
         </span>
       </span>
     );

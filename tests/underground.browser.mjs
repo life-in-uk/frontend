@@ -93,6 +93,11 @@ async function newPage(
     await context.route("**/api/guides", (route) =>
       route.fulfill({ json: [] }),
     );
+    // The homepage Weather tile: an unusable answer shows "unavailable" without a console error,
+    // whatever backend the dev server proxies /api/weather to.
+    await context.route("**/api/weather/current?*", (route) =>
+      route.fulfill({ json: {} }),
+    );
     await context.route("**/api/bank-holidays", (route) =>
       route.fulfill({
         json: {

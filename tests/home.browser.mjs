@@ -411,11 +411,11 @@ try {
   if (!REAL) {
     // Weather tile: Met Office step for the current hour, city choice remembered, every locale, Urdu RTL.
     const WEATHER = {
-      "zh-CN": { condition: "多云", forecast: /^Met Office \d\d:00（英国时间）预报$/, city: "爱丁堡" },
-      "zh-TW": { condition: "多雲", forecast: /^Met Office \d\d:00（英國時間）預報$/, city: "愛丁堡" },
-      en: { condition: "Cloudy", forecast: /^Met Office forecast for \d\d:00 \(UK time\)$/, city: "Edinburgh" },
-      ur: { condition: "ابر آلود", forecast: /^Met Office کی پیشگوئی، \d\d:00 \(برطانوی وقت\)$/, city: "ایڈنبرا" },
-      hi: { condition: "बादल", forecast: /^Met Office पूर्वानुमान, \d\d:00 \(ब्रिटेन का समय\)$/, city: "एडिनबरा" },
+      "zh-CN": { condition: "多云", forecast: /^Met Office \d\d:00 预报，\d\d:00 发布（英国时间）$/, city: "爱丁堡" },
+      "zh-TW": { condition: "多雲", forecast: /^Met Office \d\d:00 預報，\d\d:00 發布（英國時間）$/, city: "愛丁堡" },
+      en: { condition: "Cloudy", forecast: /^Met Office forecast for \d\d:00, issued \d\d:00 \(UK time\)$/, city: "Edinburgh" },
+      ur: { condition: "ابر آلود", forecast: /^Met Office کی پیشگوئی \d\d:00 کے لیے، \d\d:00 پر جاری \(برطانوی وقت\)$/, city: "ایڈنبرا" },
+      hi: { condition: "बादल", forecast: /^Met Office पूर्वानुमान \d\d:00 के लिए, \d\d:00 पर जारी \(ब्रिटेन का समय\)$/, city: "एडिनबरा" },
     };
     for (const [locale, text] of Object.entries(WEATHER)) {
       const { p, context, errors, finished } = await page(390, { weather: (city) => weatherFor(city), height: 844 });
@@ -464,6 +464,65 @@ try {
       assert.equal(await p.locator(".weather-temp").innerText(), "7°C");
       await context.close();
     }
+    // A long-open tab: the label names the step's hour and its issue time; the tile reads again just after
+    // the hour ends, only while visible (a hidden tab reads when shown again), and 10 minutes after a failure.
+    {
+      const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}/, "");
+      let fail = false;
+      const served = [];
+      const { p, context, errors, finished } = await page(1280);
+      await p.route("**/api/weather/current?*", async (route) => {
+        // The step for the page's current hour, issued three hours before it.
+        const now = await p.evaluate(() => Date.now());
+        const hour = Math.floor(now / 3_600_000) * 3_600_000;
+        served.push(iso(hour));
+        if (fail) return route.fulfill({ status: 502, json: { code: "WEATHER_UNAVAILABLE" } });
+        return route.fulfill({ json: { ...weatherFor("london"), forecastTime: iso(hour), modelRunAt: iso(hour - 3 * 3_600_000), fetchedAt: iso(now) } });
+      });
+      const reads = () => finished.filter((path) => path === "/api/weather/current").length;
+      // Request events reach the test a moment after the page updates: wait (real time) for the expected count.
+      const readsReach = async (n) => {
+        for (let i = 0; i < 100 && reads() < n; i++) await new Promise((resolve) => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        assert.equal(reads(), n, `weather reads: ${JSON.stringify(served)}`);
+      };
+      const setVisible = (visible) => p.evaluate((v) => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (v ? "visible" : "hidden") });
+        document.dispatchEvent(new Event("visibilitychange"));
+      }, visible);
+      await p.clock.install({ time: new Date("2026-11-19T08:20:00Z") });
+      await p.goto(`${baseURL}/en/`);
+      const tile = p.locator(".weather-item");
+      await tile.locator('.transport-status[data-state="fresh"]').waitFor();
+      assert.equal(await tile.locator(".transport-updated").innerText(), "Met Office forecast for 08:00, issued 05:00 (UK time)");
+      assert.equal(await tile.locator(".transport-updated time").getAttribute("datetime"), "2026-11-19T08:00:00Z");
+      await readsReach(1);
+      await p.clock.fastForward("30:00"); // 08:50: still the 08:00 hour, no read
+      await readsReach(1);
+      await setVisible(false);
+      await p.clock.fastForward("40:00"); // 09:30, hidden: the 08:00 step is no longer shown and nothing is read
+      await tile.locator('.transport-status[data-state="unavailable"]').waitFor();
+      await readsReach(1);
+      await setVisible(true); // shown again: one read, the 09:00 step
+      await p.waitForFunction(() => document.querySelector(".weather-item time")?.getAttribute("datetime") === "2026-11-19T09:00:00Z");
+      assert.equal(await tile.locator(".transport-updated").innerText(), "Met Office forecast for 09:00, issued 06:00 (UK time)");
+      await readsReach(2);
+      fail = true;
+      await p.clock.fastForward("31:00"); // 10:01: the hour ended; the read fails
+      await tile.locator('.transport-status[data-state="unavailable"]').waitFor();
+      await readsReach(3);
+      await p.clock.fastForward("05:00");
+      await readsReach(3); // no retry within 10 minutes of a failure
+      fail = false;
+      await p.clock.fastForward("05:30"); // 10 minutes after the failure: one retry
+      await tile.locator('.transport-status[data-state="fresh"]').waitFor();
+      await readsReach(4);
+      // In development React StrictMode starts and aborts one extra first request; completed reads are counted above.
+      assert.deepEqual(served.filter((hour, i) => i === 0 || hour !== "2026-11-19T08:00:00Z"),
+        ["2026-11-19T08:00:00Z", "2026-11-19T09:00:00Z", "2026-11-19T10:00:00Z", "2026-11-19T10:00:00Z"]);
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
     // Live data never moves the layout below the section: same height loading and loaded.
     {
       const { p, context } = await page(390, { weather: (city) => weatherFor(city), tube: underground(3), height: 844 });
@@ -479,7 +538,7 @@ try {
       assert.ok(shift < 0.1, `layout shift ${shift}`);
       await context.close();
     }
-    console.log("PASS Live Services weather: current-hour Met Office step, city choice remembered × 5 locales, Urdu RTL; old step hidden; CLS < 0.1");
+    console.log("PASS Live Services weather: current-hour Met Office step with issue time, city choice remembered × 5 locales, Urdu RTL; old step hidden; long-open tab re-reads hourly, only when visible, 10 min after failure; CLS < 0.1");
   }
 
   // Responsive: no horizontal overflow, usable touch targets, screenshots.
