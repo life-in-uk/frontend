@@ -23,9 +23,15 @@ export const EDUCATION_GUIDE_DOMAIN: GuideDomain = {
   relatedGuides: {
     [EDUCATION_ARRIVALS]: ["in-year-school-admissions-england", "joining-school-during-gcses-england", "sixth-form-or-fe-college-england"],
     "uk-school-stages-and-year-groups": [EDUCATION_ARRIVALS, "in-year-school-admissions-england"],
-    "in-year-school-admissions-england": [EDUCATION_ARRIVALS, "joining-school-during-gcses-england"],
+    "in-year-school-admissions-england": [EDUCATION_ARRIVALS, "joining-school-during-gcses-england", "choosing-a-school-and-admission-appeals-england"],
     "joining-school-during-gcses-england": ["in-year-school-admissions-england", "sixth-form-or-fe-college-england"],
     "sixth-form-or-fe-college-england": ["joining-school-during-gcses-england", EDUCATION_ARRIVALS],
+    "primary-school-reception-applications-england": ["choosing-a-school-and-admission-appeals-england", "in-year-school-admissions-england", "school-meals-attendance-and-transport-england"],
+    "secondary-school-year-7-applications-england": ["choosing-a-school-and-admission-appeals-england", "in-year-school-admissions-england", "english-language-support-at-school-england"],
+    "choosing-a-school-and-admission-appeals-england": ["primary-school-reception-applications-england", "secondary-school-year-7-applications-england", "in-year-school-admissions-england"],
+    "english-language-support-at-school-england": [EDUCATION_ARRIVALS, "send-school-support-england", "joining-school-during-gcses-england"],
+    "send-school-support-england": ["english-language-support-at-school-england", "in-year-school-admissions-england", "school-meals-attendance-and-transport-england"],
+    "school-meals-attendance-and-transport-england": [EDUCATION_ARRIVALS, "primary-school-reception-applications-england", "send-school-support-england"],
   },
 };
 

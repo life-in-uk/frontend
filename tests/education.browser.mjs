@@ -10,12 +10,16 @@ const baseURL = process.env.FRONTEND_URL || "http://127.0.0.1:5179";
 const university = "university-applications-student-visas";
 const timeline = "uk-undergraduate-application-timeline";
 const stages = "uk-school-stages-and-year-groups";
-const artifactRoot = process.env.EDUCATION_WAVE1_ARTIFACTS;
+const artifacts = [
+  [process.env.EDUCATION_WAVE1_ARTIFACTS, 25],
+  [process.env.EDUCATION_WAVE2_ARTIFACTS, 30],
+];
 const privateGuides = new Map();
-if (artifactRoot) {
+for (const [artifactRoot, expected] of artifacts) {
+  if (!artifactRoot) continue;
   assert.equal(new URL(baseURL).hostname, "127.0.0.1", "Private preview requires a loopback frontend");
   const manifest = JSON.parse(readFileSync(join(artifactRoot, "MANIFEST.json"), "utf8"));
-  assert.equal(manifest.records.length, 25);
+  assert.equal(manifest.records.length, expected);
   for (const { locale, path } of manifest.records) {
     const draft = JSON.parse(readFileSync(join(artifactRoot, path), "utf8"));
     assert.equal(draft.status, "DRAFT");
@@ -77,9 +81,18 @@ try {
         }
       }
     }
-    if (artifactRoot) {
+    if (privateGuides.size > 0) {
       showPrivateFixtures = true;
       for (const [locale, items] of privateGuides) {
+        if (process.env.EDUCATION_WAVE2_ARTIFACTS) {
+          await page.goto(`${baseURL}/${locale}/education`);
+          await page.getByRole("heading", { level: 2, name: EDUCATION_COPY[locale].support }).waitFor();
+          const support = page.locator("section[aria-labelledby=education-support]");
+          const link = support.locator(`a[href="/${locale}/education/english-language-support-at-school-england"]`);
+          await link.click();
+          await page.locator(`main a[href="/${locale}/education/send-school-support-england"]`).waitFor();
+          assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        }
         for (const guide of items) {
           const url = `${baseURL}/${locale}/education/${guide.slug}`;
           await page.goto(url);
@@ -90,7 +103,8 @@ try {
           assert.equal(await page.locator("main .evidence-toggle").count(), guide.evidence.length);
         }
       }
-      console.log(`Education: 25 private articles rendered at ${width}px through browser-only API fixtures.`);
+      const count = [...privateGuides.values()].reduce((total, items) => total + items.length, 0);
+      console.log(`Education: ${count} private articles rendered at ${width}px through browser-only API fixtures.`);
     }
     await page.close();
     console.log(`Education: five locales at ${width}px, arrival priority, University visibility, metadata and RTL passed.`);
