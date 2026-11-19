@@ -381,6 +381,16 @@ test("Education adds only published locale pages and leads with overseas arrival
     assert.ok(urHub.includes(`href="/ur/${university}"`));
     const hiHub = readFileSync(join(dir, "hi", school, "index.html"), "utf8");
     assert.ok(!hiHub.includes(`href="/hi/${university}"`));
+    const universityTerms = {
+      "zh-CN": /大学/, "zh-TW": /大學/, en: /university/i,
+      ur: /یونیورسٹی/, hi: /विश्वविद्यालय/,
+    };
+    for (const locale of locales) {
+      const hubHtml = readFileSync(join(dir, locale, school, "index.html"), "utf8");
+      const description = /<meta name="description" content="([^"]+)"/.exec(hubHtml)?.[1];
+      assert.ok(description, `missing Education description for ${locale}`);
+      assert.doesNotMatch(description, universityTerms[locale]);
+    }
     const host = createStaticHost(dir);
     await new Promise((resolve) => host.listen(0, "127.0.0.1", resolve));
     try {

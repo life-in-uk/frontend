@@ -102,7 +102,7 @@ try {
           assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
           const toggles = page.locator("main .evidence-toggle");
           assert.equal(await toggles.count(), guide.evidence.length);
-          const reviewedKeys = new Set(["wales", "exam-years", "start-options", "attendance", "meal-types"]);
+          const reviewedKeys = new Set(["wales", "exam-years", "start-options", "attendance", "meal-types", "appeal", "inspection", "progression", "school-support", "moving"]);
           for (const [index, evidence] of guide.evidence.entries()) {
             if (!reviewedKeys.has(evidence.key)) continue;
             const toggle = toggles.nth(index);
