@@ -14,7 +14,8 @@
 
 import { isSafeExternalUrl } from "../guides/api.ts";
 import type { GuideDetail, GuideMetadata } from "../guides/api.ts";
-import { domainGuides, GUIDE_DOMAINS } from "../guides/domains.ts";
+import { EDUCATION_COPY, educationSections } from "../guides/education.ts";
+import { UNIVERSITY_CATEGORY, domainGuides, GUIDE_DOMAINS } from "../guides/domains.ts";
 import type { GuideDomain, GuideDomainId } from "../guides/domains.ts";
 import { formatUkDateFor } from "../guides/format.ts";
 import {
@@ -55,7 +56,7 @@ import { familyVisaTopicPath } from "../router.ts";
 import type { FamilyVisaTopicId } from "../router.ts";
 
 /** Hubs that are crawlable topic pages, in navigation order. */
-export const STATIC_HUB_DOMAINS: readonly GuideDomainId[] = ["family-visa", "work-visa", "settlement", "renting", "health", "money", "university-applications-student-visas"];
+export const STATIC_HUB_DOMAINS: readonly GuideDomainId[] = ["family-visa", "work-visa", "settlement", "renting", "health", "money", "university-applications-student-visas", "education"];
 
 type Localized = Readonly<Record<GuideLocale, string>>;
 
@@ -406,6 +407,16 @@ function renderRentingSteps(locale: GuideLocale, live: ReadonlySet<string>, titl
   return `<section id="renting-journey-title" class="static-journey-steps"><h2>${escapeHtml(RENTING_COPY.journeyTitle[locale])}</h2><ol>${RENTING_STEPS.map(item).join("")}</ol>${later}</section>`;
 }
 
+function renderEducationSections(guides: readonly GuideMetadata[], locale: GuideLocale,
+  published: readonly GuideMetadata[], domain: GuideDomain): string {
+  const sections = educationSections(guides).map(({ id, guides: items }) =>
+    `<section><h2>${escapeHtml(EDUCATION_COPY[locale][id])}</h2>${renderGuideList(items, locale, domain, 3)}</section>`);
+  if (published.some((guide) => guide.category === UNIVERSITY_CATEGORY)) {
+    sections.push(`<p><a href="${guideRoutePath(locale, UNIVERSITY_CATEGORY)}">${escapeHtml(GUIDE_UI[locale].domain[UNIVERSITY_CATEGORY])}</a></p>`);
+  }
+  return sections.join("");
+}
+
 /** A topic hub as a static page: what the section covers and its published Guides. */
 export function staticHubPage(input: StaticHubInput): StaticPage | null {
   const { origin, locale } = input;
@@ -430,7 +441,9 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
     domain.id === "money" ? renderMoneyAnswers(locale, input.details ?? []) : "",
     cluster
       ? renderClusterGroups(clusterGroupsFor(domain.id, locale, input.published, CLUSTER_COPY.other[locale]), locale) + renderOfficialSources(sectionDetails, locale)
-      : renderGuideList(guides, locale, domain),
+      : domain.id === "education"
+        ? renderEducationSections(guides, locale, input.published, domain)
+        : renderGuideList(guides, locale, domain),
     `</main>`,
   ].join("\n");
   const head: PageHead = {

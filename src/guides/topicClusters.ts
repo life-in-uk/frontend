@@ -189,6 +189,7 @@ const m = (slug: string): ClusterGuideRef => ({ slug, domain: "money" });
  * both ways.
  */
 export const CROSS_SECTION_RELATED: Readonly<Record<string, readonly ClusterGuideRef[]>> = {
+  "sixth-form-or-fe-college-england": [{ slug: "uk-undergraduate-application-timeline", domain: "university-applications-student-visas" }],
   "partner-visa-application-process": [st("settlement-partner-ilr"), h("nhs-ihs-costs-england")],
   "settlement-partner-ilr": [f("partner-visa-routes-overview")],
   "skilled-worker-overview": [h("nhs-ihs-costs-england")],

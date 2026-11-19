@@ -35,8 +35,7 @@ function App() {
   const section =
     route.name === "home" || route.name === "localized-home"
       ? "home"
-      : (route.name === "hub" || route.name === "guide" || route.name === "localized-hub" || route.name === "localized-guide") &&
-          (route.domain === "health" || route.domain === "money" || route.domain === "family-visa" || route.domain === "work-visa" || route.domain === "settlement" || route.domain === "renting" || route.domain === UNIVERSITY_CATEGORY)
+      : (route.name === "hub" || route.name === "guide" || route.name === "localized-hub" || route.name === "localized-guide")
         ? route.domain
         : route.name === "travel"
           ? "travel"
@@ -51,18 +50,20 @@ function App() {
   const rentingHub =
     hubDomain === "renting" || (route.name === "localized-hub" && route.domain === "renting");
   const activeLocale = routeLocale(route);
-  const [universityLocale, setUniversityLocale] = useState<GuideLocale | null>(null);
+  const [publishedSections, setPublishedSections] = useState<{ locale: GuideLocale; categories: Set<string> }>();
   useEffect(() => {
     const controller = new AbortController();
     getLocalizedGuides(activeLocale, controller.signal)
       .then((guides) => {
         if (!controller.signal.aborted)
-          setUniversityLocale(guides.some((guide) => guide.category === UNIVERSITY_CATEGORY) ? activeLocale : null);
+          setPublishedSections({ locale: activeLocale, categories: new Set(guides.map((guide) => guide.category)) });
       })
-      .catch(() => { if (!controller.signal.aborted) setUniversityLocale(null); });
+      .catch(() => { if (!controller.signal.aborted) setPublishedSections(undefined); });
     return () => controller.abort();
   }, [activeLocale]);
-  const universityAvailable = universityLocale === activeLocale;
+  const categories = publishedSections?.locale === activeLocale ? publishedSections.categories : undefined;
+  const universityAvailable = categories?.has(UNIVERSITY_CATEGORY) ?? false;
+  const educationAvailable = categories?.has("education") ?? false;
   // Pages with their own language selector (hubs, Guides, the Guide index)
   // don't get a second one in the header.
   const headerSwitch =
@@ -123,7 +124,7 @@ function App() {
       <a className="skip-link" href="#main">
         {SITE_UI[activeLocale].skipLink}
       </a>
-      <SiteHeader current={section} locale={activeLocale} switchPath={headerSwitch} universityAvailable={universityAvailable} />
+      <SiteHeader current={section} locale={activeLocale} switchPath={headerSwitch} universityAvailable={universityAvailable} educationAvailable={educationAvailable} />
       {/* Only in-app navigation to a page whose chunk is not loaded yet shows the
           fallback; main.tsx loads the first page's chunk before rendering. Keyed
           by path so the previous page unmounts at once (its head tags and other
@@ -138,11 +139,11 @@ function App() {
         {hubDomain === "money" && <MoneyHub />}
         {hubDomain === "work-visa" && <WorkVisaHub />}
         {hubDomain === "settlement" && <SettlementHub />}
-        {(route.name === "hub" || route.name === "localized-hub") && route.domain === UNIVERSITY_CATEGORY && (
-          <LocalizedGuideIndex locale={activeLocale} domain={UNIVERSITY_CATEGORY} />
+        {(route.name === "hub" || route.name === "localized-hub") && (route.domain === UNIVERSITY_CATEGORY || route.domain === "education") && (
+          <LocalizedGuideIndex locale={activeLocale} domain={route.domain} />
         )}
-        {route.name === "guide" && route.domain === UNIVERSITY_CATEGORY && (
-          <GuidePage key={route.slug} domain={GUIDE_DOMAINS[UNIVERSITY_CATEGORY]} slug={route.slug} />
+        {route.name === "guide" && (route.domain === UNIVERSITY_CATEGORY || route.domain === "education") && (
+          <GuidePage key={route.slug} domain={GUIDE_DOMAINS[route.domain]} slug={route.slug} />
         )}
         {hubDomain === "renting" && <RentingHub />}
         {route.name === "guide" && route.domain === "health" && (
@@ -183,7 +184,7 @@ function App() {
         {route.name === "travel" && <TravelPage key={activeLocale} locale={activeLocale} />}
         {route.name === "not-found" && <NotFoundPage locale={activeLocale} />}
       </Suspense>
-      <SiteFooter locale={activeLocale} universityAvailable={universityAvailable} />
+      <SiteFooter locale={activeLocale} universityAvailable={universityAvailable} educationAvailable={educationAvailable} />
     </>
   );
 }

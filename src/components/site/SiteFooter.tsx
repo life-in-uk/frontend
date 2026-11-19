@@ -5,7 +5,7 @@ import { SITE_UI } from "../../guides/siteUi";
 import "./Site.css";
 
 /** Shared site footer: section navigation, About and the independence note. */
-export function SiteFooter({ locale = "zh-CN", universityAvailable = false }: { locale?: GuideLocale; universityAvailable?: boolean }) {
+export function SiteFooter({ locale = "zh-CN", universityAvailable = false, educationAvailable = false }: { locale?: GuideLocale; universityAvailable?: boolean; educationAvailable?: boolean }) {
   const ui = SITE_UI[locale];
   const home = guideHomePath(locale);
   const about = home === "/" ? "/#about" : `${home}#about`;
@@ -24,7 +24,7 @@ export function SiteFooter({ locale = "zh-CN", universityAvailable = false }: { 
           <div>
             <h2>{ui.footer.topics}</h2>
             <ul>
-              {availableHomeTopics(universityAvailable).map((topic) => (
+              {availableHomeTopics(universityAvailable, educationAvailable).map((topic) => (
                 <li key={topic.id}>
                   {topicHref(topic, locale) ? (
                     <Link to={topicHref(topic, locale)!}>{ui.topics[topic.id]?.title ?? topic.title}</Link>

@@ -14,9 +14,11 @@ import {
   RENTING_GUIDE_DOMAIN,
   SETTLEMENT_GUIDE_DOMAIN,
   WORK_VISA_GUIDE_DOMAIN,
+  EDUCATION_GUIDE_DOMAIN,
   UNIVERSITY_CATEGORY,
   UNIVERSITY_GUIDE_DOMAIN,
 } from "../guides/domains.ts";
+import { EDUCATION_COPY } from "../guides/education.ts";
 import { UNIVERSITY_COPY, guideRoutePath, type GuideLocale } from "../guides/locales.ts";
 
 export type TopicTone =
@@ -133,8 +135,8 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   {
     id: "education",
     navGroup: "health-education",
-    title: "教育与学习",
-    description: "学校申请、大学与学生生活等内容正在规划中。",
+    ...EDUCATION_COPY["zh-CN"],
+    domain: EDUCATION_GUIDE_DOMAIN,
     tone: "education",
     icon: "graduation",
   },
@@ -157,9 +159,10 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
 ];
 
-/** Keep the university link hidden until this locale has published content. */
-export function availableHomeTopics(universityAvailable: boolean): readonly HomeTopic[] {
-  return HOME_TOPICS.filter((topic) => topic.id !== UNIVERSITY_CATEGORY || universityAvailable);
+/** Link Education and University only where this locale has published Guides. */
+export function availableHomeTopics(universityAvailable: boolean, educationAvailable = false): readonly HomeTopic[] {
+  return HOME_TOPICS.filter((topic) => topic.id !== UNIVERSITY_CATEGORY || universityAvailable)
+    .map((topic) => topic.id === "education" && !educationAvailable ? { ...topic, domain: undefined } : topic);
 }
 
 /** Topics with a live section: the only ones linked, counted or searched. */

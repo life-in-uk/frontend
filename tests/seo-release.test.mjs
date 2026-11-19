@@ -340,3 +340,56 @@ test("university Guides add five-language pages and only published locale hubs",
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("Education adds only published locale pages and leads with overseas arrivals", async () => {
+  const school = "education";
+  const university = "university-applications-student-visas";
+  const arrivals = "joining-school-after-moving-to-uk";
+  const stages = "uk-school-stages-and-year-groups";
+  const locales = ["zh-CN", "zh-TW", "en", "ur", "hi"];
+  const waveOne = [stages, "joining-school-during-gcses-england", arrivals,
+    "in-year-school-admissions-england", "sixth-form-or-fe-college-england"];
+  const existing = Object.fromEntries(locales.map((locale) => [locale,
+    [...(BASE[locale] ?? []), ["uk-undergraduate-application-timeline", university]]]));
+  const withSchool = Object.fromEntries(locales.map((locale) => [locale,
+    [...existing[locale], ...waveOne.map((slug) => [slug, school])]]));
+  const full = expectedPages(inventory(withSchool));
+  assert.equal(full.filter((page) => page.domainId === school).length, 30);
+  assert.deepEqual(full.filter((page) => page.domainId !== school), expectedPages(inventory(existing)));
+
+  // Simulate an absent Guide locale and an absent university section in Hindi.
+  withSchool.hi = withSchool.hi.filter(([slug, category]) => slug !== arrivals && category !== university);
+  const inv = inventory(withSchool);
+  const pages = expectedPages(inv);
+  const path = `/ur/${school}/${arrivals}`;
+  const page = pages.find((item) => item.path === path);
+  assert.deepEqual(page.alternates.map(({ locale }) => locale), ["zh-CN", "zh-TW", "en", "ur"]);
+  const { availableHomeTopics, topicHref } = await import("../src/home/topics.ts");
+  const educationLink = (available) => topicHref(availableHomeTopics(false, available).find(({ id }) => id === school), "ur");
+  assert.equal(educationLink(false), undefined);
+  assert.equal(educationLink(true), "/ur/education");
+
+  const dir = await build(inv);
+  try {
+    assert.deepEqual((await validate(dir, inv)).errors, []);
+    const html = readFileSync(join(dir, path, "index.html"), "utf8");
+    assert.match(html, /<html lang="ur" dir="rtl"/);
+    assert.ok(html.includes(`rel="canonical" href="${ORIGIN}${path}"`));
+    assert.match(html, /hreflang="en-GB"/);
+    const urHub = readFileSync(join(dir, "ur", school, "index.html"), "utf8").split('<main id="main"')[1];
+    assert.ok(urHub.indexOf(path) < urHub.indexOf(`/ur/${school}/${stages}`));
+    assert.ok(urHub.includes(`href="/ur/${university}"`));
+    const hiHub = readFileSync(join(dir, "hi", school, "index.html"), "utf8");
+    assert.ok(!hiHub.includes(`href="/hi/${university}"`));
+    const host = createStaticHost(dir);
+    await new Promise((resolve) => host.listen(0, "127.0.0.1", resolve));
+    try {
+      const res = await fetch(`http://127.0.0.1:${host.address().port}/hi/${school}/${arrivals}`);
+      assert.equal(res.status, 404);
+    } finally {
+      await new Promise((resolve) => host.close(resolve));
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

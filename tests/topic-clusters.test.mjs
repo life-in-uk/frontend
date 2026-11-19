@@ -21,13 +21,14 @@ const FAMILY_VISA_SLUGS = [
   "visiting-family-uk-visitor-visa-eta",
 ];
 const SECTION_SLUGS = {
+  education: Object.keys(GUIDE_DOMAINS.education.relatedGuides),
   renting: Object.values(GUIDE_DOMAINS.renting.titleReferences),
   settlement: Object.values(GUIDE_DOMAINS.settlement.titleReferences),
   "family-visa": FAMILY_VISA_SLUGS,
   "work-visa": Object.values(GUIDE_DOMAINS["work-visa"].titleReferences),
 };
 // Cross-section targets outside the curated sections: published Guides only.
-const OTHER_TARGETS = { health: ["nhs-ihs-costs-england", "visiting-parents-healthcare-england"], money: ["open-uk-bank-account-new-arrival", "national-insurance-number-newcomers"] };
+const OTHER_TARGETS = { "university-applications-student-visas": ["uk-undergraduate-application-timeline"], health: ["nhs-ihs-costs-england", "visiting-parents-healthcare-england"], money: ["open-uk-bank-account-new-arrival", "national-insurance-number-newcomers"] };
 const TARGETS = { ...SECTION_SLUGS, ...OTHER_TARGETS };
 const KNOWN = new Set(Object.values(TARGETS).flat());
 const meta = (slug, category) => ({ slug, category, title: `${slug} title`, summary: "s", publishedAt: "", updatedAt: "" });

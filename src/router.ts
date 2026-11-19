@@ -51,6 +51,7 @@ const DOMAIN_BASES = new Map<string, GuideDomainId>([
   ["settlement", "settlement"],
   ["renting", "renting"],
   [UNIVERSITY_CATEGORY, UNIVERSITY_CATEGORY],
+  ["education", "education"],
 ]);
 
 export function matchRoute(pathname: string): Route {
