@@ -628,6 +628,7 @@ a.topic-card-body:hover {
   align-self: center;
 }
 .weather-item {
+  position: relative;
   cursor: default;
 }
 .weather-item:hover {
@@ -639,20 +640,156 @@ a.topic-card-body:hover {
   flex-wrap: wrap;
   gap: 4px 8px;
 }
+.weather-picker {
+  position: relative;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  max-width: 100%;
+}
 .weather-city {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   min-height: 44px;
   max-width: 100%;
-  padding: 2px 6px;
+  padding: 0 9px;
   border: 1px solid var(--home-line);
-  border-radius: 8px;
+  border-radius: 999px;
   background: #fff;
   color: var(--home-ink);
   font: inherit;
   font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
-.weather-city:focus-visible {
+.weather-city:hover {
+  border-color: var(--color-accent);
+}
+.weather-city:focus-visible,
+.weather-picker-search input:focus-visible {
   outline: 3px solid var(--color-accent);
   outline-offset: 2px;
+}
+.weather-city > svg {
+  flex: none;
+  color: var(--color-accent);
+}
+.weather-city-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.weather-city-auto {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #eef3ef;
+  color: var(--home-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+}
+.weather-picker-panel {
+  position: absolute;
+  z-index: 20;
+  /* Below the button, aligned with its far edge: stays on screen in the last column (or the first, in RTL). */
+  inset-inline-end: 0;
+  top: calc(100% + 6px);
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  border: 1px solid var(--home-line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(31, 51, 40, 0.16);
+  color: var(--home-ink);
+}
+.weather-picker-title {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.weather-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--home-line);
+  border-radius: 8px;
+  color: var(--home-muted);
+}
+.weather-picker-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--home-ink);
+  font: inherit;
+  font-size: 14px;
+}
+.weather-picker-search input:focus-visible {
+  outline: none;
+}
+.weather-picker-search:focus-within {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 1px;
+}
+.weather-picker-list {
+  max-height: 264px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.weather-picker-list [role="option"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.weather-picker-list [role="option"][data-entry="auto"] {
+  justify-content: flex-start;
+  color: var(--home-muted);
+  font-size: 13px;
+}
+.weather-picker-list [role="option"][data-active] {
+  background: #eef3ef;
+}
+.weather-picker-list [role="option"][aria-selected="true"] {
+  font-weight: 700;
+}
+.weather-picker-empty {
+  margin: 10px 4px 2px;
+  color: var(--home-muted);
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  /* Phones: the tile's column is narrow, so the city name gets the room (the pill and pin say "button"). */
+  .weather-city {
+    gap: 3px;
+    padding: 0 7px;
+    font-size: 12px;
+  }
+  .weather-city > svg:last-child {
+    display: none;
+  }
+  /* A panel across the screen, never cut off by the tile's column. */
+  .weather-picker-panel {
+    position: fixed;
+    inset-inline: 16px;
+    top: 72px;
+    width: auto;
+    max-width: none;
+  }
 }
 .weather-now {
   display: flex;

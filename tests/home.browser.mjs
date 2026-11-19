@@ -2,6 +2,7 @@
 // test-only fixtures. REAL_BACKEND=1 instead checks the real published
 // Guides and Bank Holidays through the running backend (read-only GETs).
 import assert from "node:assert/strict";
+import { LIVE_SERVICES_UI } from "../src/home/liveServicesI18n.ts";
 import { mkdir } from "node:fs/promises";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
@@ -62,11 +63,14 @@ const underground = (ageMinutes, lines = [
 });
 
 // Met Office step for the current hour, as /api/weather/current returns it.
-const weatherFor = (city, { code = 7, temperature = 7.4 } = {}) => {
+// Without a city (automatic), the backend answers the nearest city to CloudFront's approximate location
+// (`detected`), or London by default.
+const weatherFor = (city, { code = 7, temperature = 7.4, detected = null } = {}) => {
   const hour = new Date();
   hour.setUTCMinutes(0, 0, 0);
   return {
-    city,
+    city: city ?? detected ?? "london",
+    citySource: city ? "requested" : detected ? "detected" : "default",
     forecastTime: hour.toISOString().replace(".000", ""),
     modelRunAt: new Date(hour.getTime() - 3 * 3600_000).toISOString().replace(".000", ""),
     fetchedAt: new Date().toISOString().replace(/\.\d{3}/, ""),
@@ -409,7 +413,8 @@ try {
   }
 
   if (!REAL) {
-    // Weather tile: Met Office step for the current hour, city choice remembered, every locale, Urdu RTL.
+    // Weather tile: Met Office step for the current hour, automatic city, searchable selector, manual choice
+    // remembered and overriding detection, every locale, Urdu RTL, phone width.
     const WEATHER = {
       "zh-CN": { condition: "多云", forecast: /^Met Office \d\d:00 预报，\d\d:00 发布（英国时间）$/, city: "爱丁堡" },
       "zh-TW": { condition: "多雲", forecast: /^Met Office \d\d:00 預報，\d\d:00 發布（英國時間）$/, city: "愛丁堡" },
@@ -418,23 +423,66 @@ try {
       hi: { condition: "बादल", forecast: /^Met Office पूर्वानुमान \d\d:00 के लिए, \d\d:00 पर जारी \(ब्रिटेन का समय\)$/, city: "एडिनबरा" },
     };
     for (const [locale, text] of Object.entries(WEATHER)) {
-      const { p, context, errors, finished } = await page(390, { weather: (city) => weatherFor(city), height: 844 });
+      const names = LIVE_SERVICES_UI[locale].weather;
+      const { p, context, errors } = await page(390, { weather: (city) => weatherFor(city, { detected: "manchester" }), height: 844 });
+      const asked = []; // the city parameter of each completed weather request ("" = automatic)
+      p.on("requestfinished", (r) => { const u = new URL(r.url()); if (u.pathname === "/api/weather/current") asked.push(u.searchParams.get("city") ?? ""); });
+      await p.addInitScript(() => {
+        window.__geolocationCalls = 0;
+        const count = () => { window.__geolocationCalls += 1; };
+        Object.defineProperty(navigator, "geolocation", { configurable: true, value: { getCurrentPosition: count, watchPosition: count } });
+      });
       await p.goto(`${baseURL}/${locale}/`);
       const tile = p.locator('.weather-item[data-tool="weather"]');
+      const button = tile.locator("button.weather-city");
       await tile.locator('.transport-status[data-state="fresh"]').waitFor();
       assert.equal(await tile.locator(".weather-temp").innerText(), "7°C");
       assert.equal(await tile.locator(".weather-condition").innerText(), text.condition);
       assert.match(await tile.locator(".transport-updated").innerText(), text.forecast);
-      assert.equal(await tile.locator("select.weather-city").inputValue(), "london");
-      assert.equal(await tile.locator("select.weather-city").evaluate((el) => el.labels.length), 1);
-      await tile.locator("select.weather-city").selectOption("edinburgh");
-      await p.waitForFunction(() => document.querySelector(".weather-item [data-state='fresh']") !== null);
-      assert.equal(await tile.locator("select.weather-city option:checked").innerText(), text.city);
-      assert.equal(finished.filter((path) => path === "/api/weather/current").length, 2);
-      // Remembered for the next visit.
+      // Automatic: the backend's nearest city, labelled as automatic (not as the visitor's position).
+      assert.equal(await button.locator(".weather-city-name").innerText(), names.cities.manchester);
+      assert.equal(await tile.locator(".weather-city-auto").innerText(), names.autoTag);
+      // The city name is shown in full on a phone (not cut off), whatever the language.
+      assert.equal(await button.locator(".weather-city-name").evaluate((el) => el.scrollWidth <= el.clientWidth), true, `${locale}: city name cut off`);
+      assert.equal(await button.getAttribute("aria-label"), names.changeCity(names.cities.manchester));
+      assert.equal(await button.getAttribute("aria-expanded"), "false");
+      assert.ok(asked.length >= 1 && asked.every((city) => city === ""), `automatic requests: ${asked}`);
+      // Searchable selector: opens with focus in the search box; English search works in every language.
+      await button.click();
+      const dialog = tile.locator('[role="dialog"]');
+      await dialog.waitFor();
+      assert.equal(await button.getAttribute("aria-expanded"), "true");
+      assert.equal(await dialog.locator('[role="combobox"]').evaluate((el) => el === document.activeElement), true);
+      assert.equal(await dialog.locator('[role="option"]').count(), 8);
+      await p.keyboard.type("edin");
+      assert.deepEqual(await dialog.locator('[role="option"]').allInnerTexts(), [names.cities.edinburgh]);
+      await p.keyboard.press("Enter");
+      await dialog.waitFor({ state: "detached" });
+      assert.equal(await button.evaluate((el) => el === document.activeElement), true, "focus back on the city button");
+      await p.waitForFunction((name) => document.querySelector(".weather-item .weather-city-name")?.textContent === name
+        && document.querySelector(".weather-item [data-state='fresh']") !== null, text.city);
+      assert.equal(await tile.locator(".weather-city-auto").count(), 0, "a manual choice is not marked automatic");
+      for (let i = 0; i < 40 && !asked.includes("edinburgh"); i++) await p.waitForTimeout(50);
+      assert.equal(asked.at(-1), "edinburgh");
+      // Remembered for the next visit, and it overrides detection.
+      asked.length = 0;
       await p.reload();
       await tile.locator('.transport-status[data-state="fresh"]').waitFor();
-      assert.equal(await tile.locator("select.weather-city").inputValue(), "edinburgh");
+      assert.equal(await button.locator(".weather-city-name").innerText(), text.city);
+      assert.ok(asked.length >= 1 && asked.every((city) => city === "edinburgh"), `after reload: ${asked}`);
+      // Back to automatic from the selector.
+      await button.click();
+      await dialog.locator('[role="option"][data-entry="auto"]').click();
+      await p.waitForFunction((name) => document.querySelector(".weather-item .weather-city-name")?.textContent === name, names.cities.manchester);
+      assert.equal(await p.evaluate(() => localStorage.getItem("lifeinuk.weather.city")), null);
+      // Escape closes without changing anything.
+      await button.click();
+      await p.keyboard.type("zzz");
+      assert.equal(await dialog.locator('[role="status"]').innerText(), names.noMatch);
+      await p.keyboard.press("Escape");
+      await dialog.waitFor({ state: "detached" });
+      assert.equal(await button.locator(".weather-city-name").innerText(), names.cities.manchester);
+      assert.equal(await p.evaluate(() => window.__geolocationCalls), 0, "no browser location request");
       const dir = await p.locator("main").getAttribute("dir");
       if (locale === "ur") assert.equal(dir, "rtl");
       else assert.notEqual(dir, "rtl");
@@ -443,7 +491,44 @@ try {
         const [first, second] = await p.locator(".live-shortcuts > li").evaluateAll((els) => els.slice(0, 2).map((el) => el.getBoundingClientRect().left));
         assert.ok(first > second, "Urdu shortcuts run right to left");
       }
+      // Open selector on a phone: inside the viewport, no horizontal overflow.
+      await button.click();
+      const box = await dialog.boundingBox();
+      assert.ok(box.x >= 0 && box.x + box.width <= 390, `${locale}: selector inside the screen (${box.x}, ${box.width})`);
       assert.equal(await noOverflow(p), true, `${locale} weather: overflow`);
+      await p.keyboard.press("Escape");
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    // Unknown location: London by default, still labelled automatic; errors keep the picker usable.
+    {
+      const { p, context, errors } = await page(1280, { weather: (city) => weatherFor(city) });
+      await p.goto(`${baseURL}/en/`);
+      const button = p.locator(".weather-item button.weather-city");
+      await p.locator('.weather-item .transport-status[data-state="fresh"]').waitFor();
+      assert.equal(await button.locator(".weather-city-name").innerText(), "London");
+      assert.equal(await p.locator(".weather-item .weather-city-auto").innerText(), "auto");
+      // Desktop: the selector opens as a popover next to the tile, inside the viewport.
+      await button.click();
+      const box = await p.locator('.weather-item [role="dialog"]').boundingBox();
+      assert.ok(box.x >= 0 && box.x + box.width <= 1280 && box.width <= 300, `desktop popover ${JSON.stringify(box)}`);
+      await p.keyboard.press("Escape");
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    {
+      // The automatic request fails (weather not configured): "unavailable", a neutral "City" label, and a city can
+      // still be chosen; that request fails too and is shown the same way, with no page errors.
+      const { p, context, errors } = await page(390);
+      await p.goto(`${baseURL}/en/`);
+      const tile = p.locator(".weather-item");
+      await tile.locator('.transport-status[data-state="unavailable"]').waitFor();
+      assert.equal(await tile.locator(".weather-city-name").innerText(), "City");
+      assert.equal(await tile.locator(".weather-city-auto").count(), 0);
+      await tile.locator("button.weather-city").click();
+      await tile.locator('[role="option"][data-entry="leeds"]').click();
+      await tile.locator('.transport-status[data-state="unavailable"]').waitFor();
+      assert.equal(await tile.locator(".weather-city-name").innerText(), "Leeds");
       assert.deepEqual(errors, []);
       await context.close();
     }
@@ -471,7 +556,7 @@ try {
       let fail = false;
       const served = [];
       const { p, context, errors, finished } = await page(1280);
-      await p.route("**/api/weather/current?*", async (route) => {
+      await p.route("**/api/weather/current*", async (route) => {
         // The step for the page's current hour, issued three hours before it.
         const now = await p.evaluate(() => Date.now());
         const hour = Math.floor(now / 3_600_000) * 3_600_000;
@@ -530,7 +615,7 @@ try {
       const { p, context, errors, requests } = await page(1280);
       const aborted = [];
       p.on("requestfailed", (r) => { if (new URL(r.url()).pathname === "/api/weather/current") aborted.push(r.failure()?.errorText); });
-      await p.route("**/api/weather/current?*", async (route) => {
+      await p.route("**/api/weather/current*", async (route) => {
         const now = await p.evaluate(() => Date.now());
         const hour = Math.floor(now / 3_600_000) * 3_600_000;
         if (hold) await hold.promise;
@@ -583,7 +668,7 @@ try {
       assert.ok(shift < 0.1, `layout shift ${shift}`);
       await context.close();
     }
-    console.log("PASS Live Services weather: current-hour Met Office step with issue time, city choice remembered × 5 locales, Urdu RTL; old step hidden; long-open tab re-reads hourly, only when visible, 10 min after failure, never aborts or duplicates a read in flight; CLS < 0.1");
+    console.log("PASS Live Services weather: current-hour Met Office step with issue time, automatic city, searchable selector, manual choice remembered and overriding detection, no geolocation × 5 locales, Urdu RTL; default London; errors; old step hidden; long-open tab re-reads hourly, only when visible, 10 min after failure, never aborts or duplicates a read in flight; CLS < 0.1");
   }
 
   // Responsive: no horizontal overflow, usable touch targets, screenshots.

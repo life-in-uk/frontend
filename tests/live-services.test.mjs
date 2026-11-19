@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { LIVE_SERVICES_UI } from "../src/home/liveServicesI18n.ts";
 import { GUIDE_LOCALES } from "../src/guides/locales.ts";
 import { MET_OFFICE_CODES, WEATHER_CONDITIONS, weatherCodeInfo } from "../src/weather/codes.ts";
-import { DEFAULT_WEATHER_CITY, WEATHER_CITIES, isWeatherCity } from "../src/weather/cities.ts";
+import { DEFAULT_WEATHER_CITY, WEATHER_CITIES, isWeatherCity, searchCities } from "../src/weather/cities.ts";
 import {
   MET_OFFICE_ATTRIBUTION,
   WEATHER_CLOCK_SKEW_MS,
@@ -41,6 +41,9 @@ test("Live Services copy: owner-approved headings and every string in all five l
     assert.ok(label.indexOf("14:00") < label.indexOf("11:00"), `${locale}: hour before issue time`);
     assert.match(label, /Met Office/);
     assert.match(ui.weather.feelsLike("5°C"), /5°C/);
+    for (const value of [ui.weather.chooseCity, ui.weather.search, ui.weather.noMatch, ui.weather.automatic, ui.weather.autoTag])
+      assert.ok(filled(value), `${locale}: empty selector string`);
+    assert.ok(ui.weather.changeCity(ui.weather.cities.leeds).includes(ui.weather.cities.leeds), `${locale}: changeCity keeps the city`);
     assert.match(ui.weather.rainChance(30), /30%/);
     // Translated locales really are translated.
     if (locale !== "en") assert.notEqual(ui.title, LIVE_SERVICES_UI.en.title, `${locale}: title untranslated`);
@@ -131,6 +134,39 @@ test("a long-open page reads again just after the shown hour ends, 10 minutes af
     count += 1;
   }
   assert.ok(count <= 26, `${count} reads a day`);
+});
+
+test("city search: page-language or English names, any case, no spaces needed", () => {
+  const zh = LIVE_SERVICES_UI["zh-CN"].weather.cities;
+  const en = LIVE_SERVICES_UI.en.weather.cities;
+  assert.deepEqual(searchCities("", zh, en), [...WEATHER_CITIES]);
+  assert.deepEqual(searchCities("曼彻", zh, en), ["manchester"]);
+  assert.deepEqual(searchCities("MAN", zh, en), ["manchester"]);
+  assert.deepEqual(searchCities("  edin ", zh, en), ["edinburgh"]);
+  assert.deepEqual(searchCities("l", en), ["london", "leeds", "glasgow", "belfast"]);
+  assert.deepEqual(searchCities("paris", zh, en), []);
+  const ur = LIVE_SERVICES_UI.ur.weather.cities;
+  assert.deepEqual(searchCities(ur.cardiff, ur, en), ["cardiff"]);
+});
+
+test("getWeather without a city asks the backend to pick (no city parameter) and keeps its choice and source", async (t) => {
+  const urls = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    urls.push(url);
+    return new Response(JSON.stringify({ ...valid(), city: "manchester", citySource: "detected" }), { status: 200 });
+  });
+  const data = await getWeather(null);
+  assert.deepEqual(urls, ["/api/weather/current"]);
+  assert.equal(data.city, "manchester");
+  assert.equal(data.citySource, "detected");
+  t.mock.restoreAll();
+  // An older backend without citySource: automatic answers count as the default city.
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify(valid()), { status: 200 }));
+  assert.equal((await getWeather(null)).citySource, "default");
+  assert.equal((await getWeather("london")).citySource, "requested");
+  t.mock.restoreAll();
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ ...valid(), citySource: "guessed" }), { status: 200 }));
+  await assert.rejects(getWeather(null));
 });
 
 test("getWeather: one GET to the backend; errors and mismatched cities are failures", async (t) => {
