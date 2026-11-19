@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Cloud,
@@ -43,11 +43,19 @@ function useWeather(city: WeatherCity): WeatherState {
   // The result is kept with the city it belongs to, so a new choice reads as "loading" until its answer arrives.
   const [result, setResult] = useState<WeatherResult | null>(null);
   const [reads, setReads] = useState(0);
+  // True from asking for a re-read until its answer: a re-read is never started (and so the outstanding one
+  // never aborted) while one is pending, whatever visibility changes happen meanwhile.
+  const reading = useRef(false);
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
+    reading.current = true;
     const timeout = window.setTimeout(() => controller.abort(), 10_000);
-    const done = (state: WeatherState) => { if (active) setResult({ city, state, readAt: Date.now() }); };
+    const done = (state: WeatherState) => {
+      if (!active) return;
+      reading.current = false;
+      setResult({ city, state, readAt: Date.now() });
+    };
     getWeather(city, controller.signal)
       .then((data) => done({ status: "ready", data }))
       .catch(() => done({ status: "unavailable" }))
@@ -65,10 +73,12 @@ function useWeather(city: WeatherCity): WeatherState {
     let timer: number | undefined;
     const check = () => {
       window.clearTimeout(timer);
-      if (document.visibilityState !== "visible") return; // read when the tab is shown again
+      if (document.visibilityState !== "visible" || reading.current) return; // read when shown again / once
       const wait = due - Date.now();
-      if (wait <= 0) setReads((count) => count + 1);
-      else timer = window.setTimeout(check, Math.min(wait, 2_147_483_647));
+      if (wait <= 0) {
+        reading.current = true;
+        setReads((count) => count + 1);
+      } else timer = window.setTimeout(check, Math.min(wait, 2_147_483_647));
     };
     check();
     document.addEventListener("visibilitychange", check);

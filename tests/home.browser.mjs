@@ -523,6 +523,51 @@ try {
       assert.deepEqual(errors, []);
       await context.close();
     }
+    // A re-read in flight is never aborted or duplicated by the tab being hidden and shown again.
+    {
+      const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}/, "");
+      let hold = null;
+      const { p, context, errors, requests } = await page(1280);
+      const aborted = [];
+      p.on("requestfailed", (r) => { if (new URL(r.url()).pathname === "/api/weather/current") aborted.push(r.failure()?.errorText); });
+      await p.route("**/api/weather/current?*", async (route) => {
+        const now = await p.evaluate(() => Date.now());
+        const hour = Math.floor(now / 3_600_000) * 3_600_000;
+        if (hold) await hold.promise;
+        return route.fulfill({ json: { ...weatherFor("london"), forecastTime: iso(hour), modelRunAt: iso(hour - 3 * 3_600_000), fetchedAt: iso(now) } });
+      });
+      const started = () => requests.filter((path) => path === "/api/weather/current").length;
+      const setVisible = (visible) => p.evaluate((v) => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (v ? "visible" : "hidden") });
+        document.dispatchEvent(new Event("visibilitychange"));
+      }, visible);
+      await p.clock.install({ time: new Date("2026-11-19T08:20:00Z") });
+      await p.goto(`${baseURL}/en/`);
+      const tile = p.locator(".weather-item");
+      await tile.locator('.transport-status[data-state="fresh"]').waitFor();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      aborted.length = 0; // development StrictMode aborts one extra first request
+      const before = started();
+      let release;
+      hold = { promise: new Promise((resolve) => { release = resolve; }) };
+      await p.clock.fastForward("41:30"); // 09:01:30: the hourly re-read starts and is held
+      for (let i = 0; i < 100 && started() === before; i++) await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.equal(started(), before + 1);
+      for (let i = 0; i < 3; i++) {
+        await setVisible(false);
+        await setVisible(true);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.equal(started(), before + 1, "visibility changes started another read");
+      assert.deepEqual(aborted, [], "the read in flight was aborted");
+      release();
+      await p.waitForFunction(() => document.querySelector(".weather-item time")?.getAttribute("datetime") === "2026-11-19T09:00:00Z");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.equal(started(), before + 1);
+      assert.deepEqual(aborted, []);
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
     // Live data never moves the layout below the section: same height loading and loaded.
     {
       const { p, context } = await page(390, { weather: (city) => weatherFor(city), tube: underground(3), height: 844 });
@@ -538,7 +583,7 @@ try {
       assert.ok(shift < 0.1, `layout shift ${shift}`);
       await context.close();
     }
-    console.log("PASS Live Services weather: current-hour Met Office step with issue time, city choice remembered × 5 locales, Urdu RTL; old step hidden; long-open tab re-reads hourly, only when visible, 10 min after failure; CLS < 0.1");
+    console.log("PASS Live Services weather: current-hour Met Office step with issue time, city choice remembered × 5 locales, Urdu RTL; old step hidden; long-open tab re-reads hourly, only when visible, 10 min after failure, never aborts or duplicates a read in flight; CLS < 0.1");
   }
 
   // Responsive: no horizontal overflow, usable touch targets, screenshots.
