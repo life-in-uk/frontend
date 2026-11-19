@@ -1,6 +1,6 @@
 import { parseInstant } from "../travel/freshness.ts";
 import { isWeatherCity } from "./cities.ts";
-import type { WeatherCity } from "./cities.ts";
+import type { CitySource, WeatherCity } from "./cities.ts";
 
 /** Attribution the Met Office licence requires next to the data (clause 2.6.1). */
 export const MET_OFFICE_ATTRIBUTION = "Data supplied by the Met Office";
@@ -16,6 +16,8 @@ export type WeatherResponse = {
   weatherCode: number | null;
   precipitationProbability: number | null;
   attribution: string;
+  /** How the city was chosen (absent from older backends: treated as the visitor's choice). */
+  citySource: CitySource;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -37,21 +39,28 @@ export function isWeatherResponse(value: unknown): value is WeatherResponse {
     optionalNumber(value.feelsLikeC, -100, 70) &&
     optionalInteger(value.weatherCode, -1, 30) &&
     optionalInteger(value.precipitationProbability, 0, 100) &&
-    value.attribution === MET_OFFICE_ATTRIBUTION
+    value.attribution === MET_OFFICE_ATTRIBUTION &&
+    (value.citySource === undefined || value.citySource === "requested" || value.citySource === "detected" || value.citySource === "default")
   );
 }
 
-export async function getWeather(city: WeatherCity, signal?: AbortSignal): Promise<WeatherResponse> {
-  const response = await fetch(`/api/weather/current?city=${encodeURIComponent(city)}`, { signal });
+/**
+ * Weather for the visitor's chosen city, or with {@code city} null for the city the backend picks: the nearest
+ * supported city to CloudFront's approximate location, or London. Either way one of the eight shared cities.
+ */
+export async function getWeather(city: WeatherCity | null, signal?: AbortSignal): Promise<WeatherResponse> {
+  const query = city === null ? "" : `?city=${encodeURIComponent(city)}`;
+  const response = await fetch(`/api/weather/current${query}`, { signal });
   if (!response.ok) throw new Error("Weather unavailable");
   const data: unknown = await response.json();
-  if (!isWeatherResponse(data) || data.city !== city) throw new Error("Invalid weather response");
+  if (!isWeatherResponse(data) || (city !== null && data.city !== city)) throw new Error("Invalid weather response");
   return {
     ...data,
     temperatureC: data.temperatureC ?? null,
     feelsLikeC: data.feelsLikeC ?? null,
     weatherCode: data.weatherCode ?? null,
     precipitationProbability: data.precipitationProbability ?? null,
+    citySource: city !== null ? "requested" : (data.citySource ?? "default"),
   };
 }
 
