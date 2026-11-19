@@ -393,3 +393,54 @@ test("Education adds only published locale pages and leads with overseas arrival
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("Education Wave 2 adds 30 Guide URLs and keeps related links local and publication-aware", async () => {
+  const school = "education";
+  const university = "university-applications-student-visas";
+  const arrivals = "joining-school-after-moving-to-uk";
+  const inYear = "in-year-school-admissions-england";
+  const reception = "primary-school-reception-applications-england";
+  const year7 = "secondary-school-year-7-applications-england";
+  const appeals = "choosing-a-school-and-admission-appeals-england";
+  const eal = "english-language-support-at-school-england";
+  const send = "send-school-support-england";
+  const routines = "school-meals-attendance-and-transport-england";
+  const locales = ["zh-CN", "zh-TW", "en", "ur", "hi"];
+  const waveOne = [arrivals, inYear, "uk-school-stages-and-year-groups",
+    "joining-school-during-gcses-england", "sixth-form-or-fe-college-england"];
+  const waveTwo = [reception, year7, appeals, eal, send, routines];
+  const earlier = Object.fromEntries(locales.map((locale) => [locale, [
+    ...(BASE[locale] ?? []), ["uk-undergraduate-application-timeline", university],
+    ...waveOne.map((slug) => [slug, school]),
+  ]]));
+  const both = Object.fromEntries(locales.map((locale) => [locale,
+    [...earlier[locale], ...waveTwo.map((slug) => [slug, school])]]));
+  const before = expectedPages(inventory(earlier));
+  const full = expectedPages(inventory(both));
+  assert.equal(full.length - before.length, 30);
+  assert.deepEqual(full.filter((page) => page.domainId !== school || !waveTwo.includes(page.slug)), before);
+  assert.equal(full.filter((page) => page.domainId === school).length, 60);
+
+  both.hi = both.hi.filter(([slug]) => slug !== appeals);
+  const inv = inventory(both);
+  const dir = await build(inv);
+  try {
+    assert.deepEqual((await validate(dir, inv)).errors, []);
+    const page = (locale, slug) => readFileSync(join(dir, locale, school, slug, "index.html"), "utf8");
+    const hub = page("ur", "").split('<main id="main"')[1];
+    const order = [arrivals, reception, year7, appeals, eal, send, routines];
+    for (const [index, slug] of order.entries()) {
+      const link = hub.indexOf(`href="/ur/education/${slug}"`);
+      assert.ok(link >= 0, slug);
+      if (index > 0) assert.ok(hub.indexOf(`href="/ur/education/${order[index - 1]}"`) < link);
+    }
+    assert.match(page("ur", inYear), new RegExp(`href="/ur/education/${appeals}"`));
+    assert.doesNotMatch(page("hi", inYear), new RegExp(`href="/hi/education/${appeals}"`));
+    const appeal = page("ur", appeals);
+    assert.match(appeal, /<html lang="ur" dir="rtl"/);
+    assert.match(appeal, /hreflang="en-GB"/);
+    assert.doesNotMatch(appeal, /hreflang="hi"/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
