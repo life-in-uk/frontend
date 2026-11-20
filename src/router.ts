@@ -16,6 +16,7 @@
 //   /travel             Travel tools (Underground, Roads, Rail); /{locale}/travel
 
 import { UNIVERSITY_CATEGORY, type GuideDomainId } from "./guides/domains.ts";
+import { HOUSEHOLD_CATEGORY } from "./guides/household.ts";
 import { guideHomePath, guideRoutePath, isGuideLocale, type GuideLocale } from "./guides/locales.ts";
 
 export type Route =
@@ -52,6 +53,7 @@ const DOMAIN_BASES = new Map<string, GuideDomainId>([
   ["renting", "renting"],
   [UNIVERSITY_CATEGORY, UNIVERSITY_CATEGORY],
   ["education", "education"],
+  [HOUSEHOLD_CATEGORY, HOUSEHOLD_CATEGORY],
 ]);
 
 export function matchRoute(pathname: string): Route {

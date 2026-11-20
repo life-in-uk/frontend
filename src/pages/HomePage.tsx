@@ -1,3 +1,4 @@
+import { HOUSEHOLD_CATEGORY } from "../guides/household";
 import { useEffect, useMemo, useState } from "react";
 import { HomeHero } from "../components/home/HomeHero";
 import { TopicGrid } from "../components/home/TopicGrid";
@@ -76,6 +77,8 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   const searchSource = translatedPage ? localized : source;
   const universityAvailable = searchSource.status === "ready" &&
     searchSource.guides.some((guide) => guide.category === UNIVERSITY_CATEGORY);
+  const householdAvailable = searchSource.status === "ready" &&
+    searchSource.guides.some((guide) => guide.category === HOUSEHOLD_CATEGORY);
   const educationAvailable = searchSource.status === "ready" &&
     searchSource.guides.some((guide) => guide.category === "education");
   const searchIndex = useMemo(() => {
@@ -161,12 +164,12 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       featured,
       more,
       questionGroups,
-      sections: LAUNCHED.filter((topic) => (topic.id !== UNIVERSITY_CATEGORY || universityAvailable) && (topic.id !== "education" || educationAvailable)).map((topic) => ({
+      sections: LAUNCHED.filter((topic) => (topic.id !== UNIVERSITY_CATEGORY || universityAvailable) && (topic.id !== "education" || educationAvailable) && (topic.id !== HOUSEHOLD_CATEGORY || householdAvailable)).map((topic) => ({
         domain: topic.domain,
         total: counts.get(topic.id)?.guides ?? 0,
       })),
     };
-  }, [guides, translations, locale, translatedPage, ui, universityAvailable, educationAvailable]);
+  }, [guides, translations, locale, translatedPage, ui, universityAvailable, educationAvailable, householdAvailable]);
 
   return (
     <main
@@ -180,7 +183,7 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       <div className="home-container home-travel">
         <LiveServices locale={locale} />
       </div>
-      <TopicGrid locale={locale} topics={availableHomeTopics(universityAvailable, educationAvailable)} counts={content?.counts} />
+      <TopicGrid locale={locale} topics={availableHomeTopics(universityAvailable, educationAvailable, householdAvailable)} counts={content?.counts} />
       <div className="home-container home-practical">
         <BankHolidaySummary locale={locale} />
       </div>

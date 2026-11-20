@@ -3,6 +3,7 @@
 // pages, and Guides are most of the prerendered site.
 import { lazyRoute } from "./lazyRoute";
 import { UNIVERSITY_CATEGORY } from "./guides/domains";
+import { HOUSEHOLD_CATEGORY } from "./guides/household";
 import type { Route } from "./router";
 
 export const HealthHub = lazyRoute(() => import("./components/health/HealthHub").then((m) => m.HealthHub));
@@ -29,6 +30,7 @@ const HUBS = {
   renting: RentingHub,
   [UNIVERSITY_CATEGORY]: LocalizedGuideIndex,
   education: LocalizedGuideIndex,
+  [HOUSEHOLD_CATEGORY]: LocalizedGuideIndex,
 } as const;
 
 /** Loads the chunk the page for `route` (as given by pageRoute) renders, if it has one. */

@@ -3,6 +3,7 @@ import { ArrowRight, CalendarDays, GraduationCap } from "lucide-react";
 import { getLocalizedGuides } from "../../guides/api";
 import type { GuideMetadata } from "../../guides/api";
 import { EDUCATION_COPY, educationSections } from "../../guides/education";
+import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY } from "../../guides/household";
 import { formatUkDateFor } from "../../guides/format";
 import { GUIDE_DOMAINS, UNIVERSITY_CATEGORY, type GuideDomainId } from "../../guides/domains";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, UNIVERSITY_COPY, textDirection, type GuideLocale } from "../../guides/locales";
@@ -25,7 +26,9 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
   const strings = copy[locale];
   const title = domain ? GUIDE_UI[locale].domain[domain] : strings.title;
   const education = domain === "education" ? EDUCATION_COPY[locale] : undefined;
-  const description = education?.description ?? (domain ? UNIVERSITY_COPY[locale].description : strings.description);
+  const household = domain === HOUSEHOLD_CATEGORY;
+  const description = education?.description ?? (household ? HOUSEHOLD_COPY[locale].description
+    : domain === UNIVERSITY_CATEGORY ? UNIVERSITY_COPY[locale].description : strings.description);
   const [available, setAvailable] = useState<GuideLocale[]>([locale]);
   useEffect(() => {
     const controller = new AbortController();
@@ -128,7 +131,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
   }
 
   return (
-    <main id="main" className="guide-page localized-guide-index" lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
+    <main id="main" className={`guide-page localized-guide-index${household ? " household-services-hub" : ""}`} lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
       <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} available={domain ? available : undefined} /></div>
       <header className="guide-index-header">
         <p className="guide-kicker">Life in UK</p>

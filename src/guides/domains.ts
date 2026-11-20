@@ -3,6 +3,7 @@
 // Guide can only ever appear (and be linked) inside its own section.
 
 import { EDUCATION_ARRIVALS, EDUCATION_COPY } from "./education.ts";
+import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY } from "./household.ts";
 import type { GuideMetadata, GuideSource } from "./api";
 import { guideRoutePath, type GuideLocale } from "./locales.ts";
 import {
@@ -35,9 +36,19 @@ export const EDUCATION_GUIDE_DOMAIN: GuideDomain = {
   },
 };
 
+export const HOUSEHOLD_GUIDE_DOMAIN: GuideDomain = {
+  id: HOUSEHOLD_CATEGORY,
+  basePath: "/household-services",
+  category: HOUSEHOLD_CATEGORY,
+  label: HOUSEHOLD_COPY["zh-CN"].title,
+  backLabel: HOUSEHOLD_COPY["zh-CN"].title,
+  titleReferences: {},
+  relatedGuides: {},
+};
+
 export const UNIVERSITY_CATEGORY = "university-applications-student-visas";
 
-export type GuideDomainId = typeof UNIVERSITY_CATEGORY | "education" | "health" | "family-visa" | "money" | "work-visa" | "settlement" | "renting";
+export type GuideDomainId = typeof UNIVERSITY_CATEGORY | typeof HOUSEHOLD_CATEGORY | "education" | "health" | "family-visa" | "money" | "work-visa" | "settlement" | "renting";
 
 export type GuideDomain = {
   id: GuideDomainId;
@@ -262,6 +273,7 @@ export const GUIDE_DOMAINS: Readonly<Record<GuideDomainId, GuideDomain>> = {
   renting: RENTING_GUIDE_DOMAIN,
   [UNIVERSITY_CATEGORY]: UNIVERSITY_GUIDE_DOMAIN,
   education: EDUCATION_GUIDE_DOMAIN,
+  [HOUSEHOLD_CATEGORY]: HOUSEHOLD_GUIDE_DOMAIN,
 };
 
 /** A Simplified Chinese Guide's canonical path (`/zh-CN/health/:slug`). */

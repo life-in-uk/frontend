@@ -454,3 +454,24 @@ test("Education Wave 2 adds 30 Guide URLs and keeps related links local and publ
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("Household hubs and details use the published locale inventory and canonical URLs", async () => {
+  const category = "household-services";
+  const slug = "uk-home-insurance-buildings-contents";
+  const inv = inventory({ "zh-CN": [[slug, category]], en: [[slug, category]], ur: [[slug, category]] });
+  const dir = await build(inv);
+  try {
+    const { errors } = await validate(dir, inv);
+    assert.deepEqual(errors, []);
+    const hub = readFileSync(join(dir, "ur", category, "index.html"), "utf8");
+    const article = readFileSync(join(dir, "ur", category, slug, "index.html"), "utf8");
+    assert.match(hub, /<html lang="ur" dir="rtl">/);
+    assert.ok(hub.includes(`href="/ur/${category}/${slug}"`));
+    assert.ok(article.includes(`rel="canonical" href="${ORIGIN}/ur/${category}/${slug}"`));
+    assert.ok(article.includes(`hreflang="en-GB" href="${ORIGIN}/en/${category}/${slug}"`));
+    assert.doesNotMatch(article, /hreflang="hi"/);
+    assert.ok(!expectedPages(inv).some((page) => page.path.startsWith(`/hi/${category}`)));
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});

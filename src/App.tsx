@@ -22,6 +22,7 @@ import {
   WorkVisaHub,
 } from "./routeChunks";
 import { GUIDE_DOMAINS, UNIVERSITY_CATEGORY } from "./guides/domains";
+import { HOUSEHOLD_CATEGORY } from "./guides/household";
 import { applyGuideSeo, clearGuideSeo, homeAlternates, homeDescription } from "./guides/seo";
 import { GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, textDirection } from "./guides/locales";
 import { currentPath, localeSwitchPath, matchRoute, pageRoute, routeLocale, subscribeToLocation } from "./router";
@@ -63,6 +64,7 @@ function App() {
   }, [activeLocale]);
   const categories = publishedSections?.locale === activeLocale ? publishedSections.categories : undefined;
   const universityAvailable = categories?.has(UNIVERSITY_CATEGORY) ?? false;
+  const householdAvailable = categories?.has(HOUSEHOLD_CATEGORY) ?? false;
   const educationAvailable = categories?.has("education") ?? false;
   // Pages with their own language selector (hubs, Guides, the Guide index)
   // don't get a second one in the header.
@@ -124,7 +126,7 @@ function App() {
       <a className="skip-link" href="#main">
         {SITE_UI[activeLocale].skipLink}
       </a>
-      <SiteHeader current={section} locale={activeLocale} switchPath={headerSwitch} universityAvailable={universityAvailable} educationAvailable={educationAvailable} />
+      <SiteHeader current={section} locale={activeLocale} switchPath={headerSwitch} universityAvailable={universityAvailable} educationAvailable={educationAvailable} householdAvailable={householdAvailable} />
       {/* Only in-app navigation to a page whose chunk is not loaded yet shows the
           fallback; main.tsx loads the first page's chunk before rendering. Keyed
           by path so the previous page unmounts at once (its head tags and other
@@ -139,10 +141,10 @@ function App() {
         {hubDomain === "money" && <MoneyHub />}
         {hubDomain === "work-visa" && <WorkVisaHub />}
         {hubDomain === "settlement" && <SettlementHub />}
-        {(route.name === "hub" || route.name === "localized-hub") && (route.domain === UNIVERSITY_CATEGORY || route.domain === "education") && (
+        {(route.name === "hub" || route.name === "localized-hub") && (route.domain === UNIVERSITY_CATEGORY || route.domain === "education" || route.domain === HOUSEHOLD_CATEGORY) && (
           <LocalizedGuideIndex locale={activeLocale} domain={route.domain} />
         )}
-        {route.name === "guide" && (route.domain === UNIVERSITY_CATEGORY || route.domain === "education") && (
+        {route.name === "guide" && (route.domain === UNIVERSITY_CATEGORY || route.domain === "education" || route.domain === HOUSEHOLD_CATEGORY) && (
           <GuidePage key={route.slug} domain={GUIDE_DOMAINS[route.domain]} slug={route.slug} />
         )}
         {hubDomain === "renting" && <RentingHub />}
@@ -184,7 +186,7 @@ function App() {
         {route.name === "travel" && <TravelPage key={activeLocale} locale={activeLocale} />}
         {route.name === "not-found" && <NotFoundPage locale={activeLocale} />}
       </Suspense>
-      <SiteFooter locale={activeLocale} universityAvailable={universityAvailable} educationAvailable={educationAvailable} />
+      <SiteFooter locale={activeLocale} universityAvailable={universityAvailable} educationAvailable={educationAvailable} householdAvailable={householdAvailable} />
     </>
   );
 }
