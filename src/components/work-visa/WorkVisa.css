@@ -139,7 +139,7 @@
   padding-bottom: 8px;
   border-bottom: 1px solid var(--work-line);
 }
-.work-topic-head h3 {
+.work-topic-head :is(h2, h3) {
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--work-ink);
@@ -177,7 +177,7 @@
 .work-guide-body {
   min-width: 0;
 }
-.work-guide-body h4 {
+.work-guide-body :is(h3, h4) {
   font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.5;
@@ -288,4 +288,7 @@
 }
 .work-hub .guide-toolbar {
   margin-bottom: 16px;
+}
+.education-university-link {
+  margin-top: 28px;
 }
