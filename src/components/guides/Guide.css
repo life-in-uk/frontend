@@ -69,6 +69,7 @@
 .localized-guide-list > li > a:hover { border-color: var(--color-brand); }
 .localized-guide-list > li > a > span { display: grid; gap: 8px; min-width: 0; }
 .localized-guide-list strong, .localized-guide-list span { overflow-wrap: anywhere; }
+.household-services-hub[dir="rtl"] .localized-guide-list svg { transform: scaleX(-1); }
 .localized-guide-list time { color: var(--color-muted); font-size: var(--text-sm); }
 .guide-article[dir="rtl"] .guide-body ul:not([class]),
 .guide-article[dir="rtl"] .guide-body ol:not([class]) { padding-left: 0; padding-right: 1.4em; }

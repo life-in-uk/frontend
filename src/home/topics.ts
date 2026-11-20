@@ -10,6 +10,7 @@ import type { GuideDomain } from "../guides/domains";
 import {
   FAMILY_VISA_GUIDE_DOMAIN,
   HEALTH_GUIDE_DOMAIN,
+  HOUSEHOLD_GUIDE_DOMAIN,
   MONEY_GUIDE_DOMAIN,
   RENTING_GUIDE_DOMAIN,
   SETTLEMENT_GUIDE_DOMAIN,
@@ -19,6 +20,7 @@ import {
   UNIVERSITY_GUIDE_DOMAIN,
 } from "../guides/domains.ts";
 import { EDUCATION_COPY } from "../guides/education.ts";
+import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY } from "../guides/household.ts";
 import { UNIVERSITY_COPY, guideRoutePath, type GuideLocale } from "../guides/locales.ts";
 
 export type TopicTone =
@@ -141,6 +143,14 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
     icon: "graduation",
   },
   {
+    id: HOUSEHOLD_CATEGORY,
+    navGroup: "housing",
+    ...HOUSEHOLD_COPY["zh-CN"],
+    domain: HOUSEHOLD_GUIDE_DOMAIN,
+    tone: "daily",
+    icon: "house",
+  },
+  {
     id: "daily-life",
     navGroup: "housing",
     title: "日常生活",
@@ -159,9 +169,10 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
 ];
 
-/** Link Education and University only where this locale has published Guides. */
-export function availableHomeTopics(universityAvailable: boolean, educationAvailable = false): readonly HomeTopic[] {
-  return HOME_TOPICS.filter((topic) => topic.id !== UNIVERSITY_CATEGORY || universityAvailable)
+/** Link content-gated sections only where this locale has published Guides. */
+export function availableHomeTopics(universityAvailable: boolean, educationAvailable = false, householdAvailable = false): readonly HomeTopic[] {
+  return HOME_TOPICS.filter((topic) => (topic.id !== UNIVERSITY_CATEGORY || universityAvailable)
+    && (topic.id !== HOUSEHOLD_CATEGORY || householdAvailable))
     .map((topic) => topic.id === "education" && !educationAvailable ? { ...topic, domain: undefined } : topic);
 }
 

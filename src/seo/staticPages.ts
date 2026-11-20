@@ -15,6 +15,7 @@
 import { isSafeExternalUrl } from "../guides/api.ts";
 import type { GuideDetail, GuideMetadata } from "../guides/api.ts";
 import { EDUCATION_COPY, educationSections } from "../guides/education.ts";
+import { HOUSEHOLD_CATEGORY } from "../guides/household.ts";
 import { UNIVERSITY_CATEGORY, domainGuides, GUIDE_DOMAINS } from "../guides/domains.ts";
 import type { GuideDomain, GuideDomainId } from "../guides/domains.ts";
 import { formatUkDateFor } from "../guides/format.ts";
@@ -56,7 +57,7 @@ import { familyVisaTopicPath } from "../router.ts";
 import type { FamilyVisaTopicId } from "../router.ts";
 
 /** Hubs that are crawlable topic pages, in navigation order. */
-export const STATIC_HUB_DOMAINS: readonly GuideDomainId[] = ["family-visa", "work-visa", "settlement", "renting", "health", "money", "university-applications-student-visas", "education"];
+export const STATIC_HUB_DOMAINS: readonly GuideDomainId[] = ["family-visa", "work-visa", "settlement", "renting", "health", "money", "university-applications-student-visas", "education", HOUSEHOLD_CATEGORY];
 
 type Localized = Readonly<Record<GuideLocale, string>>;
 
