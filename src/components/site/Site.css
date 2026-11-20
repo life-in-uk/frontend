@@ -43,16 +43,38 @@
   border-inline-end: 1px solid var(--site-line);
   line-height: 1.2;
 }
-.masthead-brand strong {
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: -0.8px;
-  white-space: nowrap;
+/* Wordmark (Wordmark.tsx): its height sets the size; the cap height is 0.61 of it. */
+.masthead-brand {
+  --wordmark-h: 39px;
+}
+.masthead-wordmark {
+  display: block;
+  line-height: 0;
+}
+.masthead-wordmark .wordmark {
+  display: block;
+  height: var(--wordmark-h);
+  width: auto;
+  aspect-ratio: 9766 / 2302; /* the SVG view box */
+  overflow: visible;
+}
+.wordmark-letters {
+  fill: #1f4a35; /* the site's dark forest green (primary buttons) */
+}
+.wordmark-wave,
+.wordmark-dot {
+  fill: #e8a614; /* warm yellow */
 }
 .masthead-brand .brand-caption {
   font-size: 14px;
-  margin-top: 4px;
+  /* Beside the lower half of the wave, starting after it, as in the approved design (left-to-right only). */
+  margin-top: calc(var(--wordmark-h) * -0.1);
+  padding-inline-start: calc(var(--wordmark-h) * 1.02);
   color: #4c5a50;
+}
+.masthead-brand .brand-caption:dir(rtl) {
+  margin-top: 2px;
+  padding-inline-start: 0;
 }
 
 /* Wide screens: brand, search, language and About on the first row; Home
@@ -338,8 +360,8 @@
   font-weight: 600;
 }
 @media (max-width: 760px) {
-  .masthead-brand strong {
-    font-size: 24px;
+  .masthead-brand {
+    --wordmark-h: 32px;
   }
   .masthead-brand .brand-caption {
     font-size: 12px;
@@ -519,8 +541,8 @@
   .masthead-brand {
     min-height: 44px; /* keep the touch target */
   }
-  .masthead-brand strong {
-    font-size: 20px;
+  .masthead-brand {
+    --wordmark-h: 27px;
   }
   .masthead-menu-button {
     padding: 0 10px;

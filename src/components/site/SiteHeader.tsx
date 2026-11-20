@@ -7,6 +7,7 @@ import { GUIDE_UI, guideHomePath, type GuideLocale } from "../../guides/locales"
 import { SITE_UI } from "../../guides/siteUi";
 import { subscribeToLocation } from "../../router";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
+import { Wordmark } from "./Wordmark";
 import "./Site.css";
 
 type SiteHeaderProps = {
@@ -300,8 +301,8 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAv
     <header ref={headerRef} className={`masthead${compact ? " masthead--compact" : ""}`}>
       <div ref={innerRef} className="masthead-inner">
         <Link to={home} className="masthead-brand" aria-label={`Life in UK ${GUIDE_UI[locale].home}`}>
-          <strong lang="en" dir="ltr">
-            Life in UK<span className="brand-dot">.</span>
+          <strong className="masthead-wordmark" lang="en" dir="ltr">
+            <Wordmark />
           </strong>
           <span className="brand-caption">{ui.tagline}</span>
         </Link>
