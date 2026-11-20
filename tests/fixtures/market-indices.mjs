@@ -22,7 +22,7 @@ const provenance = (observedAt, observedAtSource = "PROVIDER") => ({
   observedAt, observedAtSource, collectedAt: observedAt, receivedAt: observedAt,
 });
 
-/** S&P 500 open and fresh (up), Nasdaq delayed (down), Dow stale (no number), FTSE 100 closed (flat). */
+/** S&P 500 live, 2 minutes behind (up), Nasdaq delayed (down), Dow stale (no number), FTSE 100 closed (flat). */
 export function marketIndices(now = Date.now(), overrides = {}) {
   return {
     generatedAt: new Date(now).toISOString(),
@@ -36,9 +36,9 @@ export function marketIndices(now = Date.now(), overrides = {}) {
       }),
       index("SPX", "S&P 500", "NYSE", "America/New_York", {
         value: "5985.2500", previousClose: "5960.0000", change: "25.25", changePercent: "0.42",
-        provenance: provenance(at(now, 5), "EXCHANGE"),
+        provenance: provenance(at(now, 2), "EXCHANGE"),
         market: { exchange: "NYSE", timeZone: "America/New_York", session: "OPEN", calendarCoveredThrough: "2027-12-31" },
-        freshness: { status: "FRESH", ageSeconds: 300, basis: "observedAt", freshWithinSeconds: 1200, staleAfterSeconds: 3600 },
+        freshness: { status: "FRESH", ageSeconds: 120, basis: "observedAt", freshWithinSeconds: 1200, staleAfterSeconds: 3600 },
       }),
       index("IXIC", "Nasdaq Composite", "NASDAQ", "America/New_York", {
         value: "19410.1000", previousClose: "19500.0000", change: "-89.90", changePercent: "-0.46",
