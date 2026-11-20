@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CalendarDays, GraduationCap } from "lucide-react";
 import { getLocalizedGuides } from "../../guides/api";
 import type { GuideMetadata } from "../../guides/api";
 import { EDUCATION_COPY, educationSections } from "../../guides/education";
+import { formatUkDateFor } from "../../guides/format";
 import { GUIDE_DOMAINS, UNIVERSITY_CATEGORY, type GuideDomainId } from "../../guides/domains";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, UNIVERSITY_COPY, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates, hubAlternates } from "../../guides/seo";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
 import "./Guide.css";
+import "../work-visa/WorkVisa.css";
 
 const copy: Record<GuideLocale, { title: string; description: string; loading: string; failed: string; empty: string; updated: string }> = {
   "zh-CN": { title: "生活指南", description: "查看已发布的英国生活指南。", loading: "正在加载指南…", failed: "指南暂时无法加载，请稍后再试。", empty: "这个语言目前还没有已发布的指南。", updated: "更新于" },
@@ -66,6 +68,65 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
     return () => clearGuideSeo();
   }, [locale, domain, title, description, state, available]);
 
+  if (education) {
+    // Education uses the shared topic-hub layout (Renting, Settlement, Work
+    // Visa): one left edge for hero, section headings and cards.
+    const sections = state.status === "ready" ? educationSections(state.guides) : [];
+    const order = sections.flatMap(({ guides }) => guides.map(({ slug }) => slug));
+    return (
+      <main id="main" className="work-visa-page work-hub education-hub" lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
+        <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} available={available} /></div>
+        <section className="work-hero" aria-labelledby="education-title">
+          <span className="eyebrow work-eyebrow">
+            <GraduationCap size={15} aria-hidden="true" />
+            Life in UK
+          </span>
+          <h1 id="education-title">{title}</h1>
+          <p className="work-hero-lead">{description}</p>
+        </section>
+        {state.status === "loading" && <p role="status" className="work-plan-status">{strings.loading}</p>}
+        {state.status === "error" && <div className="guide-status-card" role="alert"><p>{strings.failed}</p></div>}
+        {state.status === "ready" && state.guides.length === 0 && <p className="work-plan-status" role="status">{strings.empty}</p>}
+        {sections.length > 0 && (
+          <div className="work-plan">
+            {sections.map(({ id, guides }) => (
+              <section key={id} className="work-topic" aria-labelledby={`education-${id}`}>
+                <header className="work-topic-head"><h2 id={`education-${id}`}>{education[id]}</h2></header>
+                <ol className="work-guide-list">
+                  {guides.map((guide) => (
+                    <li key={guide.slug} className="work-guide-card" data-slug={guide.slug}>
+                      <span className="work-guide-number" aria-hidden="true">{order.indexOf(guide.slug) + 1}</span>
+                      <div className="work-guide-body">
+                        <h3>
+                          <Link to={localizedGuidePath(locale, "education", guide.slug)} className="work-guide-link">{guide.title}</Link>
+                        </h3>
+                        <p className="work-guide-covers">{guide.summary}</p>
+                        <span className="work-guide-meta">
+                          <CalendarDays size={13} aria-hidden="true" />
+                          {strings.updated}{" "}
+                          <time dateTime={guide.updatedAt}>{formatUkDateFor(guide.updatedAt, GUIDE_LOCALE_LANG[locale])}</time>
+                          <ArrowRight size={14} aria-hidden="true" />
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+        )}
+        {state.status === "ready" && state.universityAvailable && (
+          <p className="education-university-link">
+            <Link to={localizedGuidePath(locale, UNIVERSITY_CATEGORY)} className="work-official-link">
+              {UNIVERSITY_COPY[locale].title}
+              <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+          </p>
+        )}
+      </main>
+    );
+  }
+
   return (
     <main id="main" className="guide-page localized-guide-index" lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
       <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} available={domain ? available : undefined} /></div>
@@ -77,17 +138,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
       {state.status === "loading" && <p role="status" className="guide-status">{strings.loading}</p>}
       {state.status === "error" && <div className="guide-status-card" role="alert"><p>{strings.failed}</p></div>}
       {state.status === "ready" && state.guides.length === 0 && <p className="guide-status" role="status">{strings.empty}</p>}
-      {state.status === "ready" && state.guides.length > 0 && (education ? (
-        <>
-          {educationSections(state.guides).map(({ id, guides }) => (
-            <section key={id} aria-labelledby={`education-${id}`}>
-              <h2 id={`education-${id}`}>{education[id]}</h2>
-              {guideList(guides, locale)}
-            </section>
-          ))}
-          {state.universityAvailable && <p><Link to={localizedGuidePath(locale, UNIVERSITY_CATEGORY)}>{UNIVERSITY_COPY[locale].title}</Link></p>}
-        </>
-      ) : guideList(state.guides, locale))}
+      {state.status === "ready" && state.guides.length > 0 && guideList(state.guides, locale)}
     </main>
   );
 }
