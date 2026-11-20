@@ -646,11 +646,13 @@ try {
     assert.deepEqual(await live.locator(".market-card .live-card-label").allInnerTexts(), ["美国股指", "英国股指"]);
     const rows = live.locator(".market-row");
     assert.deepEqual(await rows.locator(".market-name").allInnerTexts(), ["S&P 500", "Nasdaq Composite", "Dow Jones", "FTSE 100"]);
-    assert.deepEqual(await rows.evaluateAll((els) => els.map((el) => el.dataset.status)), ["open", "delayed", "stale", "closed"]);
+    assert.deepEqual(await rows.evaluateAll((els) => els.map((el) => el.dataset.status)), ["live", "delayed", "stale", "closed"]);
     assert.deepEqual(await rows.locator(".market-value").allInnerTexts(), ["5,985.25", "19,410.10", "—", "8,123.45"]);
     assert.deepEqual(await rows.locator(".market-change").allInnerTexts(), ["+25.25 (+0.42%)", "−89.90 (−0.46%)", "0.00 (0.00%)"]);
     assert.deepEqual(await rows.locator(".market-change").evaluateAll((els) => els.map((el) => el.dataset.direction)), ["up", "down", "flat"]);
-    assert.deepEqual(await rows.locator(".market-badge").allInnerTexts(), ["开盘中", "延迟数据", "数据已过时", "已收盘"]);
+    assert.deepEqual(await rows.locator(".market-badge").allInnerTexts(), ["实时", "延迟数据", "数据已过时", "已收盘"]);
+    // Live carries the small delay note; no other status does.
+    assert.deepEqual(await rows.locator(".market-delay").allInnerTexts(), ["约延迟 2 分钟"]);
     // A market time for every shown value (UK time), none for the stale one.
     assert.equal(await rows.nth(2).locator("time").count(), 0);
     for (const i of [0, 1, 3]) assert.match(await rows.nth(i).locator("time").innerText(), /\d{2}:\d{2}（英国时间）$/);

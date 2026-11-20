@@ -17,8 +17,11 @@ const SHORT_NAME: Record<MarketSymbol, string> = {
   DJI: "Dow Jones",
 };
 
-/** Read again this often while the page is open and visible (the backend serves stored values; no upstream calls). */
-export const MARKET_READ_INTERVAL_MS = 5 * 60_000;
+/**
+ * Read again this often while the page is open and visible, so a Live label never outlives its quote by much (the
+ * backend serves stored values; no upstream calls).
+ */
+export const MARKET_READ_INTERVAL_MS = 60_000;
 
 type MarketState = { status: "waiting" } | { status: "ready"; data: MarketIndicesData; readAt: number };
 
@@ -77,6 +80,7 @@ function IndexRow({ view, locale, now }: { view: IndexView; locale: GuideLocale;
       )}
       <span className="market-meta">
         <span className="live-badge market-badge">{ui.status[view.status]}</span>
+        {view.status === "live" && <span className="market-delay">{ui.delayNote(view.delayMinutes)}</span>}
         {view.observedAt && (
           <time dateTime={view.observedAt}>{ui.asOf(formatMarketTime(view.observedAt, lang, now))}</time>
         )}

@@ -671,6 +671,15 @@ a.topic-card-body:hover {
 .market-badge {
   justify-self: start;
 }
+.market-row[data-status="live"] .market-badge {
+  background: #e7f4ec;
+  border-color: #bfe0cb;
+  color: #1d6b3a;
+}
+.market-delay {
+  font-size: 12px;
+  color: var(--home-muted);
+}
 .market-row[data-status="stale"] .market-badge,
 .market-row[data-status="unavailable"] .market-badge,
 .market-row[data-status="unknown"] .market-badge {

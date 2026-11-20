@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { getMarketIndices, parseMarketIndices } from "../src/markets/api.ts";
-import { formatLevel, formatMarketTime, formatSigned, indexView, UK_SYMBOLS, US_SYMBOLS } from "../src/markets/present.ts";
+import { formatLevel, formatMarketTime, formatSigned, indexView, LIVE_MAX_AGE_SECONDS, UK_SYMBOLS, US_SYMBOLS } from "../src/markets/present.ts";
 import { LIVE_SERVICES_UI } from "../src/home/liveServicesI18n.ts";
 import { GUIDE_LOCALES } from "../src/guides/locales.ts";
 import { marketIndices, TEST_ATTRIBUTION } from "./fixtures/market-indices.mjs";
@@ -41,8 +41,9 @@ test("parse: refuses mock data, missing attribution, missing or duplicate symbol
 
 test("view: follows the backend's rating and never shows a stale or time-less value", () => {
   const v = views(parseMarketIndices(marketIndices(NOW)));
-  assert.deepEqual(v.SPX, { symbol: "SPX", name: "S&P 500", status: "open", value: "5,985.25", change: "+25.25",
-    changePercent: "+0.42%", direction: "up", observedAt: "2026-11-20T15:25:00Z" });
+  assert.deepEqual(v.SPX, { symbol: "SPX", name: "S&P 500", status: "live", value: "5,985.25", change: "+25.25",
+    changePercent: "+0.42%", direction: "up", delayMinutes: 2, observedAt: "2026-11-20T15:28:00Z" });
+  assert.equal(v.IXIC.delayMinutes, null, "only Live carries a delay note");
   assert.equal(v.IXIC.status, "delayed");
   assert.equal(v.IXIC.change, "−89.90");
   assert.equal(v.IXIC.direction, "down");
@@ -69,6 +70,33 @@ test("view: follows the backend's rating and never shows a stale or time-less va
   const c = marketIndices(NOW);
   c.indices[1].provenance.observedAtSource = "COLLECTOR";
   assert.equal(views(parseMarketIndices(c)).SPX.value, null);
+});
+
+test("status: Live for a fresh quote a few minutes behind; Delayed, out of date and Closed otherwise", () => {
+  const spx = (freshness, ageSeconds, session = "OPEN") => {
+    const m = marketIndices(NOW);
+    m.indices[1].freshness = { ...m.indices[1].freshness, status: freshness, ageSeconds };
+    m.indices[1].market.session = session;
+    return indexView(parseMarketIndices(m).indices[1]);
+  };
+  // Live: FRESH within the Live limit, whatever the 1-3 minute source lag; the provider time is kept.
+  for (const [age, minutes] of [[30, null], [60, 1], [120, 2], [170, 3], [LIVE_MAX_AGE_SECONDS, 5]]) {
+    const view = spx("FRESH", age);
+    assert.deepEqual([view.status, view.delayMinutes, view.value], ["live", minutes, "5,985.25"], `age ${age}`);
+    assert.equal(view.observedAt, "2026-11-20T15:28:00Z");
+  }
+  // FRESH but past the Live limit, or without an age: Delayed, never Live.
+  assert.equal(spx("FRESH", LIVE_MAX_AGE_SECONDS + 1).status, "delayed");
+  assert.equal(spx("FRESH", null).status, "delayed");
+  // The backend's own ratings are never upgraded.
+  assert.deepEqual([spx("DELAYED", 1500).status, spx("DELAYED", 1500).value], ["delayed", "5,985.25"]);
+  assert.deepEqual([spx("STALE", 7200).status, spx("STALE", 7200).value], ["stale", null]);
+  assert.deepEqual([spx("MARKET_CLOSED", 5400, "CLOSED").status, spx("MARKET_CLOSED", 5400, "CLOSED").delayMinutes], ["closed", null]);
+  assert.equal(spx("UNAVAILABLE", null).status, "unavailable");
+  // A negative or non-numeric age is malformed.
+  const bad = marketIndices(NOW);
+  bad.indices[1].freshness.ageSeconds = -5;
+  assert.equal(parseMarketIndices(bad), null);
 });
 
 test("format: levels, signed changes and the market time in UK time", () => {
@@ -109,9 +137,14 @@ test("copy: every market string in all five locales", () => {
   for (const locale of GUIDE_LOCALES) {
     const m = LIVE_SERVICES_UI[locale].markets;
     for (const value of [m.us, m.uk, m.change, ...Object.values(m.status)]) assert.ok(value.trim(), `${locale}: empty`);
-    assert.deepEqual(Object.keys(m.status).sort(), ["closed", "delayed", "open", "stale", "unavailable", "unknown"]);
+    assert.deepEqual(Object.keys(m.status).sort(), ["closed", "delayed", "live", "stale", "unavailable", "unknown"]);
+    assert.match(m.delayNote(2), /2/);
+    assert.ok(m.delayNote(null).trim());
     assert.match(m.asOf("14:35"), /14:35/);
     assert.match(m.source("Provider X"), /Provider X/);
   }
   assert.equal(LIVE_SERVICES_UI.en.markets.asOf("14:35"), "14:35 UK time");
+  assert.deepEqual([LIVE_SERVICES_UI.en.markets.status.live, LIVE_SERVICES_UI.en.markets.delayNote(2), LIVE_SERVICES_UI.en.markets.delayNote(null)],
+    ["Live", "~2 min delay", "Quotes may be delayed"]);
+  assert.deepEqual(GUIDE_LOCALES.map((l) => LIVE_SERVICES_UI[l].markets.status.live), ["实时", "即時", "Live", "لائیو", "लाइव"]);
 });

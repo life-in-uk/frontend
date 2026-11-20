@@ -33,6 +33,8 @@ export type MarketIndex = {
   observedAtSource: "EXCHANGE" | "PROVIDER" | "COLLECTOR" | null;
   session: "OPEN" | "CLOSED" | "UNKNOWN";
   freshness: FreshnessStatus;
+  /** Age of the quote's market time when the backend answered (server clock), or null. */
+  ageSeconds: number | null;
 };
 
 export type MarketIndicesData = {
@@ -65,6 +67,8 @@ function parseIndex(value: unknown): MarketIndex | null {
   }
   const observedAt = provenance && typeof provenance.observedAt === "string" && parseInstant(provenance.observedAt) !== null
     ? provenance.observedAt : null;
+  const age = value.freshness.ageSeconds;
+  if (age !== null && age !== undefined && !(typeof age === "number" && Number.isFinite(age) && age >= 0)) return null;
   const timeSource = provenance?.observedAtSource;
   const observedAtSource = timeSource === "EXCHANGE" || timeSource === "PROVIDER" || timeSource === "COLLECTOR" ? timeSource : null;
   return {
@@ -79,6 +83,7 @@ function parseIndex(value: unknown): MarketIndex | null {
     observedAtSource,
     session,
     freshness: status as FreshnessStatus,
+    ageSeconds: typeof age === "number" ? age : null,
   };
 }
 
