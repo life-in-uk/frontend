@@ -607,6 +607,83 @@ a.topic-card-body:hover {
 .live-markets .live-card {
   margin-top: 12px;
 }
+.market-card {
+  align-items: start;
+  border-style: solid;
+  background: #fff;
+}
+.market-card .live-card-icon {
+  padding-top: 2px;
+}
+.market-rows {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.market-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 8px 0;
+  border-top: 1px solid var(--home-line);
+}
+.market-row:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+.market-name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.market-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+.market-change {
+  grid-column: 2;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  color: var(--home-muted);
+}
+.market-change[data-direction="up"] {
+  color: #1d6b3a;
+}
+.market-change[data-direction="down"] {
+  color: #a3261c;
+}
+.market-meta {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--home-muted);
+}
+.market-badge {
+  justify-self: start;
+}
+.market-row[data-status="stale"] .market-badge,
+.market-row[data-status="unavailable"] .market-badge,
+.market-row[data-status="unknown"] .market-badge {
+  background: #fdf4e3;
+  border-color: #f0dcb0;
+  color: #6b4a12;
+}
+.market-source {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--home-muted);
+}
 .live-shortcuts {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
@@ -1171,6 +1248,17 @@ a.topic-card-body:hover {
   }
   .live-markets .live-badge {
     grid-column: 1;
+  }
+  .market-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .market-name {
+    white-space: normal;
+  }
+  .market-value,
+  .market-change {
+    grid-column: 1;
+    text-align: start;
   }
   .guide-index {
     padding: 4px 16px;
