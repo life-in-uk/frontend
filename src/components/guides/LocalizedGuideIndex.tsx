@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, CalendarDays, GraduationCap } from "lucide-react";
+import { ArrowRight, CalendarDays, GraduationCap, House } from "lucide-react";
 import { getLocalizedGuides } from "../../guides/api";
 import type { GuideMetadata } from "../../guides/api";
 import { EDUCATION_COPY, educationSections } from "../../guides/education";
-import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY } from "../../guides/household";
+import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY, HOUSEHOLD_SECTIONS, householdSections } from "../../guides/household";
 import { formatUkDateFor } from "../../guides/format";
 import { GUIDE_DOMAINS, UNIVERSITY_CATEGORY, type GuideDomainId } from "../../guides/domains";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, UNIVERSITY_COPY, textDirection, type GuideLocale } from "../../guides/locales";
@@ -71,20 +71,27 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
     return () => clearGuideSeo();
   }, [locale, domain, title, description, state, available]);
 
-  if (education) {
-    // Education uses the shared topic-hub layout (Renting, Settlement, Work
-    // Visa): one left edge for hero, section headings and cards.
-    const sections = state.status === "ready" ? educationSections(state.guides) : [];
+  // Education and Household use the shared topic-hub layout (Renting, Settlement, Work Visa): one left edge for
+  // hero, section headings and cards.
+  const hub = education
+    ? { id: "education", domain: "education" as const, icon: GraduationCap,
+        sections: state.status === "ready" ? educationSections(state.guides) : [], heading: (id: string) => education[id as keyof typeof education] }
+    : household
+      ? { id: "household", domain: HOUSEHOLD_CATEGORY, icon: House,
+          sections: state.status === "ready" ? householdSections(state.guides) : [], heading: (id: string) => HOUSEHOLD_SECTIONS[locale][id as keyof (typeof HOUSEHOLD_SECTIONS)[GuideLocale]] }
+      : null;
+  if (hub) {
+    const { sections, icon: Icon } = hub;
     const order = sections.flatMap(({ guides }) => guides.map(({ slug }) => slug));
     return (
-      <main id="main" className="work-visa-page work-hub education-hub" lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
+      <main id="main" className={`work-visa-page work-hub ${hub.id}-hub`} lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
         <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} available={available} /></div>
-        <section className="work-hero" aria-labelledby="education-title">
+        <section className="work-hero" aria-labelledby={`${hub.id}-title`}>
           <span className="eyebrow work-eyebrow">
-            <GraduationCap size={15} aria-hidden="true" />
+            <Icon size={15} aria-hidden="true" />
             Life in UK
           </span>
-          <h1 id="education-title">{title}</h1>
+          <h1 id={`${hub.id}-title`}>{title}</h1>
           <p className="work-hero-lead">{description}</p>
         </section>
         {state.status === "loading" && <p role="status" className="work-plan-status">{strings.loading}</p>}
@@ -93,15 +100,15 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
         {sections.length > 0 && (
           <div className="work-plan">
             {sections.map(({ id, guides }) => (
-              <section key={id} className="work-topic" aria-labelledby={`education-${id}`}>
-                <header className="work-topic-head"><h2 id={`education-${id}`}>{education[id]}</h2></header>
+              <section key={id} className="work-topic" aria-labelledby={`${hub.id}-${id}`}>
+                <header className="work-topic-head"><h2 id={`${hub.id}-${id}`}>{hub.heading(id)}</h2></header>
                 <ol className="work-guide-list">
                   {guides.map((guide) => (
                     <li key={guide.slug} className="work-guide-card" data-slug={guide.slug}>
                       <span className="work-guide-number" aria-hidden="true">{order.indexOf(guide.slug) + 1}</span>
                       <div className="work-guide-body">
                         <h3>
-                          <Link to={localizedGuidePath(locale, "education", guide.slug)} className="work-guide-link">{guide.title}</Link>
+                          <Link to={localizedGuidePath(locale, hub.domain, guide.slug)} className="work-guide-link">{guide.title}</Link>
                         </h3>
                         <p className="work-guide-covers">{guide.summary}</p>
                         <span className="work-guide-meta">
@@ -118,7 +125,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
             ))}
           </div>
         )}
-        {state.status === "ready" && state.universityAvailable && (
+        {education && state.status === "ready" && state.universityAvailable && (
           <p className="education-university-link">
             <Link to={localizedGuidePath(locale, UNIVERSITY_CATEGORY)} className="work-official-link">
               {UNIVERSITY_COPY[locale].title}
@@ -131,7 +138,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
   }
 
   return (
-    <main id="main" className={`guide-page localized-guide-index${household ? " household-services-hub" : ""}`} lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
+    <main id="main" className="guide-page localized-guide-index" lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
       <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} available={domain ? available : undefined} /></div>
       <header className="guide-index-header">
         <p className="guide-kicker">Life in UK</p>

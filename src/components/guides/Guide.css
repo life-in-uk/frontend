@@ -69,7 +69,6 @@
 .localized-guide-list > li > a:hover { border-color: var(--color-brand); }
 .localized-guide-list > li > a > span { display: grid; gap: 8px; min-width: 0; }
 .localized-guide-list strong, .localized-guide-list span { overflow-wrap: anywhere; }
-.household-services-hub[dir="rtl"] .localized-guide-list svg { transform: scaleX(-1); }
 .localized-guide-list time { color: var(--color-muted); font-size: var(--text-sm); }
 .guide-article[dir="rtl"] .guide-body ul:not([class]),
 .guide-article[dir="rtl"] .guide-body ol:not([class]) { padding-left: 0; padding-right: 1.4em; }
@@ -156,6 +155,11 @@
   letter-spacing: 0.3px;
   margin-block: 10px 14px;
   overflow-wrap: anywhere;
+}
+/* Chinese has no spaces, so balanced wrapping could split a word ("建筑|险"); break at punctuation
+   instead. overflow-wrap still breaks a long title without punctuation. */
+.guide-header h1:lang(zh) {
+  word-break: keep-all;
 }
 .guide-summary {
   color: var(--color-muted);
@@ -515,6 +519,9 @@ li > .evidence-panel {
   }
   .guide-header h1 {
     font-size: 1.625rem;
+  }
+  .guide-header h1:lang(zh) {
+    font-size: 1.5rem; /* fits 12-character phrases on a 375px screen without a one-character line */
   }
   .guide-body {
     font-size: var(--text-base);
