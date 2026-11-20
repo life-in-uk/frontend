@@ -6,18 +6,19 @@ import { TRAVEL_UI } from "../../travel/i18n";
 import { travelPath } from "../../travel/routes";
 import type { TravelToolId } from "../../travel/tools";
 import { Link } from "../Link";
+import { MarketIndexCards } from "./MarketIndexCards";
 import { TransportShortcut } from "./TransportShortcut";
 import { WeatherShortcut } from "./WeatherShortcut";
 
 // Approved order of the shortcut row; Weather is the fourth tile.
 const TRAVEL_ORDER: readonly TravelToolId[] = ["underground", "rail", "roads"];
 const US_INDICES = ["S&P 500", "Nasdaq Composite", "Dow Jones"];
-const UK_INDICES = ["FTSE 100", "FTSE 250"];
+const UK_INDICES = ["FTSE 100"];
 
 /**
  * Not-yet-available card. It shows only what is planned: no value, no
- * source branding, no link and no request (headline and index data are not
- * licensed yet).
+ * source branding and no link (the headline is not licensed; the index cards
+ * show this until the backend serves licensed index data).
  */
 function ComingSoonCard({
   id,
@@ -55,8 +56,9 @@ function ComingSoonCard({
 /**
  * Homepage "Live Services", directly under the search: section heading, one
  * UK headline, US and UK index cards side by side, and one row of four equal
- * shortcuts (Underground, Rail, Roads, Weather). Headline and indices are
- * "coming soon" placeholders until their data is licensed.
+ * shortcuts (Underground, Rail, Roads, Weather). The headline is a "coming
+ * soon" placeholder; the index cards stay "coming soon" until the backend
+ * serves licensed index data (MarketIndexCards).
  */
 export function LiveServices({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   const ui = LIVE_SERVICES_UI[locale];
@@ -81,22 +83,27 @@ export function LiveServices({ locale = "zh-CN" }: { locale?: GuideLocale }) {
         label={ui.headline.label}
         badge={ui.comingSoon}
       />
-      <div className="live-markets">
-        <ComingSoonCard
-          id="live-us"
-          icon={<TrendingUp size={22} aria-hidden="true" />}
-          label={ui.markets.us}
-          badge={ui.comingSoon}
-          items={US_INDICES}
-        />
-        <ComingSoonCard
-          id="live-uk"
-          icon={<Landmark size={22} aria-hidden="true" />}
-          label={ui.markets.uk}
-          badge={ui.comingSoon}
-          items={UK_INDICES}
-        />
-      </div>
+      <MarketIndexCards
+        locale={locale}
+        placeholders={
+          <>
+            <ComingSoonCard
+              id="live-us"
+              icon={<TrendingUp size={22} aria-hidden="true" />}
+              label={ui.markets.us}
+              badge={ui.comingSoon}
+              items={US_INDICES}
+            />
+            <ComingSoonCard
+              id="live-uk"
+              icon={<Landmark size={22} aria-hidden="true" />}
+              label={ui.markets.uk}
+              badge={ui.comingSoon}
+              items={UK_INDICES}
+            />
+          </>
+        }
+      />
       <ul className="transport-list live-shortcuts">
         {TRAVEL_ORDER.map((id) => (
           <TransportShortcut key={id} locale={locale} id={id} />

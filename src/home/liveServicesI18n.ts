@@ -1,18 +1,30 @@
 import type { GuideLocale } from "../guides/locales";
 import type { WeatherCity } from "../weather/cities";
 import type { WeatherCondition } from "../weather/codes";
+import type { CardStatus } from "../markets/present";
 
 /**
- * Homepage "Live Services" section. The headline and market cards are
- * placeholders until their data is licensed: they show only what is coming,
- * never a value, and make no request.
+ * Homepage "Live Services" section. The headline card is a placeholder until
+ * its content is licensed. The index cards show "coming soon" until the backend
+ * serves licensed index data (GET /api/market-indices/latest answers 404 until then).
  */
 export type LiveServicesUi = {
   title: string;
   subtitle: string;
   comingSoon: string;
   headline: { label: string };
-  markets: { us: string; uk: string };
+  markets: {
+    us: string;
+    uk: string;
+    /** Badge per card status: the backend's freshness rating, never upgraded. */
+    status: Record<CardStatus, string>;
+    /** "16:35 UK time": the market time of the value, in UK time. */
+    asOf: (time: string) => string;
+    /** The licensed source's attribution, shown next to the values. */
+    source: (attribution: string) => string;
+    /** Accessible name of the change figures. */
+    change: string;
+  };
   weather: {
     name: string;
     checking: string;
@@ -36,7 +48,14 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     subtitle: "您的一站式英国实时生活信息中心",
     comingSoon: "即将推出",
     headline: { label: "今日英国头条" },
-    markets: { us: "美国股指", uk: "英国股指" },
+    markets: {
+      us: "美国股指",
+      uk: "英国股指",
+      status: { open: "开盘中", delayed: "延迟数据", closed: "已收盘", unknown: "市场状态未知", stale: "数据已过时", unavailable: "暂无数据" },
+      asOf: (time) => `${time}（英国时间）`,
+      source: (attribution) => `数据来源：${attribution}`,
+      change: "涨跌",
+    },
     weather: {
       name: "天气",
       checking: "正在获取天气…",
@@ -88,7 +107,14 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     subtitle: "您的一站式英國即時生活資訊中心",
     comingSoon: "即將推出",
     headline: { label: "今日英國頭條" },
-    markets: { us: "美國股指", uk: "英國股指" },
+    markets: {
+      us: "美國股指",
+      uk: "英國股指",
+      status: { open: "開盤中", delayed: "延遲資料", closed: "已收盤", unknown: "市場狀態未知", stale: "資料已過時", unavailable: "暫無資料" },
+      asOf: (time) => `${time}（英國時間）`,
+      source: (attribution) => `資料來源：${attribution}`,
+      change: "漲跌",
+    },
     weather: {
       name: "天氣",
       checking: "正在取得天氣…",
@@ -140,7 +166,14 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     subtitle: "Your one-stop hub for live UK information.",
     comingSoon: "Coming soon",
     headline: { label: "Today's UK headline" },
-    markets: { us: "US indices", uk: "UK indices" },
+    markets: {
+      us: "US indices",
+      uk: "UK indices",
+      status: { open: "Open", delayed: "Delayed", closed: "Closed", unknown: "Status unknown", stale: "Out of date", unavailable: "Unavailable" },
+      asOf: (time) => `${time} UK time`,
+      source: (attribution) => `Source: ${attribution}`,
+      change: "Change",
+    },
     weather: {
       name: "Weather",
       checking: "Checking the weather…",
@@ -192,7 +225,14 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     subtitle: "برطانیہ کی لائیو معلومات کے لیے آپ کا ون اسٹاپ مرکز۔",
     comingSoon: "جلد آ رہا ہے",
     headline: { label: "آج کی برطانوی سرخی" },
-    markets: { us: "امریکی انڈیکس", uk: "برطانوی انڈیکس" },
+    markets: {
+      us: "امریکی انڈیکس",
+      uk: "برطانوی انڈیکس",
+      status: { open: "مارکیٹ کھلی ہے", delayed: "تاخیر سے", closed: "مارکیٹ بند", unknown: "مارکیٹ کی صورتحال نامعلوم", stale: "پرانا ڈیٹا", unavailable: "دستیاب نہیں" },
+      asOf: (time) => `${time} (برطانوی وقت)`,
+      source: (attribution) => `ماخذ: ${attribution}`,
+      change: "تبدیلی",
+    },
     weather: {
       name: "موسم",
       checking: "موسم کی معلومات حاصل کی جا رہی ہیں…",
@@ -244,7 +284,14 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     subtitle: "ब्रिटेन की लाइव जानकारी के लिए आपका वन-स्टॉप केंद्र।",
     comingSoon: "जल्द आ रहा है",
     headline: { label: "आज की ब्रिटेन की सुर्ख़ी" },
-    markets: { us: "अमेरिकी सूचकांक", uk: "ब्रिटेन के सूचकांक" },
+    markets: {
+      us: "अमेरिकी सूचकांक",
+      uk: "ब्रिटेन के सूचकांक",
+      status: { open: "बाज़ार खुला", delayed: "विलंबित", closed: "बाज़ार बंद", unknown: "बाज़ार की स्थिति अज्ञात", stale: "पुराना डेटा", unavailable: "उपलब्ध नहीं" },
+      asOf: (time) => `${time} (यूके समय)`,
+      source: (attribution) => `स्रोत: ${attribution}`,
+      change: "बदलाव",
+    },
     weather: {
       name: "मौसम",
       checking: "मौसम की जानकारी ली जा रही है…",

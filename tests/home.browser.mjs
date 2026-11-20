@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { LIVE_SERVICES_UI } from "../src/home/liveServicesI18n.ts";
 import { mkdir } from "node:fs/promises";
+import { marketIndices, TEST_ATTRIBUTION } from "./fixtures/market-indices.mjs";
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright"
 );
@@ -82,7 +83,7 @@ const weatherFor = (city, { code = 7, temperature = 7.4, detected = null } = {})
   };
 };
 
-async function page(width, { guides = 200, holidays = 200, tube = null, weather = null, height = 900 } = {}) {
+async function page(width, { guides = 200, holidays = 200, tube = null, weather = null, markets = null, height = 900 } = {}) {
   const context = await browser.newContext({
     viewport: { width, height },
   });
@@ -115,6 +116,10 @@ async function page(width, { guides = 200, holidays = 200, tube = null, weather 
         return tube
           ? route.fulfill({ json: tube })
           : route.fulfill({ status: 404, json: { code: "UNDERGROUND_UNAVAILABLE" } });
+      if (path === "/api/market-indices/latest")
+        return markets
+          ? route.fulfill({ json: markets() })
+          : route.fulfill({ status: 404, json: { code: "MARKET_INDICES_DISABLED" } });
       if (path === "/api/weather/current")
         return weather
           ? route.fulfill({ json: weather(new URL(route.request().url()).searchParams.get("city")) })
@@ -216,7 +221,7 @@ try {
     assert.match(await holiday.innerText(), /England & Wales/);
     // Live Services, directly under the search: heading and subtitle, the
     // headline and two market cards as "coming soon" placeholders (no value,
-    // no link, no request), then four shortcuts. Underground status is read
+    // no link; the index read answers 404 until display is licensed), then four shortcuts. Underground status is read
     // from the stored snapshot (one no-store GET; never a provider call); Rail
     // is shown in development (production builds show "暂未开放", see
     // travel-production-isolation). No snapshot and no weather here: both
@@ -229,11 +234,11 @@ try {
     assert.deepEqual(await cards.locator(".live-badge").allInnerTexts(), ["即将推出", "即将推出", "即将推出"]);
     assert.deepEqual(await cards.locator(".live-card-items").allInnerTexts(), [
       "S&P 500 · Nasdaq Composite · Dow Jones",
-      "FTSE 100 · FTSE 250",
+      "FTSE 100",
     ]);
     assert.equal(await cards.locator("a, button, input, select").count(), 0);
     // Placeholders carry no figures or source branding (only the index names' own numbers).
-    const placeholderText = (await cards.allInnerTexts()).join(" ").replace(/S&P 500|FTSE 100|FTSE 250/g, "");
+    const placeholderText = (await cards.allInnerTexts()).join(" ").replace(/S&P 500|FTSE 100/g, "");
     assert.doesNotMatch(placeholderText, /\d|BBC|%|▲|▼/);
     const transport = live.locator(".live-shortcuts");
     await transport.locator('[data-tool="underground"] .transport-status[data-state="unavailable"]').waitFor();
@@ -259,7 +264,7 @@ try {
     );
     assert.equal(await p.locator(".underground-card, .roads-card, .rail-card").count(), 0);
     if (!REAL)
-      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/guides/locales/zh-CN", "/api/travel/underground", "/api/weather/current"]);
+      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/guides/locales/zh-CN", "/api/market-indices/latest", "/api/travel/underground", "/api/weather/current"]);
     assert.equal(requests.filter((path) => path === "/api/travel/underground").length, 1);
     assert.equal(finished.filter((path) => path === "/api/weather/current").length, 1);
     assert.ok(!requests.some((path) => /^\/api\/(travel\/roads|places|rail)/.test(path)));
@@ -628,6 +633,44 @@ try {
       await context.close();
     }
     console.log("PASS Live Services weather: current-hour Met Office step with issue time, automatic city as plain non-interactive text (no selector, search or stored choice), one request, no geolocation × 5 locales, Urdu RTL; default London; errors; old step hidden; long-open tab re-reads hourly, only when visible, 10 min after failure, never aborts or duplicates a read in flight; CLS < 0.1");
+  }
+
+  // Index cards once licensed data is public: value, change, market time and the backend's rating; a stale
+  // value shows no number; the attribution sits below. Mock or unattributed data keeps the placeholders.
+  if (!REAL) {
+    const { p, context, errors } = await page(1440, { markets: () => marketIndices() });
+    await p.goto(`${baseURL}/zh-CN`);
+    const live = p.locator(".live-panel");
+    await live.locator('.market-card[data-state="live"]').first().waitFor();
+    assert.equal(await live.locator('.live-card[data-state="coming-soon"]').count(), 1, "only the headline stays a placeholder");
+    assert.deepEqual(await live.locator(".market-card .live-card-label").allInnerTexts(), ["美国股指", "英国股指"]);
+    const rows = live.locator(".market-row");
+    assert.deepEqual(await rows.locator(".market-name").allInnerTexts(), ["S&P 500", "Nasdaq Composite", "Dow Jones", "FTSE 100"]);
+    assert.deepEqual(await rows.evaluateAll((els) => els.map((el) => el.dataset.status)), ["open", "delayed", "stale", "closed"]);
+    assert.deepEqual(await rows.locator(".market-value").allInnerTexts(), ["5,985.25", "19,410.10", "—", "8,123.45"]);
+    assert.deepEqual(await rows.locator(".market-change").allInnerTexts(), ["+25.25 (+0.42%)", "−89.90 (−0.46%)", "0.00 (0.00%)"]);
+    assert.deepEqual(await rows.locator(".market-change").evaluateAll((els) => els.map((el) => el.dataset.direction)), ["up", "down", "flat"]);
+    assert.deepEqual(await rows.locator(".market-badge").allInnerTexts(), ["开盘中", "延迟数据", "数据已过时", "已收盘"]);
+    // A market time for every shown value (UK time), none for the stale one.
+    assert.equal(await rows.nth(2).locator("time").count(), 0);
+    for (const i of [0, 1, 3]) assert.match(await rows.nth(i).locator("time").innerText(), /\d{2}:\d{2}（英国时间）$/);
+    assert.equal(await live.locator(".market-source").innerText(), `数据来源：${TEST_ATTRIBUTION}`);
+    assert.deepEqual(errors, []);
+    await p.screenshot({ path: `${screenshots}/home-markets-1440.png`, fullPage: false, clip: { x: 0, y: 0, width: 1440, height: 900 } });
+    await context.close();
+    for (const [label, markets] of [
+      ["mock source", () => { const m = marketIndices(); m.indices[0].source = "mock"; return m; }],
+      ["no attribution", () => marketIndices(Date.now(), { attribution: "" })],
+    ]) {
+      const other = await page(1440, { markets });
+      await other.p.goto(`${baseURL}/zh-CN`);
+      await other.p.locator(".featured-card-link").first().waitFor();
+      await other.p.waitForTimeout(300);
+      assert.equal(await other.p.locator('.market-card[data-state="live"]').count(), 0, `${label}: no live cards`);
+      assert.equal(await other.p.locator('.live-markets .live-card[data-state="coming-soon"]').count(), 2, `${label}: placeholders`);
+      await other.context.close();
+    }
+    console.log("PASS market index cards (licensed fixture; mock and unattributed data refused)");
   }
 
   // Responsive: no horizontal overflow, usable touch targets, screenshots.
