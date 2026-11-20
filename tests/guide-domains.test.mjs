@@ -209,3 +209,17 @@ test("Money Guides belong only to the Money domain", () => {
   assert.deepEqual(relatedGuidesFor(MONEY_GUIDE_DOMAIN, "m", list), []);
   assert.equal(guidePath(MONEY_GUIDE_DOMAIN, "m"), "/zh-CN/money/m");
 });
+
+test("Household hub sections: insurance, then broadband and energy; unknown Guides kept under 'other'", async () => {
+  const { householdSections, HOUSEHOLD_SECTIONS } = await import("../src/guides/household.ts");
+  const g = (slug) => ({ slug, category: "household-services", title: slug, summary: "", updatedAt: "2026-11-20T00:00:00Z" });
+  const published = ["uk-energy-tariffs-switching", "new-household-guide", "uk-pet-insurance-vet-fees", "uk-home-insurance-buildings-contents"].map(g);
+  assert.deepEqual(householdSections(published).map(({ id, guides }) => [id, guides.map(({ slug }) => slug)]), [
+    ["insurance", ["uk-home-insurance-buildings-contents", "uk-pet-insurance-vet-fees"]],
+    ["services", ["uk-energy-tariffs-switching"]],
+    ["other", ["new-household-guide"]],
+  ]);
+  assert.deepEqual(householdSections([]), []);
+  for (const labels of Object.values(HOUSEHOLD_SECTIONS))
+    for (const label of Object.values(labels)) assert.ok(label.trim());
+});

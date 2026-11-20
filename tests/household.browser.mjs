@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY } from "../src/guides/household.ts";
+import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY, HOUSEHOLD_SECTIONS, householdSections } from "../src/guides/household.ts";
 import { GUIDE_LOCALE_LANG, GUIDE_LOCALES, GUIDE_UI } from "../src/guides/locales.ts";
 import { availableHomeTopics } from "../src/home/topics.ts";
 
@@ -58,9 +58,15 @@ try {
       await page.getByRole("heading", { level: 1, name: HOUSEHOLD_COPY[locale].title }).waitFor();
       assert.equal(await page.locator("html").getAttribute("lang"), GUIDE_LOCALE_LANG[locale]);
       assert.equal(await page.locator("html").getAttribute("dir"), locale === "ur" ? "rtl" : "ltr");
-      const cards = page.locator("main .localized-guide-list > li");
+      // Shared topic-hub layout (as Education, Renting, Work Visa): numbered cards grouped into sections.
+      const cards = page.locator("main .work-guide-card");
       await cards.last().waitFor();
       assert.equal(await cards.count(), data[locale].length);
+      const sectionHeadings = await page.locator("main .work-topic h2").allInnerTexts();
+      const expectedSections = householdSections(data[locale]).map(({ id }) => HOUSEHOLD_SECTIONS[locale][id]);
+      assert.deepEqual(sectionHeadings, expectedSections, `${locale}: hub sections`);
+      assert.deepEqual(await cards.evaluateAll((els) => els.map((el) => el.dataset.slug)),
+        householdSections(data[locale]).flatMap(({ guides }) => guides.map(({ slug }) => slug)), `${locale}: card order`);
       assert.equal(await page.locator('head link[rel="canonical"]').getAttribute("href"), new URL(hub, base).href);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `hub overflow at ${width} / ${locale}`);
       for (const [index, guide] of data[locale].entries()) {
