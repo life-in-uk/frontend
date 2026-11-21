@@ -38,7 +38,7 @@ relevance **10** (optional; never overrides accuracy).
 | M1 | Getting a National Insurance number as a newcomer | NEW GUIDE CANDIDATE | B | **79** | New Guide (Money) |
 | F2 | Visitor visas for parents and family coming to stay | NEW GUIDE CANDIDATE | B | **76** | New Guide (Family Visa) |
 | F1 | Extending a partner visa inside the UK | PARTIAL GAP | B | **71** | Improve existing Guide (owner decision: content frozen) |
-| M2 | Building a UK credit history as a newcomer | NEW GUIDE CANDIDATE | B | **70** | New Guide (Money) |
+| M2 | Building a UK credit history as a newcomer | FIVE-LOCALE DRAFT REVIEWED | B | **70** | Owner review and private Money batch pending |
 | R2 | Repairs, damp and mould during a tenancy | NEW GUIDE CANDIDATE | B | **69** | New Guide (Renting) |
 | W2 | Health and Care Worker visa | NEW GUIDE CANDIDATE | C | **68** | Validate demand first |
 | X1 | Visa Guides mention the IHS and bank accounts without linking those Guides | DISCOVERABILITY GAP | B | **65** | Configuration only |
@@ -143,13 +143,12 @@ because the Family Visa Guides were frozen when that workstream closed.
 
 - **User question**: "Why can't I get credit / pass referencing, and how do I build a UK credit history?"
 - **Audience**: new arrivals, students.
-- **Existing Guides**: mentioned in `renting-referencing-checks` (what to do without a UK credit history), `renting-guarantors`, `renting-letting-agent-overview`, `renting-energy`, `open-uk-bank-account-new-arrival`; no Guide explains credit files.
-- **Classification**: NEW GUIDE CANDIDATE.
-- **Evidence**: B (repeated decision point across Renting and Money Guides).
-- **Recommended action**: one Money Guide: what a credit file is, the main credit reference agencies, checking your file for free, common steps that help, and what does not.
-- **Score 70**: need 22 · gap 20 · verifiability 12 (scoring is proprietary; official guidance is general) · fit 12 · affiliate 4 (credit-builder products would need strict neutrality).
-- **Official sources**: MoneyHelper credit guidance (URL to confirm; automated check was blocked) · ICO guidance on credit reference agencies (URL to confirm).
-- **Scope and accuracy**: no promises about scores; do not recommend specific products.
+- **Existing coverage**: Renting and bank account Guides mention UK credit history at the point of application. The public catalogue and protected draft inventory contained no dedicated credit history Guide on 21 November 2026.
+- **Editorial status**: source and translation review completed for the five-locale draft `uk-credit-history-and-credit-score`. Owner review, private import and publication approval are pending. [Backend draft PR #80](https://github.com/life-in-uk/backend/pull/80)
+- **Evidence**: B (repeated decision point across Renting and Money Guides). The draft records 20 sources, including [MoneyHelper on statutory reports](https://www.moneyhelper.org.uk/en/everyday-money/credit/how-to-check-your-credit-report), [ICO on credit files](https://ico.org.uk/for-the-public/credit/) and the [Electoral Commission](https://www.electoralcommission.org.uk/voting-and-elections/register-vote).
+- **Score 70**: need 22 · gap 20 · verifiability 12 (scoring is proprietary and official guidance is general) · fit 12 · affiliate 4.
+- **Release dependency**: the Money & Finance hub lists published Money Guides automatically. The existing frontend release build generates the five canonical detail pages from the published inventory.
+- **Scope and accuracy**: explain eligibility, affordability and credit-file corrections without promising a score or recommending a credit product.
 
 ### R2. Repairs, damp and mould during a tenancy
 
