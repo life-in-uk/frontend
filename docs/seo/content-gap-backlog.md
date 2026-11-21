@@ -1,9 +1,6 @@
 # Content-gap backlog (SEO Phase 3)
 
-Planning document, 16 November 2026. Based on the published inventory in
-`search-intent-inventory.md` (47 Guides, all five locales) and the frontend
-configuration at commit 6fdea14. **Nothing here is implemented**: the owner
-approves priorities first.
+Planning baseline from 16 November 2026, with live status reviewed on 21 November 2026. The original scoring used the 47-Guide inventory in `search-intent-inventory.md` and frontend commit `6fdea14`. The refresh found 69 published slugs in each of the five locales and verified sitemap coverage. Statuses below reflect that refresh; scores remain historical editorial judgments.
 
 ## Evidence
 
@@ -33,43 +30,28 @@ relevance **10** (optional; never overrides accuracy).
 
 | ID | Opportunity | Classification | Evidence | Score | Action |
 |---|---|---|---|---|---|
-| R1 | Moving out: ending a tenancy, check-out and getting the deposit back | NEW GUIDE CANDIDATE | B | **85** | New Guide (Renting) |
-| W1 | Work Visa Guides list related Guides that are not linked | DISCOVERABILITY GAP | B | **79** | Configuration only |
-| M1 | Getting a National Insurance number as a newcomer | NEW GUIDE CANDIDATE | B | **79** | New Guide (Money) |
-| F2 | Visitor visas for parents and family coming to stay | NEW GUIDE CANDIDATE | B | **76** | New Guide (Family Visa) |
-| F1 | Extending a partner visa inside the UK | PARTIAL GAP | B | **71** | Improve existing Guide (owner decision: content frozen) |
-| M2 | Building a UK credit history as a newcomer | FIVE-LOCALE DRAFT REVIEWED | B | **70** | Owner review and private Money batch pending |
-| R2 | Repairs, damp and mould during a tenancy | NEW GUIDE CANDIDATE | B | **69** | New Guide (Renting) |
-| W2 | Health and Care Worker visa | NEW GUIDE CANDIDATE | C | **68** | Validate demand first |
-| X1 | Visa Guides mention the IHS and bank accounts without linking those Guides | DISCOVERABILITY GAP | B | **65** | Configuration only |
-| X2 | Health and Money Guides framed for Chinese readers in every locale | PARTIAL GAP | B | **63** | Editorial review of ur/hi framing |
-| W3 | Graduate visa | NEW GUIDE CANDIDATE | C | **63** | Validate demand and section fit |
-| M3 | Bank account versus e-money account | PARTIAL GAP | B | **62** | Improve existing Guide |
-| H1 | Maternity care and NHS charges for newcomers on visas | NEW GUIDE CANDIDATE | C | **61** | Validate demand first |
-| F3 | Adult Dependent Relative visa | NEW GUIDE CANDIDATE | C | **59** | Low priority |
-| M4 | Sending money abroad safely | NEW GUIDE CANDIDATE | C | **59** | Low priority; affiliate-sensitive |
-| R3 | Contents insurance for tenants | NEW GUIDE CANDIDATE | C | **56** | Low priority; affiliate-sensitive |
+| R1 | Moving out and getting the deposit back | LIVE · 5 LOCALES | B | **85** | Preserve Renting Guide |
+| W1 | Work Visa related links | IMPLEMENTED | B | **79** | Preserve curated links |
+| M1 | National Insurance number for newcomers | LIVE · 5 LOCALES | B | **79** | Preserve Money Guide |
+| F2 | Visits by parents and family | LIVE · 5 LOCALES | B | **76** | Preserve Visitor Guide and Health links |
+| F1 | Extending a partner visa inside the UK | PARTIAL · FROZEN | B | **71** | Owner must reopen Partner Visa content |
+| M2 | Building a UK credit history as a newcomer | LIVE · 5 LOCALES | B | **70** | Preserve Money Guide |
+| R2 | Repairs, damp and mould during a tenancy | DRAFT · 5 LOCALES | B | **69** | Housing research and language review before publication |
+| W2 | Health and Care Worker visa | PARTIAL · DEFERRED | C | **68** | Specialist review of occupation and dependant rules |
+| X1 | Visa Guides mention the IHS and bank accounts without linking those Guides | IMPLEMENTED | B | **65** | Preserve cross-section links |
+| X2 | Health and Money Guides framed for Chinese readers in every locale | PARTIAL · REVIEW NEEDED | B | **63** | Review audience framing with fluent Urdu and Hindi readers |
+| W3 | Graduate visa | MISSING · DEFERRED | C | **63** | Check eligibility and date transitions |
+| M3 | Bank account versus e-money account | DRAFT REVISION · 5 LOCALES | B | **62** | Review FCA safeguarding addition |
+| H1 | Maternity care and NHS charges for newcomers on visas | MISSING · DEFERRED | C | **61** | Review NHS access, urgent treatment and charging exceptions |
+| F3 | Adult Dependent Relative visa | MISSING · DEFERRED | C | **59** | Specialist review and Family Visa freeze check |
+| M4 | Sending money abroad safely | DRAFT · 5 LOCALES | C | **59** | Review neutral remittance Guide |
+| R3 | Contents insurance for tenants | OVERLAPPING | C | **56** | Link existing Household home insurance Guide |
 
-Counts (16 scored): DISCOVERABILITY GAP 2 · PARTIAL GAP 3 · NEW GUIDE CANDIDATE 11.
-Also investigated: 25 questions found **COVERED** and 4 **OUT OF SCOPE** (tables below).
+## Next editorial reviews
 
-## Recommended first batch (max. five)
+The active review batches are Renting (repairs and a moving-home checklist), Household (mobile plans) and Money (safe overseas transfers). Each new Guide has five draft locales. The existing deposit, Council Tax, bank-account and ILR overview revisions have separate review and publication needs. Partner Visa remains frozen.
 
-**Quick improvements (no new content, configuration only):**
-
-1. **W1** Link the Work Visa Guides' existing "Related Guides" lists and add curated
-   and cross-section links (score 79).
-2. **X1** Add cross-section links from visa Guides to the NHS IHS and bank-account
-   Guides (score 65); same mechanism as W1, so one small change.
-
-**New Guide candidates:**
-
-3. **R1** Moving out and getting the deposit back (score 85).
-4. **M1** National Insurance number for newcomers (score 79).
-5. **F2** Visitor visas for visiting parents and family (score 76).
-
-F1 (partner-visa extensions, 71) would come next but needs the owner's decision
-because the Family Visa Guides were frozen when that workstream closed.
+The detail below records the original reasoning and implementation notes. The summary above gives the current status.
 
 ---
 
@@ -149,6 +131,7 @@ because the Family Visa Guides were frozen when that workstream closed.
 - **Score 70**: need 22 · gap 20 · verifiability 12 (scoring is proprietary and official guidance is general) · fit 12 · affiliate 4.
 - **Release dependency**: the Money & Finance hub lists published Money Guides automatically. The existing frontend release build generates the five canonical detail pages from the published inventory.
 - **Scope and accuracy**: explain eligibility, affordability and credit-file corrections without promising a score or recommending a credit product.
+
 
 ### R2. Repairs, damp and mould during a tenancy
 
