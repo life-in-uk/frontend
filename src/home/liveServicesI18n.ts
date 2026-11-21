@@ -20,8 +20,6 @@ export type LiveServicesUi = {
     status: Record<CardStatus, string>;
     /** "16:35 UK time": the market time of the value, in UK time. */
     asOf: (time: string) => string;
-    /** The licensed source's attribution, shown next to the values. */
-    source: (attribution: string) => string;
     /** Accessible name of the change figures. */
     change: string;
     /** Small note next to "Live": "~2 min delay", or a general note under a minute (null). */
@@ -55,7 +53,6 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       uk: "英国股指",
       status: { live: "实时", delayed: "延迟数据", closed: "已收盘", unknown: "市场状态未知", stale: "数据已过时", unavailable: "暂无数据" },
       asOf: (time) => `${time}（英国时间）`,
-      source: (attribution) => `数据来源：${attribution}`,
       change: "涨跌",
       delayNote: (minutes) => (minutes === null ? "报价可能略有延迟" : `约延迟 ${minutes} 分钟`),
     },
@@ -115,7 +112,6 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       uk: "英國股指",
       status: { live: "即時", delayed: "延遲資料", closed: "已收盤", unknown: "市場狀態未知", stale: "資料已過時", unavailable: "暫無資料" },
       asOf: (time) => `${time}（英國時間）`,
-      source: (attribution) => `資料來源：${attribution}`,
       change: "漲跌",
       delayNote: (minutes) => (minutes === null ? "報價可能略有延遲" : `約延遲 ${minutes} 分鐘`),
     },
@@ -175,7 +171,6 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       uk: "UK indices",
       status: { live: "Live", delayed: "Delayed", closed: "Closed", unknown: "Status unknown", stale: "Out of date", unavailable: "Unavailable" },
       asOf: (time) => `${time} UK time`,
-      source: (attribution) => `Source: ${attribution}`,
       change: "Change",
       delayNote: (minutes) => (minutes === null ? "Quotes may be delayed" : `~${minutes} min delay`),
     },
@@ -235,7 +230,6 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       uk: "برطانوی انڈیکس",
       status: { live: "لائیو", delayed: "تاخیر سے", closed: "مارکیٹ بند", unknown: "مارکیٹ کی صورتحال نامعلوم", stale: "پرانا ڈیٹا", unavailable: "دستیاب نہیں" },
       asOf: (time) => `${time} (برطانوی وقت)`,
-      source: (attribution) => `ماخذ: ${attribution}`,
       change: "تبدیلی",
       delayNote: (minutes) => (minutes === null ? "قیمتوں میں معمولی تاخیر ہو سکتی ہے" : `تقریباً ${minutes} منٹ کی تاخیر`),
     },
@@ -295,7 +289,6 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
       uk: "ब्रिटेन के सूचकांक",
       status: { live: "लाइव", delayed: "विलंबित", closed: "बाज़ार बंद", unknown: "बाज़ार की स्थिति अज्ञात", stale: "पुराना डेटा", unavailable: "उपलब्ध नहीं" },
       asOf: (time) => `${time} (यूके समय)`,
-      source: (attribution) => `स्रोत: ${attribution}`,
       change: "बदलाव",
       delayNote: (minutes) => (minutes === null ? "भाव में थोड़ी देरी हो सकती है" : `लगभग ${minutes} मिनट की देरी`),
     },

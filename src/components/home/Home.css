@@ -687,8 +687,9 @@ a.topic-card-body:hover {
   border-color: #f0dcb0;
   color: #6b4a12;
 }
-.market-source {
-  margin-top: 8px;
+.market-attribution {
+  display: block;
+  overflow-wrap: anywhere;
   font-size: 12px;
   line-height: 1.5;
   color: var(--home-muted);

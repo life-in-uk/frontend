@@ -141,7 +141,6 @@ test("copy: every market string in all five locales", () => {
     assert.match(m.delayNote(2), /2/);
     assert.ok(m.delayNote(null).trim());
     assert.match(m.asOf("14:35"), /14:35/);
-    assert.match(m.source("Provider X"), /Provider X/);
   }
   assert.equal(LIVE_SERVICES_UI.en.markets.asOf("14:35"), "14:35 UK time");
   assert.deepEqual([LIVE_SERVICES_UI.en.markets.status.live, LIVE_SERVICES_UI.en.markets.delayNote(2), LIVE_SERVICES_UI.en.markets.delayNote(null)],

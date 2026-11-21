@@ -89,7 +89,7 @@ function IndexRow({ view, locale, now }: { view: IndexView; locale: GuideLocale;
   );
 }
 
-function IndexCard({ id, icon, label, symbols, data, locale, now }: {
+function IndexCard({ id, icon, label, symbols, data, locale, now, attribution }: {
   id: string;
   icon: ReactNode;
   label: string;
@@ -97,6 +97,7 @@ function IndexCard({ id, icon, label, symbols, data, locale, now }: {
   data: MarketIndicesData;
   locale: GuideLocale;
   now: number;
+  attribution?: string;
 }) {
   return (
     <div className="live-card market-card" data-state="live" role="group" aria-labelledby={`${id}-label`}>
@@ -105,6 +106,7 @@ function IndexCard({ id, icon, label, symbols, data, locale, now }: {
         <span className="live-card-label" id={`${id}-label`}>
           {label}
         </span>
+        {attribution && <bdi className="market-attribution">{attribution}</bdi>}
         <ul className="market-rows">
           {symbols.map((symbol) => {
             const index = data.indices.find((i) => i.symbol === symbol);
@@ -119,23 +121,18 @@ function IndexCard({ id, icon, label, symbols, data, locale, now }: {
 /**
  * The homepage's US and UK index cards. Until the backend serves licensed, attributed index data they render
  * {@code placeholders} unchanged; afterwards each index shows its value, change, market time (UK time) and the
- * backend's freshness rating, with the source's attribution below.
+ * backend's freshness rating, with the provider's attribution in the FTSE 100 card.
  */
 export function MarketIndexCards({ locale, placeholders }: { locale: GuideLocale; placeholders: ReactNode }) {
   const state = useMarketIndices();
   if (state.status !== "ready") return <div className="live-markets">{placeholders}</div>;
   const ui = LIVE_SERVICES_UI[locale].markets;
   return (
-    <>
-      <div className="live-markets">
-        <IndexCard id="live-us" icon={<TrendingUp size={22} aria-hidden="true" />} label={ui.us} symbols={US_SYMBOLS}
-          data={state.data} locale={locale} now={state.readAt} />
-        <IndexCard id="live-uk" icon={<Landmark size={22} aria-hidden="true" />} label={ui.uk} symbols={UK_SYMBOLS}
-          data={state.data} locale={locale} now={state.readAt} />
-      </div>
-      <p className="market-source">
-        {ui.source(state.data.attribution)}
-      </p>
-    </>
+    <div className="live-markets">
+      <IndexCard id="live-us" icon={<TrendingUp size={22} aria-hidden="true" />} label={ui.us} symbols={US_SYMBOLS}
+        data={state.data} locale={locale} now={state.readAt} />
+      <IndexCard id="live-uk" icon={<Landmark size={22} aria-hidden="true" />} label={ui.uk} symbols={UK_SYMBOLS}
+        data={state.data} locale={locale} now={state.readAt} attribution={state.data.attribution} />
+    </div>
   );
 }
