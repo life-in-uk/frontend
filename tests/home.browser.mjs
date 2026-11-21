@@ -636,7 +636,7 @@ try {
   }
 
   // Index cards once licensed data is public: value, change, market time and the backend's rating; a stale
-  // value shows no number; the attribution sits below. Mock or unattributed data keeps the placeholders.
+  // value shows no number; the UK card carries the provider credit verbatim. Mock or unattributed data keeps the placeholders.
   if (!REAL) {
     const { p, context, errors } = await page(1440, { markets: () => marketIndices() });
     await p.goto(`${baseURL}/zh-CN`);
@@ -656,10 +656,19 @@ try {
     // A market time for every shown value (UK time), none for the stale one.
     assert.equal(await rows.nth(2).locator("time").count(), 0);
     for (const i of [0, 1, 3]) assert.match(await rows.nth(i).locator("time").innerText(), /\d{2}:\d{2}（英国时间）$/);
-    assert.equal(await live.locator(".market-source").innerText(), `数据来源：${TEST_ATTRIBUTION}`);
+    assert.deepEqual(await live.locator(".market-attribution").allInnerTexts(), [TEST_ATTRIBUTION]);
+    assert.equal(await live.locator('#live-uk-label + bdi.market-attribution').innerText(), TEST_ATTRIBUTION);
     assert.deepEqual(errors, []);
     await p.screenshot({ path: `${screenshots}/home-markets-1440.png`, fullPage: false, clip: { x: 0, y: 0, width: 1440, height: 900 } });
     await context.close();
+    const rtl = await page(360, { markets: () => marketIndices() });
+    await rtl.p.goto(`${baseURL}/ur`);
+    const rtlCredit = rtl.p.locator('#live-uk-label + bdi.market-attribution');
+    await rtlCredit.waitFor();
+    assert.equal(await rtlCredit.innerText(), TEST_ATTRIBUTION);
+    assert.equal(await rtlCredit.evaluate((el) => getComputedStyle(el).direction), "ltr");
+    assert.equal(await noOverflow(rtl.p), true, "Urdu market cards fit at 360px");
+    await rtl.context.close();
     for (const [label, markets] of [
       ["mock source", () => { const m = marketIndices(); m.indices[0].source = "mock"; return m; }],
       ["no attribution", () => marketIndices(Date.now(), { attribution: "" })],
