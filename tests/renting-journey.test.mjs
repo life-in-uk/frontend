@@ -44,7 +44,7 @@ test("the journey runs listing → … → sign → keys, then inventory → Cou
   ]);
 });
 
-test("there are exactly thirteen Renting Guides, each owned by the renting domain and used by a step", () => {
+test("the thirteen Renting Journey Guides each belong to the renting domain and have a step", () => {
   assert.deepEqual([...RENTING_GUIDE_SLUGS], [
     "renting-letting-agent-overview",
     "renting-finding-viewing",
@@ -60,7 +60,9 @@ test("there are exactly thirteen Renting Guides, each owned by the renting domai
     "renting-tv-licence",
     "renting-moving-out-deposit",
   ]);
-  assert.deepEqual(new Set(Object.values(RENTING_GUIDE_DOMAIN.titleReferences)), new Set(RENTING_GUIDE_SLUGS));
+  for (const slug of RENTING_GUIDE_SLUGS) {
+    assert.ok(Object.values(RENTING_GUIDE_DOMAIN.titleReferences).includes(slug), slug);
+  }
   assert.deepEqual(guidesFor(ALL_STEPS), [...RENTING_GUIDE_SLUGS]);
   assert.deepEqual(guidesFor(RENTING_STEPS), RENTING_GUIDE_SLUGS.slice(0, 12), "the move-in steps are unchanged");
   for (const step of ALL_STEPS) {

@@ -10,6 +10,7 @@ import {
   CLUSTER_COPY,
   clusterGroupsFor,
   CROSS_SECTION_RELATED,
+  crossSectionLinksFor,
   officialSourcesFor,
   relatedLinksFor,
   TOPIC_CLUSTERS,
@@ -28,7 +29,7 @@ const SECTION_SLUGS = {
   "work-visa": Object.values(GUIDE_DOMAINS["work-visa"].titleReferences),
 };
 // Cross-section targets outside the curated sections: published Guides only.
-const OTHER_TARGETS = { "university-applications-student-visas": ["uk-undergraduate-application-timeline"], health: ["nhs-ihs-costs-england", "visiting-parents-healthcare-england"], money: ["open-uk-bank-account-new-arrival", "national-insurance-number-newcomers"] };
+const OTHER_TARGETS = { "university-applications-student-visas": ["uk-undergraduate-application-timeline"], health: ["nhs-ihs-costs-england", "visiting-parents-healthcare-england"], money: ["open-uk-bank-account-new-arrival", "national-insurance-number-newcomers", "uk-credit-history-and-credit-score"], "household-services": ["uk-mobile-plans-sim-only-payg"] };
 const TARGETS = { ...SECTION_SLUGS, ...OTHER_TARGETS };
 const KNOWN = new Set(Object.values(TARGETS).flat());
 const meta = (slug, category) => ({ slug, category, title: `${slug} title`, summary: "s", publishedAt: "", updatedAt: "" });
@@ -159,4 +160,18 @@ test("cluster copy exists in five locales, with no Chinese in en/ur/hi and no re
     assert.match(cluster.seoDescription.en, /not legal advice/);
   }
   for (const text of Object.values(CLUSTER_COPY)) for (const locale of GUIDE_LOCALES) assert.ok(text[locale].trim());
+});
+
+
+test("catalogue expansion links appear only if the target exists in the reading locale", () => {
+  const repair = meta("renting-repairs-damp-mould-england", "renting");
+  const move = meta("renting-moving-home-utilities-checklist", "renting");
+  const mobile = meta("uk-mobile-plans-sim-only-payg", "household-services");
+  assert.deepEqual(clusterGroupsFor("renting", "ur", [], "Other"), []);
+  const groups = clusterGroupsFor("renting", "ur", [repair, move], "Other");
+  assert.deepEqual(groups.map((group) => group.id), ["moving-in", "bills"]);
+  assert.deepEqual(groups.flatMap((group) => group.guides.map(({ guide }) => guide.slug)), [repair.slug, move.slug]);
+  const credit = "uk-credit-history-and-credit-score";
+  assert.deepEqual(crossSectionLinksFor(credit, []), []);
+  assert.deepEqual(crossSectionLinksFor(credit, [mobile]).map(({ guide }) => guide.slug), [mobile.slug]);
 });

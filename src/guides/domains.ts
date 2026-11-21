@@ -126,7 +126,8 @@ export const MONEY_GUIDE_DOMAIN: GuideDomain = {
   backLabel: "回到金钱与财务",
   titleReferences: {},
   relatedGuides: {
-    "open-uk-bank-account-new-arrival": ["national-insurance-number-newcomers"],
+    "open-uk-bank-account-new-arrival": ["national-insurance-number-newcomers", "sending-money-abroad-safely"],
+    "sending-money-abroad-safely": ["open-uk-bank-account-new-arrival"],
     "national-insurance-number-newcomers": ["open-uk-bank-account-new-arrival"],
   },
 };
@@ -236,6 +237,8 @@ export const RENTING_GUIDE_DOMAIN: GuideDomain = {
     "宽带和上网：查可用性、速度保证、合约期、安装和搬家": "renting-broadband",
     "TV Licence（电视许可证）：什么时候需要、合租和学生怎么办": "renting-tv-licence",
     "退租和拿回押金：通知、退房检查、交钥匙和结清账单": "renting-moving-out-deposit",
+    "英格兰租房搬家清单：能源、水费、宽带与市政税": "renting-moving-home-utilities-checklist",
+    "英格兰私人租房：维修、渗潮和霉菌": "renting-repairs-damp-mould-england",
   },
   relatedGuides: {
     "renting-letting-agent-overview": ["renting-finding-viewing", "renting-deposits-fees", "renting-tenancy-agreement"],
@@ -251,6 +254,8 @@ export const RENTING_GUIDE_DOMAIN: GuideDomain = {
     "renting-broadband": ["renting-tv-licence", "renting-energy"],
     "renting-tv-licence": ["renting-broadband", "renting-council-tax"],
     "renting-moving-out-deposit": ["renting-deposits-fees", "renting-moving-in-inventory", "renting-tenancy-agreement"],
+    "renting-moving-home-utilities-checklist": ["renting-moving-out-deposit", "renting-moving-in-inventory", "renting-council-tax"],
+    "renting-repairs-damp-mould-england": ["renting-moving-in-inventory", "renting-moving-out-deposit"],
   },
 };
 

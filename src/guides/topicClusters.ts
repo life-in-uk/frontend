@@ -69,12 +69,12 @@ const RENTING: TopicCluster = {
     {
       id: "moving-in",
       title: { "zh-CN": "入住和房屋状况记录", "zh-TW": "入住和房屋狀況記錄", en: "Moving in and the inventory", ur: "منتقلی اور inventory", hi: "रहने आना और inventory" },
-      guides: [r("renting-moving-in-inventory")],
+      guides: [r("renting-moving-in-inventory"), r("renting-repairs-damp-mould-england")],
     },
     {
       id: "bills",
       title: { "zh-CN": "Council Tax 和水电燃气", "zh-TW": "Council Tax 和水電燃氣", en: "Council Tax and utilities", ur: "Council Tax اور یوٹیلیٹیز", hi: "Council Tax और यूटिलिटी" },
-      guides: [r("renting-council-tax"), r("renting-energy"), r("renting-water")],
+      guides: [r("renting-council-tax"), r("renting-energy"), r("renting-water"), r("renting-moving-home-utilities-checklist")],
     },
     {
       id: "home-services",
@@ -199,6 +199,7 @@ export const CROSS_SECTION_RELATED: Readonly<Record<string, readonly ClusterGuid
   "settlement-children-dependants": [w("skilled-worker-dependants")],
   "renting-referencing-checks": [m("open-uk-bank-account-new-arrival")],
   "open-uk-bank-account-new-arrival": [r("renting-referencing-checks")],
+  "uk-credit-history-and-credit-score": [{ slug: "uk-mobile-plans-sim-only-payg", domain: "household-services" }],
   "skilled-worker-occupations-salary": [m("national-insurance-number-newcomers")],
   "national-insurance-number-newcomers": [w("skilled-worker-overview")],
   "visiting-family-uk-visitor-visa-eta": [h("visiting-parents-healthcare-england")],

@@ -196,9 +196,10 @@ test("Money Guides belong only to the Money domain", () => {
     ["m", "m2"],
   );
   assert.deepEqual(MONEY_GUIDE_DOMAIN.titleReferences, {});
-  // The two Money Guides are each other's next step (M1); nothing else is configured.
+  // Next steps include the remittance Guide when it is published in the reader’s locale.
   assert.deepEqual(MONEY_GUIDE_DOMAIN.relatedGuides, {
-    "open-uk-bank-account-new-arrival": ["national-insurance-number-newcomers"],
+    "open-uk-bank-account-new-arrival": ["national-insurance-number-newcomers", "sending-money-abroad-safely"],
+    "sending-money-abroad-safely": ["open-uk-bank-account-new-arrival"],
     "national-insurance-number-newcomers": ["open-uk-bank-account-new-arrival"],
   });
   const both = [meta("open-uk-bank-account-new-arrival", "money"), meta("national-insurance-number-newcomers", "money"), meta("x", "health-nhs")];
