@@ -15,6 +15,7 @@ export type LiveServicesUi = {
   headline: { label: string };
   markets: {
     us: string;
+    /** Second card: FTSE 100, Bitcoin and Ethereum. Never describes crypto as UK stock indices. */
     uk: string;
     /** Badge per card status: the backend's freshness rating, never upgraded. */
     status: Record<CardStatus, string>;
@@ -22,6 +23,10 @@ export type LiveServicesUi = {
     asOf: (time: string) => string;
     /** Accessible name of the change figures. */
     change: string;
+    /** Accessible name of a crypto change: over a rolling 24 hours, not since a close. */
+    change24h: string;
+    /** Short visible marker after a crypto change ("24h"). */
+    window24h: string;
     /** Small note next to "Live": "~2 min delay", or a general note under a minute (null). */
     delayNote: (minutes: number | null) => string;
   };
@@ -50,10 +55,12 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "今日英国头条" },
     markets: {
       us: "美国股指",
-      uk: "英国股指",
+      uk: "英国股指与加密货币",
       status: { live: "实时", delayed: "延迟数据", closed: "已收盘", unknown: "市场状态未知", stale: "数据已过时", unavailable: "暂无数据" },
       asOf: (time) => `${time}（英国时间）`,
       change: "涨跌",
+      change24h: "24 小时涨跌",
+      window24h: "24小时",
       delayNote: (minutes) => (minutes === null ? "报价可能略有延迟" : `约延迟 ${minutes} 分钟`),
     },
     weather: {
@@ -109,10 +116,12 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "今日英國頭條" },
     markets: {
       us: "美國股指",
-      uk: "英國股指",
+      uk: "英國股指與加密貨幣",
       status: { live: "即時", delayed: "延遲資料", closed: "已收盤", unknown: "市場狀態未知", stale: "資料已過時", unavailable: "暫無資料" },
       asOf: (time) => `${time}（英國時間）`,
       change: "漲跌",
+      change24h: "24 小時漲跌",
+      window24h: "24小時",
       delayNote: (minutes) => (minutes === null ? "報價可能略有延遲" : `約延遲 ${minutes} 分鐘`),
     },
     weather: {
@@ -168,10 +177,12 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "Today's UK headline" },
     markets: {
       us: "US indices",
-      uk: "UK indices",
+      uk: "UK index & crypto",
       status: { live: "Live", delayed: "Delayed", closed: "Closed", unknown: "Status unknown", stale: "Out of date", unavailable: "Unavailable" },
       asOf: (time) => `${time} UK time`,
       change: "Change",
+      change24h: "24-hour change",
+      window24h: "24h",
       delayNote: (minutes) => (minutes === null ? "Quotes may be delayed" : `~${minutes} min delay`),
     },
     weather: {
@@ -227,10 +238,12 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "آج کی برطانوی سرخی" },
     markets: {
       us: "امریکی انڈیکس",
-      uk: "برطانوی انڈیکس",
+      uk: "برطانوی انڈیکس اور کرپٹو",
       status: { live: "لائیو", delayed: "تاخیر سے", closed: "مارکیٹ بند", unknown: "مارکیٹ کی صورتحال نامعلوم", stale: "پرانا ڈیٹا", unavailable: "دستیاب نہیں" },
       asOf: (time) => `${time} (برطانوی وقت)`,
       change: "تبدیلی",
+      change24h: "24 گھنٹے کی تبدیلی",
+      window24h: "24 گھنٹے",
       delayNote: (minutes) => (minutes === null ? "قیمتوں میں معمولی تاخیر ہو سکتی ہے" : `تقریباً ${minutes} منٹ کی تاخیر`),
     },
     weather: {
@@ -286,10 +299,12 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "आज की ब्रिटेन की सुर्ख़ी" },
     markets: {
       us: "अमेरिकी सूचकांक",
-      uk: "ब्रिटेन के सूचकांक",
+      uk: "ब्रिटेन सूचकांक और क्रिप्टो",
       status: { live: "लाइव", delayed: "विलंबित", closed: "बाज़ार बंद", unknown: "बाज़ार की स्थिति अज्ञात", stale: "पुराना डेटा", unavailable: "उपलब्ध नहीं" },
       asOf: (time) => `${time} (यूके समय)`,
       change: "बदलाव",
+      change24h: "24 घंटे का बदलाव",
+      window24h: "24 घंटे",
       delayNote: (minutes) => (minutes === null ? "भाव में थोड़ी देरी हो सकती है" : `लगभग ${minutes} मिनट की देरी`),
     },
     weather: {
