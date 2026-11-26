@@ -33,6 +33,14 @@
   text-rendering: optimizeLegibility;
   color-scheme: light;
 }
+:lang(ur) {
+  /* Urdu: an Urdu-capable font before system-ui, so each word comes from one font. Otherwise a
+     system font with only basic Arabic (DejaVu Sans on Linux) draws most letters and another font
+     the Urdu-only ones (ہ ے ۂ), and Firefox then breaks the joins between them. Local fonts only (no
+     download), and Arabic-script-only ones, so Latin text and figures keep the normal sans font;
+     where neither is installed (Windows, iOS, most Android) nothing changes. */
+  font-family: "Noto Sans Arabic UI", "Noto Sans Arabic", var(--font-sans);
+}
 body {
   margin: 0;
   font-size: var(--text-base);

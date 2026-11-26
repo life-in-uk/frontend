@@ -113,8 +113,9 @@ await check("All-Guides index: sections in menu order with jump links; no layout
     assert.equal(clamped, true, `${locale}: summary clamp`);
     await p.locator(".guide-index-jump a[href='#guides-money']").click();
     await p.waitForTimeout(300);
-    const top = await p.locator("#guides-money").evaluate((el) => el.getBoundingClientRect().top);
-    assert.ok(top >= 0 && top < 120, `${locale}: jump link scrolls to the section (${top})`);
+    // The link brings the section's heading into view (the last section may not reach the very top).
+    const view = await p.locator("#guides-money h2").evaluate((el) => ({ top: el.getBoundingClientRect().top, scrolled: window.scrollY }));
+    assert.ok(view.scrolled > 0 && view.top >= 0 && view.top < 900 - 40, `${locale}: jump link scrolls to the section (${JSON.stringify(view)})`);
     await context.close();
   }
 });
@@ -153,6 +154,12 @@ await check("Home: no translation notice when all Guides are translated; lead sp
     await p.waitForTimeout(300);
     // Shown only where a home Guide falls back to Simplified Chinese (the PAYE Guide is untranslated in Hindi here).
     assert.equal(await p.locator(".home-translation-notice").count(), locale === "hi" ? 1 : 0, `${locale}: notice`);
+    // The heading's two parts are separate words for screen readers (no "andstudying").
+    const title = await p.locator("#home-title").textContent();
+    if (!locale.startsWith("zh")) assert.match(title, /\S \S/u, `${locale}: title words`);
+    if (locale === "en") assert.match(title, /and studying/);
+    // Urdu prefers an Arabic-script-only local font, so a word is never split across two fonts.
+    if (locale === "ur") assert.match(await p.locator("body").evaluate((el) => getComputedStyle(el).fontFamily), /^"Noto Sans Arabic UI"/);
     const lead = await p.locator(".home-hero-lead").innerText();
     if (!locale.startsWith("zh")) assert.doesNotMatch(lead, /[.।۔][^\s]/u, `${locale}: sentences run together`);
     assert.equal(await p.locator(".masthead-brand .brand-caption").isVisible(), false, `${locale}: tagline hidden`);
