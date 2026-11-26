@@ -35,7 +35,8 @@ try {
     // Related next steps keep the locale.
     await page.waitForSelector(".related-guides a", { timeout: 10000 });
     const related = await page.locator(".related-guides a").evaluateAll((els) => els.map((el) => el.getAttribute("href")));
-    ok(JSON.stringify(related) === JSON.stringify([`${prefix}/money/open-uk-bank-account-new-arrival`, `${prefix}/work-visa/skilled-worker-overview`]),
+    // In-section (bank account, then the payslip/PAYE Guide added with Personal Tax), then the cross-section step.
+    ok(JSON.stringify(related) === JSON.stringify([`${prefix}/money/open-uk-bank-account-new-arrival`, `${prefix}/money/uk-paye-tax-codes-national-insurance`, `${prefix}/work-visa/skilled-worker-overview`]),
       `${locale} related ${related}`);
 
     // The Money hub lists the Guide.
