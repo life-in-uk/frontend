@@ -1,4 +1,4 @@
-import { ArrowRight, Landmark, Newspaper, TrendingUp } from "lucide-react";
+import { ArrowRight, Landmark, TrendingUp } from "lucide-react";
 import type { ReactNode } from "react";
 import type { GuideLocale } from "../../guides/locales";
 import { LIVE_SERVICES_UI } from "../../home/liveServicesI18n";
@@ -16,9 +16,8 @@ const US_INDICES = ["S&P 500", "Nasdaq Composite", "Dow Jones"];
 const UK_INDICES = ["FTSE 100", "Bitcoin (BTC)", "Ethereum (ETH)"];
 
 /**
- * Not-yet-available card. It shows only what is planned: no value, no
- * source branding and no link (the headline is not licensed; the index cards
- * show this until the backend serves licensed index data).
+ * Not-yet-available market card: no value, no source branding and no link.
+ * Shown while the backend serves no market data.
  */
 function ComingSoonCard({
   id,
@@ -54,11 +53,11 @@ function ComingSoonCard({
 }
 
 /**
- * Homepage "Live Services", directly under the search: section heading, one
- * UK headline, US and UK index cards side by side, and one row of four equal
- * shortcuts (Underground, Rail, Roads, Weather). The headline is a "coming
- * soon" placeholder; the index cards stay "coming soon" until the backend
- * serves licensed index data (MarketIndexCards).
+ * Homepage "Live Services", directly under the search: section heading, the
+ * US and Global market cards side by side, and one row of four equal
+ * shortcuts (Underground, Rail, Roads, Weather). The market cards show a
+ * "coming soon" fallback only while no market data can be shown
+ * (MarketIndexCards).
  */
 export function LiveServices({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   const ui = LIVE_SERVICES_UI[locale];
@@ -77,12 +76,6 @@ export function LiveServices({ locale = "zh-CN" }: { locale?: GuideLocale }) {
           <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </div>
-      <ComingSoonCard
-        id="live-headline"
-        icon={<Newspaper size={22} aria-hidden="true" />}
-        label={ui.headline.label}
-        badge={ui.comingSoon}
-      />
       <MarketIndexCards
         locale={locale}
         placeholders={

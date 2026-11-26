@@ -365,7 +365,11 @@ test("Education adds only published locale pages and leads with overseas arrival
   const page = pages.find((item) => item.path === path);
   assert.deepEqual(page.alternates.map(({ locale }) => locale), ["zh-CN", "zh-TW", "en", "ur"]);
   const { availableHomeTopics, topicHref } = await import("../src/home/topics.ts");
-  const educationLink = (available) => topicHref(availableHomeTopics(false, available).find(({ id }) => id === school), "ur");
+  // Without published Education Guides the section is not offered at all (no placeholder, no link).
+  const educationLink = (available) => {
+    const topic = availableHomeTopics(false, available).find(({ id }) => id === school);
+    return topic && topicHref(topic, "ur");
+  };
   assert.equal(educationLink(false), undefined);
   assert.equal(educationLink(true), "/ur/education");
 
