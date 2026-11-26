@@ -3,6 +3,7 @@
 // API; the hub links a Guide only when the API lists it as published, so
 // nothing here can present an unpublished Guide as available.
 
+import type { GuideMetadata } from "./api.ts";
 import type { GuideLocale } from "./locales.ts";
 
 type Localized = Readonly<Record<GuideLocale, string>>;
@@ -13,7 +14,14 @@ export type WorkVisaTopic = {
   lead: Localized;
   /** Guide slugs in reading order. */
   slugs: readonly string[];
+  publishedOnly?: boolean;
 };
+
+const STUDENT_PATHWAYS = "uk-options-after-graduation";
+
+export function studentPathwaysEntry(guides: readonly GuideMetadata[]): GuideMetadata | undefined {
+  return guides.find(({ category, slug }) => category === "work-visa" && slug === STUDENT_PATHWAYS);
+}
 
 export const WORK_VISA_TOPICS: readonly WorkVisaTopic[] = [
   {
@@ -27,6 +35,19 @@ export const WORK_VISA_TOPICS: readonly WorkVisaTopic[] = [
       hi: "यह वीज़ा क्या है, कौन-सी शर्तें लागू हैं, और आवेदन कैसे चलता है।",
     },
     slugs: ["skilled-worker-overview"],
+  },
+  {
+    id: "after-study",
+    title: { "zh-CN": "英国留学毕业后", "zh-TW": "英國留學畢業後", en: "After studying in the UK", ur: "برطانیہ میں تعلیم کے بعد", hi: "यूके में पढ़ाई के बाद" },
+    lead: {
+      "zh-CN": "比较毕业后的路径、签证到期前的安排和 Graduate 签证申请。",
+      "zh-TW": "比較畢業後的途徑、簽證到期前的安排與 Graduate 簽證申請。",
+      en: "Compare your options before your visa expires and find out how to apply for a Graduate visa.",
+      ur: "ویزا ختم ہونے سے پہلے اپنے راستے دیکھیں اور گریجویٹ ویزے کی درخواست کا طریقہ جانیں۔",
+      hi: "वीज़ा खत्म होने से पहले अपने विकल्प देखें और ग्रेजुएट वीज़ा के लिए आवेदन का तरीका जानें।",
+    },
+    slugs: [STUDENT_PATHWAYS, "graduate-visa-uk"],
+    publishedOnly: true,
   },
   {
     id: "job",
@@ -92,6 +113,12 @@ export const WORK_VISA_TOPICS: readonly WorkVisaTopic[] = [
 
 /** All Guide slugs in reading order. */
 export const WORK_VISA_SLUGS: readonly string[] = WORK_VISA_TOPICS.flatMap((topic) => topic.slugs);
+
+export function workVisaTopicsFor(published: ReadonlyMap<string, GuideMetadata>): WorkVisaTopic[] {
+  return WORK_VISA_TOPICS
+    .map((topic) => topic.publishedOnly ? { ...topic, slugs: topic.slugs.filter((slug) => published.has(slug)) } : topic)
+    .filter((topic) => topic.slugs.length > 0);
+}
 
 /** Upcoming dates. "proposed" items are announced policy, not law. */
 export const WORK_VISA_KEY_DATES: readonly { date: string; proposed: boolean; label: Localized; text: Localized }[] = [
