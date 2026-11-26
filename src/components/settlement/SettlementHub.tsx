@@ -13,7 +13,6 @@ import {
   SETTLEMENT_TOPICS,
 } from "../../guides/settlementPlan";
 import { Link } from "../Link";
-import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import { ClusterOfficialSources } from "../guides/TopicCluster";
 import { useClusterHubSeo } from "../guides/useClusterHubSeo";
 import "../work-visa/WorkVisa.css";
@@ -58,9 +57,6 @@ export function SettlementHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
 
   return (
     <main id="main" className="work-visa-page work-hub settlement-hub">
-      <div className="guide-toolbar">
-        <GuideLanguageSelect locale={locale} domain="settlement" />
-      </div>
       <section className="work-hero" aria-labelledby="settlement-title">
         <span className="eyebrow work-eyebrow">
           <Landmark size={15} aria-hidden="true" />

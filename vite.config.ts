@@ -76,6 +76,11 @@ export default defineConfig(({ mode, command, isPreview }) => {
         "/api/weather": {
           target: backendTarget,
         },
+        // The homepage market cards (GET /api/market-indices/latest); without it the dev server
+        // answered 404 and every homepage logged a console error.
+        "/api/market-indices": {
+          target: backendTarget,
+        },
       },
     },
   };

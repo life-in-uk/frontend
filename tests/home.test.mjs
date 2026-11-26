@@ -66,7 +66,11 @@ test("the six existing Guide sections remain linked before university content is
     launchedTopics(availableHomeTopics(false)).map((topic) => topic.id),
     ["health", "money", "family-visa", "work-visa", "settlement", "renting"],
   );
-  assert.equal(availableHomeTopics(false).length, 9);
+  // The six Guide sections and the Travel tools; sections without a page ("coming soon" placeholders
+  // such as Daily life, or Education before it has Guides) are not offered.
+  assert.deepEqual(availableHomeTopics(false).map((topic) => topic.id),
+    ["health", "money", "family-visa", "work-visa", "settlement", "renting", "travel"]);
+  assert.ok(availableHomeTopics(false).every((topic) => topic.domain || topic.page));
   assert.ok(DOMAINS.includes(FAMILY_VISA_GUIDE_DOMAIN));
 });
 

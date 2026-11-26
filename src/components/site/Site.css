@@ -167,6 +167,12 @@
   border-radius: 0 0 14px 14px;
   box-shadow: 0 18px 40px rgb(31 51 40 / 12%);
 }
+/* The last two menus open towards the start (leftwards in left-to-right pages), so a wide panel
+   under a button near the end of the row stays on screen (Hindi at 1024px spilled 41px). */
+.masthead-group:nth-last-child(-n + 2) .masthead-panel {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
 .masthead-panel[hidden],
 .masthead-sheet[hidden] {
   display: none;
@@ -505,7 +511,7 @@
   transform: scaleX(-1);
 }
 
-/* Header language selector (home and not-found pages only). */
+/* Header language selector: the site's only language control, on every public page. */
 .masthead-language > span {
   position: absolute;
   width: 1px;
@@ -518,7 +524,7 @@
   max-width: 9.5rem;
 }
 /* Phones: brand, search and Menu share the first row; the language
-   selector (home and not-found only) gets its own row below it. */
+   selector gets its own row below it. */
 @media (max-width: 560px) {
   .masthead--compact .masthead-inner {
     display: grid;

@@ -10,7 +10,7 @@ import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, UNIVERS
 import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates, hubAlternates } from "../../guides/seo";
 import { studentPathwaysEntry } from "../../guides/workVisaPlan";
 import { Link } from "../Link";
-import { GuideLanguageSelect } from "./GuideLanguageSelect";
+import { useReportAvailableLocales } from "../site/pageLanguages";
 import { groupGuidesByDomain } from "../../guides/indexGroups";
 import "./Guide.css";
 import "../work-visa/WorkVisa.css";
@@ -35,6 +35,8 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
   const description = education?.description ?? (household ? HOUSEHOLD_COPY[locale].description
     : domain === UNIVERSITY_CATEGORY ? UNIVERSITY_COPY[locale].description : strings.description);
   const [available, setAvailable] = useState<GuideLocale[]>([locale]);
+  // A section hub exists only in languages with a published Guide there; the all-Guides index in all.
+  useReportAvailableLocales(domain ? available : undefined);
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -107,7 +109,6 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
     const order = sections.flatMap(({ guides }) => guides.map(({ slug }) => slug));
     return (
       <main id="main" className={`work-visa-page work-hub ${hub.id}-hub`} lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
-        <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} available={available} /></div>
         <section className="work-hero" aria-labelledby={`${hub.id}-title`}>
           <span className="eyebrow work-eyebrow">
             <Icon size={15} aria-hidden="true" />
@@ -162,7 +163,6 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
 
   return (
     <main id="main" className="guide-page localized-guide-index" lang={GUIDE_LOCALE_LANG[locale]} dir={textDirection(locale)}>
-      <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain={domain} available={domain ? available : undefined} /></div>
       <header className="guide-index-header">
         <p className="guide-kicker">Life in UK</p>
         <h1>{title}</h1>

@@ -7,6 +7,7 @@ import { GUIDE_UI, guideHomePath, type GuideLocale } from "../../guides/locales"
 import { SITE_UI } from "../../guides/siteUi";
 import { subscribeToLocation } from "../../router";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
+import { useAvailableLocales } from "./pageLanguages";
 import { Wordmark } from "./Wordmark";
 import "./Site.css";
 
@@ -91,6 +92,7 @@ function onPanelKeyDown(event: KeyboardEvent<HTMLElement>) {
 
 /** Shared site header: brand, section navigation, search, language and About. */
 export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAvailable = false, educationAvailable = false, householdAvailable = false }: SiteHeaderProps) {
+  const available = useAvailableLocales();
   const ui = SITE_UI[locale];
   const home = guideHomePath(locale);
   const homeAnchor = (id: string) => (home === "/" ? `/#${id}` : `${home}#${id}`);
@@ -278,7 +280,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAv
   const actions = (
     <div ref={actionsRef} className="masthead-actions">
       {switchPath && (
-        <GuideLanguageSelect locale={locale} pathFor={switchPath} className="guide-language-select masthead-language" />
+        <GuideLanguageSelect locale={locale} pathFor={switchPath} available={available} className="guide-language-select masthead-language" />
       )}
       <Link
         to={homeAnchor("search")}

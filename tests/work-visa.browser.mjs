@@ -5,6 +5,7 @@
 // header navigation works, Urdu is right-to-left, and 320/390px layouts have
 // no horizontal overflow.
 import assert from "node:assert/strict";
+import { WORK_VISA_TOPICS } from "../src/guides/workVisaPlan.ts";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const baseURL = process.env.FRONTEND_URL || "http://127.0.0.1:5173";
 const LOCALES = [["/zh-CN", "zh-CN", "ltr"], ["/zh-TW", "zh-TW", "ltr"], ["/en", "en", "ltr"], ["/ur", "ur", "rtl"], ["/hi", "hi", "ltr"]];
@@ -29,7 +30,15 @@ for (const [prefix, locale, dir] of LOCALES) {
     await page.goto(`${baseURL}${prefix}/work-visa`);
     await page.locator(".work-guide-link").first().waitFor();
     const hrefs = await page.locator(".work-guide-link").evaluateAll((a) => a.map((l) => l.getAttribute("href")));
-    ok(hrefs.length === 8, `${locale}: 8 Guides linked (${hrefs.length})`);
+    // The eight Skilled Worker Guides, plus the "After studying in the UK" Guides (publishedOnly in
+    // workVisaPlan.ts) that this locale has published: exactly those, each once.
+    const published = await (await fetch(`${baseURL}${locale === "zh-CN" ? "/api/guides" : `/api/guides/locales/${locale}`}`)).json();
+    const expected = WORK_VISA_TOPICS.flatMap((topic) => topic.publishedOnly
+      ? topic.slugs.filter((slug) => published.some((guide) => guide.slug === slug)) : topic.slugs);
+    ok(hrefs.length === expected.length && new Set(hrefs).size === hrefs.length,
+      `${locale}: ${expected.length} Guides linked (${hrefs.length})`);
+    ok(expected.every((slug) => hrefs.some((href) => href.endsWith(`/${slug}`))), `${locale}: every plan Guide linked`);
+    ok(WORK_VISA_TOPICS.filter((topic) => !topic.publishedOnly).flatMap((topic) => topic.slugs).length === 8, "eight core Guides");
     ok(SLUGS.every((slug) => hrefs.includes(`${prefix}/work-visa/${slug}`)), `${locale}: locale-correct Guide links`);
     ok(await page.evaluate(() => document.documentElement.dir) === dir, `${locale}: dir=${dir}`);
     ok(await noOverflow(page), `${locale} hub: no overflow at ${width}px`);

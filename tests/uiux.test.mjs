@@ -8,7 +8,7 @@ import { runInNewContext } from "node:vm";
 import { GUIDE_DOMAINS } from "../src/guides/domains.ts";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, textDirection } from "../src/guides/locales.ts";
 import { groupGuidesByDomain, INDEX_DOMAIN_ORDER } from "../src/guides/indexGroups.ts";
-import { guideSections, parseMarkdown } from "../src/guides/markdown.ts";
+import { guideSections, parseMarkdown, withoutRepeatedUpdatedLine } from "../src/guides/markdown.ts";
 import { SITE_UI } from "../src/guides/siteUi.ts";
 
 test("the index lists every Guide section exactly once", () => {
@@ -57,4 +57,26 @@ test("new interface copy exists in every locale", () => {
     assert.ok(GUIDE_UI[locale].onThisPage.trim(), `onThisPage ${locale}`);
     assert.ok(SITE_UI[locale].search.emptyAll.trim(), `emptyAll ${locale}`);
   }
+});
+
+test("a leading line that only repeats the update date is not shown twice; anything else stays", () => {
+  const at = "2026-11-26T09:15:00Z";
+  const kept = (md, updatedAt = at) => withoutRepeatedUpdatedLine(parseMarkdown(md), updatedAt).length;
+  const total = (md) => parseMarkdown(md).length;
+  for (const line of ["Last updated: 2026-11-26", "**Last updated:** 2026-11-26", "最后更新: 2026-11-26", "最後更新：2026-11-26",
+    "آخری تازہ کاری: 2026-11-26", "अंतिम अपडेट: 2026-11-26"]) {
+    const md = `${line}\n\n## Section\n\nText.`;
+    assert.equal(kept(md), total(md) - 1, line);
+  }
+  const keep = [
+    "Last updated: 2026-11-20\n\n## Section",            // a different date is information
+    "Intro.\n\nLast updated: 2026-11-26",                 // not the first block
+    "Last updated: 2026-11-26 (sources checked)\n\nText.", // more than the date
+    "最后更新及来源核验：2026年11月26日\n\n正文。",           // a provenance note, not a repeat
+  ];
+  for (const md of keep) assert.equal(kept(md), total(md), md);
+  // The date is compared in UK time: 23:59 UTC in November is still the same day in London, while
+  // 23:30 UTC in June (BST) is already the next day there, so that line is not a repeat.
+  assert.equal(kept("Last updated: 2026-11-26\n\nText.", "2026-11-26T23:59:00Z"), 1);
+  assert.equal(kept("Last updated: 2026-06-30\n\nText.", "2026-06-30T23:30:00Z"), 2, "BST: already 1 July in London");
 });

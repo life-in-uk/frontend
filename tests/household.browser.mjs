@@ -80,7 +80,10 @@ try {
         assert.equal(await page.locator("main .evidence-toggle").count(), guide.evidence.length);
         details++;
         if (locale === "ur" && index === 0) {
-          await page.locator("main select").selectOption("en");
+          // The site's one language selector is in the header (none in the page).
+          assert.equal(await page.locator("main select").count(), 0, "no second language selector in the page");
+          await page.locator('.masthead-language select option[value="en"]:enabled').waitFor({ state: "attached" });
+          await page.locator(".masthead-language select").selectOption("en");
           await page.waitForURL(`**/en/${HOUSEHOLD_CATEGORY}/${guide.slug}`);
           await page.getByRole("heading", { level: 1, name: data.en[0].title }).waitFor();
           assert.equal(await page.locator("html").getAttribute("dir"), "ltr");

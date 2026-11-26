@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api-proxy": "node scripts/dev/readonly-api-proxy.mjs 8080",
     "dev:family-visa-preview": "vite --mode family-visa-preview --host 127.0.0.1 --port 5193 --strictPort",
     "build": "tsc -b && vite build",
     "build:static": "tsc -b && vite build && node scripts/prerender.mjs",

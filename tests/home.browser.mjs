@@ -165,10 +165,11 @@ try {
       await nav.getByRole("link", { name: "首页", includeHidden: true }).getAttribute("aria-current"),
       "page",
     );
-    // Topic cards: nine; two upcoming without links (Travel links to /travel).
-    assert.equal(await p.locator(".topic-card").count(), 9);
+    // Topic cards: only sections a visitor can open, every one linked (Travel links to /travel). No
+    // "coming soon" placeholders (Daily life; Education before it has published Guides).
+    assert.equal(await p.locator(".topic-card").count(), 7);
     assert.equal(await p.locator(".topic-card a").count(), 7);
-    assert.equal(await p.locator(".topic-card-soon").count(), 2);
+    assert.equal(await p.locator(".topic-card-soon").count(), 0);
     assert.deepEqual(
       await p.locator(".topic-card a").evaluateAll((a) => a.map((l) => l.getAttribute("href"))),
       ["/zh-CN/health", "/zh-CN/money", "/zh-CN/family-visa", "/zh-CN/work-visa", "/zh-CN/settlement", "/zh-CN/renting", "/zh-CN/travel"],
@@ -230,8 +231,10 @@ try {
     assert.equal(await live.locator("h2").innerText(), "实时服务");
     assert.equal(await live.locator(".live-subtitle").innerText(), "您的一站式英国实时生活信息中心");
     const cards = live.locator('.live-card[data-state="coming-soon"]');
-    assert.deepEqual(await cards.locator(".live-card-label").allInnerTexts(), ["今日英国头条", "美国股指", "全球股指与加密货币"]);
-    assert.deepEqual(await cards.locator(".live-badge").allInnerTexts(), ["即将推出", "即将推出", "即将推出"]);
+    // No "today's headline" placeholder (removed: it never had content); the two market cards remain.
+    assert.deepEqual(await cards.locator(".live-card-label").allInnerTexts(), ["美国股指", "全球股指与加密货币"]);
+    assert.equal(await p.locator("#live-headline").count(), 0);
+    assert.deepEqual(await cards.locator(".live-badge").allInnerTexts(), ["即将推出", "即将推出"]);
     assert.deepEqual(await cards.locator(".live-card-items").allInnerTexts(), [
       "S&P 500 · Nasdaq Composite · Dow Jones",
       "FTSE 100 · Bitcoin (BTC) · Ethereum (ETH)",
@@ -264,7 +267,9 @@ try {
     );
     assert.equal(await p.locator(".underground-card, .roads-card, .rail-card").count(), 0);
     if (!REAL)
-      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/guides/locales/zh-CN", "/api/market-indices/latest", "/api/travel/underground", "/api/weather/current"]);
+      // The Simplified Chinese home reads its Guide list once (/api/guides), not a second identical
+      // /api/guides/locales/zh-CN list for the header's sections.
+      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/market-indices/latest", "/api/travel/underground", "/api/weather/current"]);
     assert.equal(requests.filter((path) => path === "/api/travel/underground").length, 1);
     assert.equal(finished.filter((path) => path === "/api/weather/current").length, 1);
     assert.ok(!requests.some((path) => /^\/api\/(travel\/roads|places|rail)/.test(path)));
@@ -645,7 +650,7 @@ try {
     await p.goto(`${baseURL}/zh-CN`);
     const live = p.locator(".live-panel");
     await live.locator('.market-card[data-state="live"]').first().waitFor();
-    assert.equal(await live.locator('.live-card[data-state="coming-soon"]').count(), 1, "only the headline stays a placeholder");
+    assert.equal(await live.locator('.live-card[data-state="coming-soon"]').count(), 0, "no placeholder once market data is shown");
     assert.deepEqual(await live.locator(".market-card .live-card-label").allInnerTexts(), ["美国股指", "全球股指与加密货币"]);
     // Three rows per card: US indices left; FTSE 100, Bitcoin and Ethereum right.
     assert.deepEqual(await live.locator(".market-card").evaluateAll((cards) => cards.map((c) => c.querySelectorAll(".market-row").length)), [3, 3]);

@@ -5,7 +5,7 @@ import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFou
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, guideRoutePath, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo";
-import { guideSections, inlineText, parseMarkdown } from "../../guides/markdown";
+import { guideSections, inlineText, parseMarkdown, withoutRepeatedUpdatedLine } from "../../guides/markdown";
 import type { Block } from "../../guides/markdown";
 import type { GuideDomain } from "../../guides/domains";
 import { belongsToDomain } from "../../guides/domains";
@@ -13,11 +13,11 @@ import { relatedLinksFor } from "../../guides/topicClusters";
 import type { ResolvedGuide } from "../../guides/topicClusters";
 import { formatUkDateFor, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
-import { GuideLanguageSelect } from "./GuideLanguageSelect";
+import { useReportAvailableLocales } from "../site/pageLanguages";
 import { GuideMarkdown } from "./GuideMarkdown";
 import { titleReferencesFor } from "../../guides/titleReferences";
 import { guideStructuredData } from "../../seo/structuredData";
-import { guideNotice } from "../../guides/guideNotice";
+import { GuideDisclaimer } from "./GuideDisclaimer";
 import "./Guide.css";
 
 /** Optional section-specific look; the page works without any of it. */
@@ -75,8 +75,9 @@ export function GuidePage({
   const [published, setPublished] = useState<GuideMetadata[] | undefined>(() => startupGuides(locale));
   const references = useMemo(() => titleReferencesFor(domain, locale, published, slug), [domain, locale, published, slug]);
   const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>([locale]);
+  // The header's language selector offers only the languages this Guide is published in.
+  useReportAvailableLocales(availableLocales);
   const ui = GUIDE_UI[locale];
-  const notice = guideNotice(domain.id, slug, locale);
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => () => clearGuideSeo(), []);
@@ -156,13 +157,15 @@ export function GuidePage({
     const blocks = parseMarkdown(state.guide.content);
     // The page header already shows the title; drop a leading H1 that repeats it.
     const first = blocks[0];
-    const body: Block[] =
+    const titled: Block[] =
       first &&
       first.type === "heading" &&
       first.level === 1 &&
       inlineText(first.children).trim() === state.guide.title.trim()
         ? blocks.slice(1)
         : blocks;
+    // The header shows "Updated …"; a leading line that only repeats that date is not shown twice.
+    const body = withoutRepeatedUpdatedLine(titled, state.guide.updatedAt);
     const evidenceLinks = (
       state.guide.content.match(/\]\(#guide-evidence-[^)]+\)/g) ?? []
     ).length;
@@ -219,9 +222,6 @@ export function GuidePage({
           )}
         </ol>
       </nav>
-      <div className="guide-toolbar">
-        <GuideLanguageSelect locale={locale} domain={domain.id} slug={slug} available={availableLocales} />
-      </div>
 
       {state.status === "loading" && (
         <p className="guide-status page-loading" role="status">{ui.loading}</p>
@@ -309,7 +309,7 @@ export function GuidePage({
               onToggle={toggle}
             />
           </div>
-          {notice && <p className="guide-notice">{notice}</p>}
+          <GuideDisclaimer domain={domain.id} locale={locale} content={state.guide.content} />
           {related.length > 0 && (
             <aside className="related-guides" aria-labelledby="related-title">
               <h2 id="related-title">{ui.related}</h2>

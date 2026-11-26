@@ -1,4 +1,4 @@
-import { getLocalizedGuides } from "./guides/api";
+import { getGuides, getLocalizedGuides } from "./guides/api";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { SiteHeader } from "./components/site/SiteHeader";
 import { SiteFooter } from "./components/site/SiteFooter";
@@ -54,7 +54,9 @@ function App() {
   const [publishedSections, setPublishedSections] = useState<{ locale: GuideLocale; categories: Set<string> }>();
   useEffect(() => {
     const controller = new AbortController();
-    getLocalizedGuides(activeLocale, controller.signal)
+    // Simplified Chinese pages already read /api/guides (the same published list); reuse it
+    // instead of a second, identical /api/guides/locales/zh-CN request on every page.
+    (activeLocale === "zh-CN" ? getGuides(controller.signal) : getLocalizedGuides(activeLocale, controller.signal))
       .then((guides) => {
         if (!controller.signal.aborted)
           setPublishedSections({ locale: activeLocale, categories: new Set(guides.map((guide) => guide.category)) });
@@ -66,12 +68,11 @@ function App() {
   const universityAvailable = categories?.has(UNIVERSITY_CATEGORY) ?? false;
   const householdAvailable = categories?.has(HOUSEHOLD_CATEGORY) ?? false;
   const educationAvailable = categories?.has("education") ?? false;
-  // Pages with their own language selector (hubs, Guides, the Guide index)
-  // don't get a second one in the header.
+  // One language selector, in the header, on every public page: it keeps the same page in the
+  // other language (localeSwitchPath), and pages that know which languages they exist in report
+  // them (components/site/pageLanguages.ts) so the others are disabled.
   const headerSwitch =
-    route.name === "home" || route.name === "localized-home" || route.name === "not-found" || route.name === "topic" || route.name === "travel"
-      ? (next: GuideLocale) => localeSwitchPath(route, next)
-      : undefined;
+    route.name === "owner-editorial" ? undefined : (next: GuideLocale) => localeSwitchPath(route, next);
 
   useEffect(() => {
     document.documentElement.lang = GUIDE_LOCALE_LANG[activeLocale];

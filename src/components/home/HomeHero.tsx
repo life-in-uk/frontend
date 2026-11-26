@@ -27,6 +27,8 @@ export function HomeHero({ index, locale = "zh-CN", untranslated = false }: Home
           </p>
           <h1 id="home-title">
             <span>{ui.hero.title[0]}</span>
+            {/* The two parts are separate lines on screen; screen readers need the space between words. */}
+            {locale.startsWith("zh") ? null : " "}
             <span>{ui.hero.title[1]}</span>
           </h1>
           <p className="home-hero-lead">

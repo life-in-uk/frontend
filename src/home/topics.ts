@@ -151,14 +151,6 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
     icon: "house",
   },
   {
-    id: "daily-life",
-    navGroup: "housing",
-    title: "日常生活",
-    description: "账单与通信等内容正在规划中。",
-    tone: "daily",
-    icon: "house",
-  },
-  {
     id: "travel",
     navGroup: "transport",
     title: "出行与交通",
@@ -169,11 +161,16 @@ export const HOME_TOPICS: readonly HomeTopic[] = [
   },
 ];
 
-/** Link content-gated sections only where this locale has published Guides. */
+/**
+ * The sections a visitor can open: content-gated sections only where this locale has published
+ * Guides, and never a placeholder without a page ("coming soon" entries were removed from the home
+ * page, header and footer).
+ */
 export function availableHomeTopics(universityAvailable: boolean, educationAvailable = false, householdAvailable = false): readonly HomeTopic[] {
   return HOME_TOPICS.filter((topic) => (topic.id !== UNIVERSITY_CATEGORY || universityAvailable)
-    && (topic.id !== HOUSEHOLD_CATEGORY || householdAvailable))
-    .map((topic) => topic.id === "education" && !educationAvailable ? { ...topic, domain: undefined } : topic);
+    && (topic.id !== HOUSEHOLD_CATEGORY || householdAvailable)
+    && (topic.id !== "education" || educationAvailable)
+    && (topic.domain !== undefined || topic.page !== undefined));
 }
 
 /** Topics with a live section: the only ones linked, counted or searched. */

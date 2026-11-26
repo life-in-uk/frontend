@@ -20,7 +20,6 @@ import type { GuideLocale } from "../../guides/locales";
 import { Link } from "../Link";
 import { FamilyVisaHeroArt, FamilyVisaNotebookArt } from "./FamilyVisaArt";
 import { FamilyVisaNavigator } from "./navigator/FamilyVisaNavigator";
-import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import { SettlementCrossLink } from "../settlement/SettlementCrossLink";
 import { CLUSTER_COPY, clusterGroupsFor } from "../../guides/topicClusters";
 import { useClusterHubSeo } from "../guides/useClusterHubSeo";
@@ -102,9 +101,6 @@ export function FamilyVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
   return (
     <FamilyVisaLocaleContext.Provider value={fvLocale}>
       <main id="main" className="family-visa-page family-hub">
-        <div className="guide-toolbar">
-          <GuideLanguageSelect locale={locale} domain="family-visa" />
-        </div>
         <section className="family-hero" aria-labelledby="family-title">
           <div className="family-hero-copy">
             <span className="eyebrow family-eyebrow">

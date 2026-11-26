@@ -128,7 +128,12 @@ export const MONEY_GUIDE_DOMAIN: GuideDomain = {
   relatedGuides: {
     "open-uk-bank-account-new-arrival": ["national-insurance-number-newcomers", "sending-money-abroad-safely"],
     "sending-money-abroad-safely": ["open-uk-bank-account-new-arrival"],
-    "national-insurance-number-newcomers": ["open-uk-bank-account-new-arrival"],
+    "national-insurance-number-newcomers": ["open-uk-bank-account-new-arrival", "uk-paye-tax-codes-national-insurance"],
+    // Personal Tax (published 2026-11-26): each link is backed by the Guide's own text (the payslip
+    // Guide names Self Assessment and the NI number; Self Assessment explains PAYE; the NI number
+    // Guide is about starting work and payslips). Unpublished targets are never shown.
+    "uk-paye-tax-codes-national-insurance": ["uk-self-assessment-register-file-pay", "national-insurance-number-newcomers"],
+    "uk-self-assessment-register-file-pay": ["uk-paye-tax-codes-national-insurance"],
   },
 };
 

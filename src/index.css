@@ -33,6 +33,14 @@
   text-rendering: optimizeLegibility;
   color-scheme: light;
 }
+:lang(ur) {
+  /* Urdu: an Urdu-capable font before system-ui, so each word comes from one font. Otherwise a
+     system font with only basic Arabic (DejaVu Sans on Linux) draws most letters and another font
+     the Urdu-only ones (ہ ے ۂ), and Firefox then breaks the joins between them. Local fonts only (no
+     download), and Arabic-script-only ones, so Latin text and figures keep the normal sans font;
+     where neither is installed (Windows, iOS, most Android) nothing changes. */
+  font-family: "Noto Sans Arabic UI", "Noto Sans Arabic", var(--font-sans);
+}
 body {
   margin: 0;
   font-size: var(--text-base);
@@ -112,6 +120,24 @@ svg {
 }
 .skip-link:focus {
   top: 16px;
+}
+/* Content pages start a consistent distance below the header (the language selector, which used to
+   sit above each page, now lives in the header on every page). */
+main.guide-page,
+main.work-visa-page,
+main.family-visa-page,
+main.health-page,
+main.money-page {
+  padding-top: 28px;
+}
+@media (max-width: 560px) {
+  main.guide-page,
+  main.work-visa-page,
+  main.family-visa-page,
+  main.health-page,
+  main.money-page {
+    padding-top: 20px;
+  }
 }
 /* In-app navigation to a page whose chunk is still loading (App.tsx). */
 .route-loading {

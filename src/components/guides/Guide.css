@@ -14,11 +14,6 @@
   --tone-border: var(--color-border);
 }
 
-.guide-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-block: 12px 18px;
-}
 .guide-language-select {
   display: inline-flex;
   align-items: center;
@@ -159,14 +154,9 @@
   .guide-index-header { padding: 24px; }
 }
 
-/* Breadcrumb and language selector share the article's column, so a Guide has one left edge. */
-.guide-page > .breadcrumb,
-.guide-page > .breadcrumb + .guide-toolbar {
+/* The breadcrumb shares the article's column, so a Guide has one left edge. */
+.guide-page > .breadcrumb {
   max-width: 46rem;
-  margin-inline: auto;
-}
-.localized-guide-index > .guide-toolbar {
-  max-width: 56rem;
   margin-inline: auto;
 }
 .breadcrumb ol {

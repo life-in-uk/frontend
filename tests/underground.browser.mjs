@@ -1,3 +1,4 @@
+import { marketIndices } from "./fixtures/market-indices.mjs";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 // Underground is a first-party tool on the Travel page (/travel). The
@@ -97,6 +98,11 @@ async function newPage(
     // whatever backend the dev server proxies /api/weather to.
     await context.route("**/api/weather/current*", (route) =>
       route.fulfill({ json: {} }),
+    );
+    // The homepage market cards: a fixed answer, so whatever backend the dev server proxies
+    // /api/market-indices to cannot add a console error to this suite.
+    await context.route("**/api/market-indices/latest", (route) =>
+      route.fulfill({ json: marketIndices() }),
     );
     await context.route("**/api/bank-holidays", (route) =>
       route.fulfill({

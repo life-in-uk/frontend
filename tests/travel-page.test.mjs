@@ -40,8 +40,9 @@ test("the Travel topic is linked in every locale but never counted or searched a
   assert.equal(topicHref(travel, "zh-CN"), "/zh-CN/travel");
   assert.equal(topicHref(travel, "ur"), "/ur/travel");
   assert.ok(!launchedTopics().some((topic) => topic.id === "travel"));
-  // Upcoming sections stay unlinked.
-  assert.equal(topicHref(availableHomeTopics(false).find((topic) => topic.id === "education"), "en"), undefined);
+  // A section without published Guides is not offered at all (no unlinked "coming soon" entry).
+  assert.equal(availableHomeTopics(false).find((topic) => topic.id === "education"), undefined);
+  assert.equal(topicHref(availableHomeTopics(false, true).find((topic) => topic.id === "education"), "en"), "/en/education");
 });
 
 function shape(value) {

@@ -200,7 +200,10 @@ test("Money Guides belong only to the Money domain", () => {
   assert.deepEqual(MONEY_GUIDE_DOMAIN.relatedGuides, {
     "open-uk-bank-account-new-arrival": ["national-insurance-number-newcomers", "sending-money-abroad-safely"],
     "sending-money-abroad-safely": ["open-uk-bank-account-new-arrival"],
-    "national-insurance-number-newcomers": ["open-uk-bank-account-new-arrival"],
+    "national-insurance-number-newcomers": ["open-uk-bank-account-new-arrival", "uk-paye-tax-codes-national-insurance"],
+    // Personal Tax: payslips and Self Assessment link each other; payslips also to the NI number.
+    "uk-paye-tax-codes-national-insurance": ["uk-self-assessment-register-file-pay", "national-insurance-number-newcomers"],
+    "uk-self-assessment-register-file-pay": ["uk-paye-tax-codes-national-insurance"],
   });
   const both = [meta("open-uk-bank-account-new-arrival", "money"), meta("national-insurance-number-newcomers", "money"), meta("x", "health-nhs")];
   assert.deepEqual(relatedGuidesFor(MONEY_GUIDE_DOMAIN, "open-uk-bank-account-new-arrival", both).map((g) => g.slug), ["national-insurance-number-newcomers"]);

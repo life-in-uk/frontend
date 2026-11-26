@@ -27,7 +27,8 @@ const HEALTH_SLUGS = ["where-to-go-when-ill-england", "registering-with-a-gp-eng
 function list(locale) {
   const title = (base) => locale === "zh-CN" ? `${base}（简体）` : `${LONG[locale] ?? LONG.en} — ${base}`;
   const guides = HEALTH_SLUGS.map((slug) => ({ slug, category: CATEGORY.health, title: title(slug), summary: `Summary ${slug}. `.repeat(12) }));
-  guides.push({ slug: "uk-paye-tax-codes-national-insurance", category: CATEGORY.money, title: title("PAYE"), summary: "Tax summary." });
+  // Not translated into Hindi: the header must offer Hindi as unavailable on this Guide.
+  if (locale !== "hi") guides.push({ slug: "uk-paye-tax-codes-national-insurance", category: CATEGORY.money, title: title("PAYE"), summary: "Tax summary." });
   guides.push({ slug: "partner-visa-routes-overview", category: CATEGORY.visa, title: title("Partner"), summary: "Visa summary." });
   guides.push({ slug: "renting-letting-agent-full-process", category: CATEGORY.renting, title: title("Renting"), summary: "Renting summary." });
   return guides.map((g) => ({ ...g, publishedAt: AT, updatedAt: AT }));
@@ -64,7 +65,7 @@ async function open(path, width, { reducedMotion = "no-preference", holdLists = 
 const noOverflow = (p) => p.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 const results = [];
 async function check(name, fn) {
-  try { await fn(); results.push(`PASS ${name}`); } catch (e) { results.push(`FAIL ${name}: ${e.message}`); process.exitCode = 1; }
+  try { await fn(); results.push(`PASS ${name}`); } catch (e) { results.push(`FAIL ${name}: ${e.message} @ ${(e.stack || "").split("\n").find((l) => l.includes("uiux.browser.mjs")) ?? ""}`); process.exitCode = 1; }
 }
 
 await check("Health situation rows wrap long translated titles (no overflow, 320–390px, en/ur/hi)", async () => {
@@ -112,8 +113,9 @@ await check("All-Guides index: sections in menu order with jump links; no layout
     assert.equal(clamped, true, `${locale}: summary clamp`);
     await p.locator(".guide-index-jump a[href='#guides-money']").click();
     await p.waitForTimeout(300);
-    const top = await p.locator("#guides-money").evaluate((el) => el.getBoundingClientRect().top);
-    assert.ok(top >= 0 && top < 120, `${locale}: jump link scrolls to the section (${top})`);
+    // The link brings the section's heading into view (the last section may not reach the very top).
+    const view = await p.locator("#guides-money h2").evaluate((el) => ({ top: el.getBoundingClientRect().top, scrolled: window.scrollY }));
+    assert.ok(view.scrolled > 0 && view.top >= 0 && view.top < 900 - 40, `${locale}: jump link scrolls to the section (${JSON.stringify(view)})`);
     await context.close();
   }
 });
@@ -130,9 +132,12 @@ await check("Guide sections list: open on desktop, collapsed on phones, anchors 
   await desktop.p.waitForTimeout(300);
   const top = await desktop.p.locator("#guide-section-4").evaluate((el) => el.getBoundingClientRect().top);
   assert.ok(top >= 0 && top < 80, `anchor scroll (${top})`);
+  // The Money section's approved disclaimer, once (the synthetic text has none of its own).
+  assert.equal(await desktop.p.locator(".guide-notice").count(), 1);
+  assert.match(await desktop.p.locator(".guide-notice").innerText(), /^This guide provides general information and does not constitute personalised financial, investment or tax advice\./);
   const link = desktop.p.locator(".guide-body a[href^='https://www.gov.uk']");
   assert.match(await link.evaluate((el) => getComputedStyle(el).textDecorationLine), /underline/);
-  const edges = await desktop.p.evaluate(() => ["nav.breadcrumb", ".guide-toolbar", ".guide-article"]
+  const edges = await desktop.p.evaluate(() => ["nav.breadcrumb", ".guide-article"]
     .map((s) => Math.round(document.querySelector(s).getBoundingClientRect().left)));
   assert.equal(new Set(edges).size, 1, `left edges ${edges}`);
   await desktop.context.close();
@@ -150,7 +155,14 @@ await check("Home: no translation notice when all Guides are translated; lead sp
     await p.locator(".home-hero-lead").waitFor();
     await p.locator(".topic-card").first().waitFor();
     await p.waitForTimeout(300);
-    assert.equal(await p.locator(".home-translation-notice").count(), 0, `${locale}: notice`);
+    // Shown only where a home Guide falls back to Simplified Chinese (the PAYE Guide is untranslated in Hindi here).
+    assert.equal(await p.locator(".home-translation-notice").count(), locale === "hi" ? 1 : 0, `${locale}: notice`);
+    // The heading's two parts are separate words for screen readers (no "andstudying").
+    const title = await p.locator("#home-title").textContent();
+    if (!locale.startsWith("zh")) assert.match(title, /\S \S/u, `${locale}: title words`);
+    if (locale === "en") assert.match(title, /and studying/);
+    // Urdu prefers an Arabic-script-only local font, so a word is never split across two fonts.
+    if (locale === "ur") assert.match(await p.locator("body").evaluate((el) => getComputedStyle(el).fontFamily), /^"Noto Sans Arabic UI"/);
     const lead = await p.locator(".home-hero-lead").innerText();
     if (!locale.startsWith("zh")) assert.doesNotMatch(lead, /[.।۔][^\s]/u, `${locale}: sentences run together`);
     assert.equal(await p.locator(".masthead-brand .brand-caption").isVisible(), false, `${locale}: tagline hidden`);
@@ -223,6 +235,50 @@ await check("404: links home, to Health and to every Guide; footer links wrap as
     ["/en", "/en/health", "/en/guides"]);
   const nhs = p.locator(".site-footer a[href*='when-to-use-111']");
   assert.equal(await nhs.evaluate((el) => getComputedStyle(el).display), "inline-block");
+  await context.close();
+});
+
+await check("One language selector, in the header, on every page type; it keeps the page", async () => {
+  const PAGES = [
+    ["/en", "/ur"], ["/en/guides", "/ur/guides"], ["/en/health", "/ur/health"], ["/en/renting", "/ur/renting"],
+    ["/en/money/uk-paye-tax-codes-national-insurance", "/ur/money/uk-paye-tax-codes-national-insurance"],
+    ["/en/travel", "/ur/travel"], ["/en/family-visa/topics/children-from-previous-relationship", "/ur/family-visa/topics/children-from-previous-relationship"],
+    ["/en/no-such-page", "/ur"],
+  ];
+  for (const [from, to] of PAGES) for (const width of [360, 1440]) {
+    const { p, context } = await open(from, width);
+    const select = p.locator(".masthead-language select");
+    await select.waitFor();
+    assert.equal(await p.locator("select").evaluateAll((els) => els.filter((el) => el.closest(".masthead-language")).length), 1, `${from}: header selector`);
+    assert.equal(await p.locator("main select, .guide-language-select:not(.masthead-language)").count(), 0, `${from}: no second selector`);
+    assert.equal(await noOverflow(p), true, `${from} ${width}`);
+    if (width === 360) {
+      await select.selectOption("ur");
+      await p.waitForURL(`**${to}`);
+      assert.deepEqual(await p.evaluate(() => [document.documentElement.lang, document.documentElement.dir]), ["ur", "rtl"], from);
+      assert.equal(await p.locator(".masthead-language select").inputValue(), "ur");
+      assert.equal(await noOverflow(p), true, `${to} 360`);
+    }
+    await context.close();
+  }
+  // A Guide offers only the languages it is published in.
+  const { p, context } = await open("/en/money/uk-paye-tax-codes-national-insurance", 1440);
+  await p.locator(".guide-article").waitFor();
+  // Availability is computed after the Guide loads (from every language's published list).
+  await p.waitForFunction(() => {
+    const options = Object.fromEntries([...document.querySelectorAll(".masthead-language option")].map((o) => [o.value, o.disabled]));
+    return options.ur === false && options.hi === true;
+  }, null, { timeout: 10000 });
+  assert.equal(await p.locator('.masthead-language select option[value="hi"]').evaluate((o) => o.disabled), true);
+  assert.equal(await p.locator('.masthead-language select option[value="zh-TW"]').evaluate((o) => o.disabled), false);
+  // Keyboard: the selector is reachable with Tab and has an accessible name.
+  let reached = false;
+  for (let i = 0; i < 25 && !reached; i++) {
+    await p.keyboard.press("Tab");
+    reached = await p.evaluate(() => document.activeElement?.closest(".masthead-language") !== null);
+  }
+  assert.equal(reached, true, "Tab reaches the language selector");
+  assert.equal(await p.locator(".masthead-language select").getAttribute("aria-label"), "Language");
   await context.close();
 });
 
