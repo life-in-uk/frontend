@@ -160,6 +160,7 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       },
     ];
     return {
+      untranslated: items.some((item) => item.fallback),
       counts,
       featured,
       more,
@@ -178,7 +179,7 @@ export function HomePage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       lang={translatedPage ? GUIDE_LOCALE_LANG[locale] : undefined}
       dir={translatedPage ? textDirection(locale) : undefined}
     >
-      <HomeHero locale={locale} index={searchIndex} />
+      <HomeHero locale={locale} index={searchIndex} untranslated={content?.untranslated ?? false} />
       {/* Live Services sit directly under the search so they are reachable on a phone without scrolling far. */}
       <div className="home-container home-travel">
         <LiveServices locale={locale} />

@@ -465,9 +465,12 @@ try {
       if (locale === "ur") assert.equal(dir, "rtl");
       else assert.notEqual(dir, "rtl");
       if (locale === "ur") {
-        // RTL: the first tile (Underground) sits at the right of its row.
-        const [first, second] = await p.locator(".live-shortcuts > li").evaluateAll((els) => els.slice(0, 2).map((el) => el.getBoundingClientRect().left));
-        assert.ok(first > second, "Urdu shortcuts run right to left");
+        // RTL on a phone: Underground spans the first row; on the shared row Rail (second) sits to
+        // the right of Roads (third).
+        const [underground, rail, roads] = await p.locator(".live-shortcuts > li").evaluateAll((els) =>
+          els.slice(0, 3).map((el) => { const r = el.getBoundingClientRect(); return { left: r.left, width: r.width }; }));
+        assert.ok(underground.width > rail.width * 1.8, "Underground spans the row on a phone");
+        assert.ok(rail.left > roads.left, "Urdu shortcuts run right to left");
       }
       assert.equal(await noOverflow(p), true, `${locale} weather: overflow`);
       assert.deepEqual(errors, []);
@@ -753,19 +756,31 @@ try {
       .evaluateAll((els) => new Set(els.map((el) => el.getBoundingClientRect().top)).size);
     if (width >= 1280) assert.ok(topicColumns === 3, "nine topics in three even rows (3 + 3 + 3)");
     if (width <= 390) assert.ok(topicColumns >= 3, "topics reflow on mobile");
-    // Live Services: market cards side by side; four equal shortcuts in one row on wide screens, 2 × 2 on phones.
+    // Live Services. Wide screens: market cards side by side; four equal shortcuts in one row (above
+    // 1100px) or 2 × 2. Phones (560px and below): market cards stacked full width, so each figure has
+    // room; Underground and Weather (the most text) span their rows and Rail and Roads share one.
+    // Below 360px (e.g. 320) every shortcut has its own row.
     const boxes = (selector) => p.locator(selector).evaluateAll((els) => els.map((el) => {
       const r = el.getBoundingClientRect();
       return { top: Math.round(r.top), width: Math.round(r.width) };
     }));
     const markets = await boxes(".live-markets .live-card");
-    // Below 360px (e.g. 320) everything stacks in one column.
-    if (width >= 360) assert.equal(markets[0].top, markets[1].top, `market cards side by side at ${width}`);
-    else assert.ok(markets[1].top > markets[0].top, `market cards stacked at ${width}`);
+    if (width > 560) assert.equal(markets[0].top, markets[1].top, `market cards side by side at ${width}`);
+    else {
+      assert.ok(markets[1].top > markets[0].top, `market cards stacked at ${width}`);
+      assert.equal(markets[0].width, markets[1].width, `market cards full width at ${width}`);
+    }
     const tiles = await boxes(".live-shortcuts > li");
     const rows = new Set(tiles.map((tile) => tile.top)).size;
-    assert.equal(rows, width > 1100 ? 1 : width >= 360 ? 2 : 4, `shortcut rows at ${width}`);
-    assert.ok(Math.max(...tiles.map((t) => t.width)) - Math.min(...tiles.map((t) => t.width)) <= 1, `equal shortcuts at ${width}`);
+    assert.equal(rows, width > 1100 ? 1 : width > 560 ? 2 : width >= 360 ? 3 : 4, `shortcut rows at ${width}`);
+    const spread = (list) => Math.max(...list.map((t) => t.width)) - Math.min(...list.map((t) => t.width));
+    if (width > 560 || width < 360) assert.ok(spread(tiles) <= 1, `equal shortcuts at ${width}`);
+    else {
+      const [underground, rail, roads, weather] = tiles;
+      assert.equal(rail.top, roads.top, `Rail and Roads share a row at ${width}`);
+      assert.ok(spread([rail, roads]) <= 1 && spread([underground, weather]) <= 1, `balanced shortcuts at ${width}`);
+      assert.ok(underground.width > rail.width * 1.8, `Underground spans its row at ${width}`);
+    }
     await p.screenshot({ path: `${screenshots}/home-${width}.png`, fullPage: true });
     await context.close();
   }
