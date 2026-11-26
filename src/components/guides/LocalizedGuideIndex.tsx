@@ -8,6 +8,7 @@ import { formatUkDateFor } from "../../guides/format";
 import { GUIDE_DOMAINS, UNIVERSITY_CATEGORY, type GuideDomainId } from "../../guides/domains";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, UNIVERSITY_COPY, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates, hubAlternates } from "../../guides/seo";
+import { studentPathwaysEntry } from "../../guides/workVisaPlan";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
 import { groupGuidesByDomain } from "../../guides/indexGroups";
@@ -24,7 +25,9 @@ const copy: Record<GuideLocale, { title: string; description: string; loading: s
 
 
 export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; domain?: GuideDomainId }) {
-  const [state, setState] = useState<{ status: "loading" } | { status: "error" } | { status: "ready"; guides: GuideMetadata[]; universityAvailable: boolean }>({ status: "loading" });
+  const [state, setState] = useState<{ status: "loading" } | { status: "error" } | {
+    status: "ready"; guides: GuideMetadata[]; universityAvailable: boolean; studentPathways?: GuideMetadata;
+  }>({ status: "loading" });
   const strings = copy[locale];
   const title = domain ? GUIDE_UI[locale].domain[domain] : strings.title;
   const education = domain === "education" ? EDUCATION_COPY[locale] : undefined;
@@ -36,7 +39,15 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
     const controller = new AbortController();
     let active = true;
     getLocalizedGuides(locale, controller.signal)
-      .then((guides) => { if (active) setState({ status: "ready", guides: domain ? guides.filter((item) => item.category === GUIDE_DOMAINS[domain].category) : guides, universityAvailable: guides.some((guide) => guide.category === UNIVERSITY_CATEGORY) }); })
+      .then((guides) => {
+        if (!active) return;
+        setState({
+          status: "ready",
+          guides: domain ? guides.filter((item) => item.category === GUIDE_DOMAINS[domain].category) : guides,
+          universityAvailable: guides.some((guide) => guide.category === UNIVERSITY_CATEGORY),
+          studentPathways: studentPathwaysEntry(guides),
+        });
+      })
       .catch(() => { if (active) setState({ status: "error" }); });
     return () => { active = false; controller.abort(); };
   }, [locale, domain]);
@@ -82,6 +93,15 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
       ? { id: "household", domain: HOUSEHOLD_CATEGORY, icon: House,
           sections: state.status === "ready" ? householdSections(state.guides) : [], heading: (id: string) => HOUSEHOLD_SECTIONS[locale][id as keyof (typeof HOUSEHOLD_SECTIONS)[GuideLocale]] }
       : null;
+  const pathwaysLink = (domain === "education" || domain === UNIVERSITY_CATEGORY)
+    && state.status === "ready" && state.guides.length > 0 && state.studentPathways
+    ? <p className="education-university-link">
+        <Link to={localizedGuidePath(locale, "work-visa", state.studentPathways.slug)} className="work-official-link">
+          {state.studentPathways.title}
+          <ArrowRight size={14} aria-hidden="true" />
+        </Link>
+      </p>
+    : null;
   if (hub) {
     const { sections, icon: Icon } = hub;
     const order = sections.flatMap(({ guides }) => guides.map(({ slug }) => slug));
@@ -135,6 +155,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
             </Link>
           </p>
         )}
+        {pathwaysLink}
       </main>
     );
   }
@@ -151,6 +172,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
       {state.status === "error" && <div className="guide-status-card" role="alert"><p>{strings.failed}</p></div>}
       {state.status === "ready" && state.guides.length === 0 && <p className="guide-status" role="status">{strings.empty}</p>}
       {state.status === "ready" && state.guides.length > 0 && guideList(state.guides, locale)}
+      {pathwaysLink}
     </main>
   );
 }

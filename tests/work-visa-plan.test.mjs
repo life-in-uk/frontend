@@ -1,5 +1,5 @@
-// Work Visa (Skilled Worker) section: the hub plan covers exactly the eight
-// Guides in reading order, every hub string exists in all five locales,
+// Work Visa section: the hub plan covers the two reader journeys in order.
+// Every hub string exists in all five locales,
 // proposals are labelled as such, and the section is a normal localized
 // Guide domain linked from the site navigation.
 import test from "node:test";
@@ -11,12 +11,15 @@ import {
   WORK_VISA_KEY_DATES,
   WORK_VISA_SLUGS,
   WORK_VISA_TOPICS,
+  studentPathwaysEntry,
+  workVisaTopicsFor,
 } from "../src/guides/workVisaPlan.ts";
 import { GUIDE_DOMAINS } from "../src/guides/domains.ts";
 import { GUIDE_LOCALES, GUIDE_UI } from "../src/guides/locales.ts";
 import { localeSwitchPath, matchRoute, pageRoute } from "../src/router.ts";
 import { HOME_TOPICS } from "../src/home/topics.ts";
 import { SITE_UI } from "../src/guides/siteUi.ts";
+import { staticHubPage } from "../src/seo/staticPages.ts";
 
 const SLUGS = [
   "skilled-worker-overview",
@@ -29,9 +32,33 @@ const SLUGS = [
   "skilled-worker-settlement-ilr",
 ];
 
-test("the plan lists the eight Guides once each, in topic reading order", () => {
-  assert.deepEqual([...WORK_VISA_SLUGS], SLUGS);
+const PATHWAYS = "uk-options-after-graduation";
+const GRADUATE = "graduate-visa-uk";
+const meta = (slug, category = "work-visa") => ({ slug, category, title: slug, summary: "", updatedAt: "", publishedAt: "" });
+
+test("the plan lists each Guide once and shows only published post-study entries", () => {
+  assert.deepEqual([...WORK_VISA_SLUGS], [SLUGS[0], PATHWAYS, GRADUATE, ...SLUGS.slice(1)]);
   assert.equal(new Set(WORK_VISA_TOPICS.map((t) => t.id)).size, WORK_VISA_TOPICS.length);
+  const slugs = (published) => workVisaTopicsFor(new Map(published.map((slug) => [slug, meta(slug)]))).flatMap((t) => t.slugs);
+  assert.deepEqual(slugs([]), SLUGS);
+  assert.deepEqual(slugs([GRADUATE]), [SLUGS[0], GRADUATE, ...SLUGS.slice(1)]);
+  assert.deepEqual(slugs([GRADUATE, PATHWAYS]), WORK_VISA_SLUGS);
+});
+
+test("education and university hubs link to the published pathways Guide in each locale", () => {
+  const origin = "https://lifeinuk.info";
+  const pathway = meta(PATHWAYS);
+  assert.equal(studentPathwaysEntry([meta(PATHWAYS, "education")]), undefined);
+  for (const locale of GUIDE_LOCALES) {
+    for (const domainId of ["education", "university-applications-student-visas"]) {
+      const existing = meta("study-guide", domainId);
+      const hub = (published) => staticHubPage({ origin, locale, domainId, availableLocales: [locale], published });
+      assert.equal(hub([pathway]), null, "a cross-link cannot create an otherwise unpublished hub");
+      assert.ok(!hub([existing]).body.includes(PATHWAYS));
+      const href = "/"+locale+"/work-visa/"+PATHWAYS;
+      assert.ok(hub([existing, pathway]).body.includes(`href="${href}"`));
+    }
+  }
 });
 
 test("every hub string, topic and date exists in all five locales", () => {

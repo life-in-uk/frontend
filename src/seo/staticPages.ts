@@ -15,6 +15,7 @@
 import { isSafeExternalUrl } from "../guides/api.ts";
 import type { GuideDetail, GuideMetadata } from "../guides/api.ts";
 import { EDUCATION_COPY, educationSections } from "../guides/education.ts";
+import { studentPathwaysEntry } from "../guides/workVisaPlan.ts";
 import { HOUSEHOLD_CATEGORY } from "../guides/household.ts";
 import { UNIVERSITY_CATEGORY, domainGuides, GUIDE_DOMAINS } from "../guides/domains.ts";
 import type { GuideDomain, GuideDomainId } from "../guides/domains.ts";
@@ -431,6 +432,7 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
   const live = new Set(guides.map((guide) => guide.slug));
   const titles = new Map(guides.map((guide) => [guide.slug, guide.title]));
   const sectionDetails = (input.details ?? []).filter((detail) => live.has(detail.slug) && detail.category === domain.category);
+  const pathways = domain.id === "education" || domain.id === UNIVERSITY_CATEGORY ? studentPathwaysEntry(input.published) : undefined;
   const html = [
     renderSiteNav(locale, input.published),
     `<main id="main" class="static-page static-hub">`,
@@ -445,6 +447,7 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
       : domain.id === "education"
         ? renderEducationSections(guides, locale, input.published, domain)
         : renderGuideList(guides, locale, domain),
+    pathways ? `<p><a href="${guideRoutePath(locale, "work-visa", pathways.slug)}">${escapeHtml(pathways.title)}</a></p>` : "",
     `</main>`,
   ].join("\n");
   const head: PageHead = {

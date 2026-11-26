@@ -9,8 +9,7 @@ import type { GuideLocale } from "../../guides/locales";
 import {
   WORK_VISA_COPY,
   WORK_VISA_KEY_DATES,
-  WORK_VISA_SLUGS,
-  WORK_VISA_TOPICS,
+  workVisaTopicsFor,
 } from "../../guides/workVisaPlan";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
@@ -47,7 +46,8 @@ export function WorkVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
     return () => controller.abort();
   }, [locale]);
 
-  const position = (slug: string) => WORK_VISA_SLUGS.indexOf(slug) + 1;
+  const topics = workVisaTopicsFor(state.status === "ready" ? state.guides : new Map());
+  const readingOrder = topics.flatMap((topic) => topic.slugs);
 
   return (
     <main id="main" className="work-visa-page work-hub">
@@ -76,7 +76,7 @@ export function WorkVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
 
       <nav className="work-topics-nav" aria-label={copy.topicsNav}>
         <ul>
-          {WORK_VISA_TOPICS.map((topic) => (
+          {topics.map((topic) => (
             <li key={topic.id}>
               <a href={`#work-topic-${topic.id}`}>{topic.title[locale]}</a>
             </li>
@@ -92,7 +92,7 @@ export function WorkVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
         {state.status === "loading" && <p className="work-plan-status page-loading" role="status">{copy.loading}</p>}
         {state.status === "error" && <p className="work-plan-status" role="status">{copy.unavailable}</p>}
         {state.status === "ready" &&
-          WORK_VISA_TOPICS.map((topic) => (
+          topics.map((topic) => (
             <section key={topic.id} id={`work-topic-${topic.id}`} className="work-topic" aria-labelledby={`work-topic-${topic.id}-title`}>
               <header className="work-topic-head">
                 <h3 id={`work-topic-${topic.id}-title`}>{topic.title[locale]}</h3>
@@ -101,7 +101,7 @@ export function WorkVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
               <ol className="work-guide-list">
                 {topic.slugs.map((slug) => {
                   const guide = state.guides.get(slug);
-                  const number = position(slug);
+                  const number = readingOrder.indexOf(slug) + 1;
                   return (
                     <li key={slug} className="work-guide-card">
                       <span className="work-guide-number" aria-hidden="true">{number}</span>
