@@ -1,4 +1,4 @@
-import { getLocalizedGuides } from "./guides/api";
+import { getGuides, getLocalizedGuides } from "./guides/api";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { SiteHeader } from "./components/site/SiteHeader";
 import { SiteFooter } from "./components/site/SiteFooter";
@@ -54,7 +54,9 @@ function App() {
   const [publishedSections, setPublishedSections] = useState<{ locale: GuideLocale; categories: Set<string> }>();
   useEffect(() => {
     const controller = new AbortController();
-    getLocalizedGuides(activeLocale, controller.signal)
+    // Simplified Chinese pages already read /api/guides (the same published list); reuse it
+    // instead of a second, identical /api/guides/locales/zh-CN request on every page.
+    (activeLocale === "zh-CN" ? getGuides(controller.signal) : getLocalizedGuides(activeLocale, controller.signal))
       .then((guides) => {
         if (!controller.signal.aborted)
           setPublishedSections({ locale: activeLocale, categories: new Set(guides.map((guide) => guide.category)) });
