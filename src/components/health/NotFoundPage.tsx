@@ -17,6 +17,9 @@ export function NotFoundPage({ locale = "zh-CN" }: { locale?: GuideLocale }) {
           <Link to={guideRoutePath(locale, "health")} className="button button-secondary">
             {GUIDE_UI[locale].domain.health}
           </Link>
+          <Link to={`/${locale}/guides`} className="button button-secondary">
+            {SITE_UI[locale].search.emptyAll}
+          </Link>
         </p>
       </div>
     </main>

@@ -199,6 +199,33 @@ await check("Inputs are at least 24px; reduced motion removes transitions", asyn
   await context.close();
 });
 
+await check("Travel: all three tool tabs visible on phones in every locale", async () => {
+  for (const locale of LOCALES) for (const width of [320, 360]) {
+    const { p, context } = await open(`/${locale}/travel`, width);
+    await p.locator(".travel-tab").first().waitFor();
+    const fit = await p.locator(".travel-tabs").evaluate((list) => {
+      const box = list.getBoundingClientRect();
+      return [...list.querySelectorAll(".travel-tab")].every((t) => {
+        const r = t.getBoundingClientRect();
+        return r.left >= box.left - 1 && r.right <= box.right + 1 && t.scrollWidth <= t.clientWidth + 1;
+      });
+    });
+    assert.equal(fit, true, `${locale} ${width}: a tab is cut off`);
+    assert.equal(await noOverflow(p), true, `${locale} ${width}`);
+    await context.close();
+  }
+});
+
+await check("404: links home, to Health and to every Guide; footer links wrap as text", async () => {
+  const { p, context } = await open("/en/no-such-page", 360);
+  await p.locator(".not-found-links a").first().waitFor();
+  assert.deepEqual(await p.locator(".not-found-links a").evaluateAll((els) => els.map((a) => a.getAttribute("href"))),
+    ["/en", "/en/health", "/en/guides"]);
+  const nhs = p.locator(".site-footer a[href*='when-to-use-111']");
+  assert.equal(await nhs.evaluate((el) => getComputedStyle(el).display), "inline-block");
+  await context.close();
+});
+
 await check("Unprefetched Urdu pages start right-to-left (no flip when the app starts)", async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await context.newPage();
