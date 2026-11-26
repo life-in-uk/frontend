@@ -31,7 +31,7 @@ import {
   textDirection,
 } from "../guides/locales.ts";
 import type { GuideLocale } from "../guides/locales.ts";
-import { EVIDENCE_PREFIX, inlineText, parseMarkdown } from "../guides/markdown.ts";
+import { EVIDENCE_PREFIX, inlineText, parseMarkdown, withoutRepeatedUpdatedLine } from "../guides/markdown.ts";
 import type { Block, Inline, ListBlock } from "../guides/markdown.ts";
 import { resolveQuickAnswers } from "../guides/moneyQuickAnswers.ts";
 import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales.ts";
@@ -287,7 +287,9 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
   const references = titleReferencesFor(domain, locale, input.published, guide.slug);
   const blocks = parseMarkdown(guide.content);
   // The page header shows the title; drop a leading H1 that repeats it (as the app does).
-  const body = blocks[0]?.type === "heading" && blocks[0].level === 1 ? blocks.slice(1) : blocks;
+  const titled = blocks[0]?.type === "heading" && blocks[0].level === 1 ? blocks.slice(1) : blocks;
+  // The header shows the update date; a leading line repeating it is not shown twice (as in the app).
+  const body = withoutRepeatedUpdatedLine(titled, guide.updatedAt);
   const others = domainGuides([...input.published], domain).filter((item) => item.slug !== guide.slug);
   const curated = CURATED_RELATED_SECTIONS.has(domain.id);
   const notice = guideNotice(domain.id, guide.slug, locale);

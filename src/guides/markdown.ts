@@ -347,3 +347,22 @@ export function guideSections(blocks: readonly Block[]): GuideSection[] {
   }
   return sections;
 }
+
+// A standalone "Last updated: YYYY-MM-DD" paragraph at the very start of a Guide body repeats the
+// page header's "Updated" date. Only that exact case is hidden, and only when its date is the
+// Guide's own update date (UK time); any other wording, position or date stays. The published
+// content, its hash and the structured data are unchanged: this is presentation only.
+const LEADING_UPDATED = /^(?:最后更新|最後更新|Last updated|آخری تازہ کاری|अंतिम अपडेट)\s*[:：]\s*(\d{4}-\d{2}-\d{2})[.。۔।]?$/iu;
+
+function ukDate(instant: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" })
+    .format(new Date(instant));
+}
+
+/** The body without a leading "Last updated" line that only repeats the header's update date. */
+export function withoutRepeatedUpdatedLine(blocks: Block[], updatedAt: string): Block[] {
+  const first = blocks[0];
+  if (first?.type !== "paragraph") return blocks;
+  const match = LEADING_UPDATED.exec(inlineText(first.children).replace(/\s+/g, " ").trim());
+  return match && match[1] === ukDate(updatedAt) ? blocks.slice(1) : blocks;
+}

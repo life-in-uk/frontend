@@ -5,7 +5,7 @@ import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFou
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, guideRoutePath, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo";
-import { guideSections, inlineText, parseMarkdown } from "../../guides/markdown";
+import { guideSections, inlineText, parseMarkdown, withoutRepeatedUpdatedLine } from "../../guides/markdown";
 import type { Block } from "../../guides/markdown";
 import type { GuideDomain } from "../../guides/domains";
 import { belongsToDomain } from "../../guides/domains";
@@ -158,13 +158,15 @@ export function GuidePage({
     const blocks = parseMarkdown(state.guide.content);
     // The page header already shows the title; drop a leading H1 that repeats it.
     const first = blocks[0];
-    const body: Block[] =
+    const titled: Block[] =
       first &&
       first.type === "heading" &&
       first.level === 1 &&
       inlineText(first.children).trim() === state.guide.title.trim()
         ? blocks.slice(1)
         : blocks;
+    // The header shows "Updated …"; a leading line that only repeats that date is not shown twice.
+    const body = withoutRepeatedUpdatedLine(titled, state.guide.updatedAt);
     const evidenceLinks = (
       state.guide.content.match(/\]\(#guide-evidence-[^)]+\)/g) ?? []
     ).length;
