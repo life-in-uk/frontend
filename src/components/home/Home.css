@@ -76,9 +76,10 @@
   padding-block: 6px;
   padding-inline: 50px 6px;
 }
+/* A clearly visible focus indicator (WCAG 1.4.11, 2.4.7): the input itself draws no outline. */
 .home-search-form:focus-within {
   border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgb(49 92 73 / 18%);
+  box-shadow: 0 0 0 2px var(--color-brand), 0 0 0 5px rgb(49 92 73 / 18%);
 }
 .home-search-icon {
   position: absolute;
@@ -97,6 +98,9 @@
 }
 .home-search-form input::placeholder {
   color: #7a837b;
+}
+.home-search-form input {
+  text-overflow: ellipsis; /* a long placeholder ends in "…" on phones instead of mid-word */
 }
 .home-search-form input:focus {
   outline: none;
@@ -242,6 +246,7 @@
   --tone-bg: #fbf3e8;
   --tone-line: #f1e3cd;
   --tone-icon: #b0702a;
+  --tone-text: #8a5418; /* 5.7:1 on the card; the icon colour is too light for 13px text */
 }
 .topic-visa {
   --tone-bg: #ebf2f9;
@@ -257,6 +262,7 @@
   --tone-bg: #fcf1e9;
   --tone-line: #f2e0d2;
   --tone-icon: #bb622c;
+  --tone-text: #94551f; /* 5.3:1 */
 }
 .topic-travel {
   --tone-bg: #eaf2f9;
@@ -312,6 +318,7 @@ a.topic-card-body:hover {
 .topic-card-count {
   font-size: 13px;
   font-weight: 600;
+  color: var(--tone-text, var(--tone-icon));
 }
 .topic-card-soon {
   margin-inline-start: auto;
@@ -1257,6 +1264,12 @@ a.topic-card-body:hover {
     grid-column: 2;
     justify-self: start;
   }
+  /* Phones: one full-width card per market group, keeping the desktop row (name and value on one
+     line, change and status below), instead of two cramped columns that wrapped every figure. */
+  .live-markets {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
   .live-markets .live-card {
     grid-template-columns: minmax(0, 1fr);
     gap: 6px;
@@ -1267,16 +1280,13 @@ a.topic-card-body:hover {
   .live-markets .live-badge {
     grid-column: 1;
   }
-  .market-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .market-name {
     white-space: normal;
   }
-  .market-value,
-  .market-change {
-    grid-column: 1;
-    text-align: start;
+  /* Underground and Weather carry the most text: full width; Rail and Roads share a row. */
+  .live-shortcuts > li:first-child,
+  .live-shortcuts > li:last-child {
+    grid-column: 1 / -1;
   }
   .guide-index {
     padding: 4px 16px;

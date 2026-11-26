@@ -329,3 +329,21 @@ export function evidenceKeys(nodes: Inline[]): string[] {
   }
   return keys;
 }
+
+/** A top-level section heading of a Guide body, with the anchor id it is rendered with. */
+export type GuideSection = { block: Block; id: string; text: string };
+
+/**
+ * The Guide's top-level H2 sections, in order, with stable ids (`guide-section-1`, …) for the
+ * "On this page" list. Headings nested inside lists or quotes are not sections.
+ */
+export function guideSections(blocks: readonly Block[]): GuideSection[] {
+  const sections: GuideSection[] = [];
+  for (const block of blocks) {
+    if (block.type === "heading" && block.level <= 2) {
+      const text = inlineText(block.children).replace(/\s+/g, " ").trim();
+      if (text) sections.push({ block, id: `guide-section-${sections.length + 1}`, text });
+    }
+  }
+  return sections;
+}

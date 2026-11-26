@@ -419,15 +419,21 @@
   margin: 0;
   padding: 0;
 }
+/* Links wrap as text (a flex row split "NHS 111" from its note into two columns on phones). */
 .site-footer-nav a,
 .site-footer-upcoming {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
+  display: inline-block;
+  padding-block: 7px;
   font-size: 14px;
+  line-height: 1.5;
   color: #dfe8e1;
   text-decoration: none;
+}
+.site-footer-upcoming {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
 }
 .site-footer-nav a:hover {
   color: #fff;
@@ -437,6 +443,7 @@
   color: #9fb2a5;
 }
 .site-footer-upcoming small {
+  white-space: nowrap;
   font-size: 12px;
   border: 1px solid #50695a;
   border-radius: 999px;
@@ -534,6 +541,13 @@
     grid-row: 2;
     grid-column: 1 / -1;
     justify-self: end;
+  }
+}
+/* Phones up to 420px: the tagline would be cut to "Life in the UK, made …"; the wordmark stands
+   alone and the home page hero says what the site is. */
+@media (max-width: 420px) {
+  .masthead--compact .masthead-brand .brand-caption {
+    display: none;
   }
 }
 /* Very narrow phones (≤ 380px): longer labels (ur, hi) must not clip the brand. */

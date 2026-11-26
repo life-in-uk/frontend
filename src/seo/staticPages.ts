@@ -511,7 +511,8 @@ export function staticHomePage(input: StaticHomeInput): StaticPage {
     `<main id="main" class="static-page static-home">`,
     `<h1>${escapeHtml(joinParts(ui.hero.title, locale))}</h1>`,
     `<p class="static-summary">${escapeHtml(homeDescription(locale))}</p>`,
-    ui.translationNotice ? `<p>${escapeHtml(ui.translationNotice)}</p>` : "",
+    // Only while some home Guides are still shown as Simplified Chinese originals.
+    ui.translationNotice && items.some((item) => item.fallback) ? `<p>${escapeHtml(ui.translationNotice)}</p>` : "",
     `<section aria-labelledby="static-topics-title"><h2 id="static-topics-title">${escapeHtml(ui.topicGrid.heading)}</h2><ul>${topics}</ul></section>`,
     renderHomeGuides("static-featured-title", ui.featured.title, featured),
     renderHomeGuides("static-more-title", ui.index.title, more),

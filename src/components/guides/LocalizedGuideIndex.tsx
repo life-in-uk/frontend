@@ -10,16 +10,18 @@ import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, localizedGuidePath, UNIVERS
 import { applyGuideSeo, clearGuideSeo, localizedIndexAlternates, hubAlternates } from "../../guides/seo";
 import { Link } from "../Link";
 import { GuideLanguageSelect } from "./GuideLanguageSelect";
+import { groupGuidesByDomain } from "../../guides/indexGroups";
 import "./Guide.css";
 import "../work-visa/WorkVisa.css";
 
-const copy: Record<GuideLocale, { title: string; description: string; loading: string; failed: string; empty: string; updated: string }> = {
-  "zh-CN": { title: "生活指南", description: "查看已发布的英国生活指南。", loading: "正在加载指南…", failed: "指南暂时无法加载，请稍后再试。", empty: "这个语言目前还没有已发布的指南。", updated: "更新于" },
-  "zh-TW": { title: "生活指南", description: "查看已發布的英國生活指南。", loading: "正在載入指南…", failed: "指南暫時無法載入，請稍後再試。", empty: "此語言目前尚無已發布的指南。", updated: "更新於" },
-  en: { title: "UK life guides", description: "Browse published guides to life in the UK.", loading: "Loading guides…", failed: "Guides are temporarily unavailable. Please try again later.", empty: "There are no published guides in this language yet.", updated: "Updated" },
-  ur: { title: "برطانیہ میں زندگی کی رہنمائی", description: "برطانیہ میں زندگی سے متعلق شائع شدہ رہنمائی دیکھیں۔", loading: "رہنمائی لوڈ ہو رہی ہے…", failed: "رہنمائی عارضی طور پر دستیاب نہیں۔ دوبارہ کوشش کریں۔", empty: "اس زبان میں ابھی کوئی رہنمائی شائع نہیں ہوئی۔", updated: "تازہ کاری" },
-  hi: { title: "यूके जीवन मार्गदर्शिकाएँ", description: "यूके में जीवन के बारे में प्रकाशित मार्गदर्शिकाएँ देखें।", loading: "मार्गदर्शिकाएँ लोड हो रही हैं…", failed: "मार्गदर्शिकाएँ अभी उपलब्ध नहीं हैं। कृपया बाद में प्रयास करें।", empty: "इस भाषा में अभी कोई मार्गदर्शिका प्रकाशित नहीं है।", updated: "अपडेट" },
+const copy: Record<GuideLocale, { title: string; description: string; loading: string; failed: string; empty: string; updated: string; topics: string; open: string }> = {
+  "zh-CN": { title: "生活指南", description: "查看已发布的英国生活指南。", loading: "正在加载指南…", failed: "指南暂时无法加载，请稍后再试。", empty: "这个语言目前还没有已发布的指南。", updated: "更新于", topics: "按主题浏览", open: "进入专题" },
+  "zh-TW": { title: "生活指南", description: "查看已發布的英國生活指南。", loading: "正在載入指南…", failed: "指南暫時無法載入，請稍後再試。", empty: "此語言目前尚無已發布的指南。", updated: "更新於", topics: "按主題瀏覽", open: "進入專題" },
+  en: { title: "UK life guides", description: "Browse published guides to life in the UK.", loading: "Loading guides…", failed: "Guides are temporarily unavailable. Please try again later.", empty: "There are no published guides in this language yet.", updated: "Updated", topics: "Browse by topic", open: "Open section" },
+  ur: { title: "برطانیہ میں زندگی کی رہنمائی", description: "برطانیہ میں زندگی سے متعلق شائع شدہ رہنمائی دیکھیں۔", loading: "رہنمائی لوڈ ہو رہی ہے…", failed: "رہنمائی عارضی طور پر دستیاب نہیں۔ دوبارہ کوشش کریں۔", empty: "اس زبان میں ابھی کوئی رہنمائی شائع نہیں ہوئی۔", updated: "تازہ کاری", topics: "موضوع کے لحاظ سے دیکھیں", open: "حصہ کھولیں" },
+  hi: { title: "यूके जीवन मार्गदर्शिकाएँ", description: "यूके में जीवन के बारे में प्रकाशित मार्गदर्शिकाएँ देखें।", loading: "मार्गदर्शिकाएँ लोड हो रही हैं…", failed: "मार्गदर्शिकाएँ अभी उपलब्ध नहीं हैं। कृपया बाद में प्रयास करें।", empty: "इस भाषा में अभी कोई मार्गदर्शिका प्रकाशित नहीं है।", updated: "अपडेट", topics: "विषय के अनुसार देखें", open: "खंड खोलें" },
 };
+
 
 export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; domain?: GuideDomainId }) {
   const [state, setState] = useState<{ status: "loading" } | { status: "error" } | { status: "ready"; guides: GuideMetadata[]; universityAvailable: boolean }>({ status: "loading" });
@@ -94,7 +96,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
           <h1 id={`${hub.id}-title`}>{title}</h1>
           <p className="work-hero-lead">{description}</p>
         </section>
-        {state.status === "loading" && <p role="status" className="work-plan-status">{strings.loading}</p>}
+        {state.status === "loading" && <p role="status" className="work-plan-status page-loading">{strings.loading}</p>}
         {state.status === "error" && <div className="guide-status-card" role="alert"><p>{strings.failed}</p></div>}
         {state.status === "ready" && state.guides.length === 0 && <p className="work-plan-status" role="status">{strings.empty}</p>}
         {sections.length > 0 && (
@@ -145,7 +147,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
         <h1>{title}</h1>
         <p className="guide-summary">{description}</p>
       </header>
-      {state.status === "loading" && <p role="status" className="guide-status">{strings.loading}</p>}
+      {state.status === "loading" && <p role="status" className="guide-status page-loading">{strings.loading}</p>}
       {state.status === "error" && <div className="guide-status-card" role="alert"><p>{strings.failed}</p></div>}
       {state.status === "ready" && state.guides.length === 0 && <p className="guide-status" role="status">{strings.empty}</p>}
       {state.status === "ready" && state.guides.length > 0 && guideList(state.guides, locale)}
@@ -153,7 +155,49 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
   );
 }
 
+/**
+ * All published Guides, grouped by section (with a row of jump links and each section's hub), so a
+ * visitor can find a topic without scanning every card. Guides of a category the site has no section
+ * for still appear, last, in one ungrouped list.
+ */
 function guideList(guides: readonly GuideMetadata[], locale: GuideLocale) {
+  const strings = copy[locale];
+  const groups = groupGuidesByDomain(guides);
+  const grouped = new Set(groups.flatMap((group) => group.guides));
+  const other = guides.filter((guide) => !grouped.has(guide));
+  return (
+    <>
+      <nav className="guide-index-jump" aria-labelledby="guide-index-jump-title">
+        <h2 id="guide-index-jump-title">{strings.topics}</h2>
+        <ul>
+          {groups.map(({ domain, guides: inGroup }) => (
+            <li key={domain}>
+              <a href={`#guides-${domain}`}>
+                {GUIDE_UI[locale].domain[domain]}
+                <span className="guide-index-jump-count">{inGroup.length}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      {groups.map(({ domain, guides: inGroup }) => (
+        <section key={domain} id={`guides-${domain}`} className="guide-index-section" aria-labelledby={`guides-${domain}-title`}>
+          <div className="guide-index-section-head">
+            <h2 id={`guides-${domain}-title`}>{GUIDE_UI[locale].domain[domain]}</h2>
+            <Link to={localizedGuidePath(locale, domain)} className="guide-index-section-link">
+              {strings.open}
+              <ArrowRight size={15} aria-hidden="true" />
+            </Link>
+          </div>
+          {guideCards(inGroup, locale)}
+        </section>
+      ))}
+      {other.length > 0 && guideCards(other, locale)}
+    </>
+  );
+}
+
+function guideCards(guides: readonly GuideMetadata[], locale: GuideLocale) {
   return (
     <ul className="localized-guide-list">
       {guides.map((guide) => (

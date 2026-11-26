@@ -118,9 +118,9 @@
 }
 .navigator-option input {
   flex: none;
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
+  width: 24px; /* WCAG 2.5.8 target size */
+  height: 24px;
+  margin-top: 0;
   accent-color: var(--family-slate);
 }
 .navigator-option-text {

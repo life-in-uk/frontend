@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2, ListOrdered } from "lucide-react";
 import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError, startupGuide, startupGuides } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, guideRoutePath, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo";
-import { inlineText, parseMarkdown } from "../../guides/markdown";
+import { guideSections, inlineText, parseMarkdown } from "../../guides/markdown";
 import type { Block } from "../../guides/markdown";
 import type { GuideDomain } from "../../guides/domains";
 import { belongsToDomain } from "../../guides/domains";
@@ -39,6 +39,15 @@ type State =
   | { status: "ready"; guide: GuideDetail };
 
 const REQUEST_DEADLINE_MS = 10_000;
+
+/** Guides with at least this many sections get an "On this page" list. */
+const MIN_TOC_SECTIONS = 4;
+
+/** The section list starts open where there is room for it beside the reading flow (not on phones). */
+function wideScreen(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function"
+    && window.matchMedia("(min-width: 900px)").matches;
+}
 
 export function GuidePage({
   domain,
@@ -157,8 +166,11 @@ export function GuidePage({
     const evidenceLinks = (
       state.guide.content.match(/\]\(#guide-evidence-[^)]+\)/g) ?? []
     ).length;
+    const sections = guideSections(body);
     return {
       body,
+      sections,
+      sectionIds: new Map(sections.map((section) => [section.block, section.id])),
       evidenceLinks,
       evidence: new Map(state.guide.evidence.map((item) => [item.key, item])),
       sources: new Map(
@@ -212,7 +224,7 @@ export function GuidePage({
       </div>
 
       {state.status === "loading" && (
-        <p className="guide-status" role="status">{ui.loading}</p>
+        <p className="guide-status page-loading" role="status">{ui.loading}</p>
       )}
       {state.status === "not-found" && (
         <div className="guide-status-card" role="status">
@@ -266,8 +278,27 @@ export function GuidePage({
             <FileCheck2 size={18} aria-hidden="true" />
               <span>{ui.evidenceIntro}</span>
           </p>
+          {parsed.sections.length >= MIN_TOC_SECTIONS && (
+            <details className="guide-toc" open={wideScreen()}>
+              <summary>
+                <ListOrdered size={17} aria-hidden="true" />
+                <span>{ui.onThisPage}</span>
+                <span className="guide-toc-count">{parsed.sections.length}</span>
+              </summary>
+              <nav aria-label={ui.onThisPage}>
+                <ol>
+                  {parsed.sections.map((section) => (
+                    <li key={section.id}>
+                      <a href={`#${section.id}`}>{section.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            </details>
+          )}
           <div className="guide-body">
             <GuideMarkdown
+              sectionIds={parsed.sectionIds}
               domain={domain}
               locale={locale}
               references={references}

@@ -58,6 +58,8 @@ export type SiteUi = {
     emptyBefore: string;
     emptyBetween: string;
     emptyAfter: string;
+    /** Link to every Guide, grouped by topic (/{locale}/guides). */
+    emptyAll: string;
   };
   topicGrid: {
     heading: string;
@@ -142,6 +144,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       emptyBefore: "换个说法试试，或浏览",
       emptyBetween: "、",
       emptyAfter: "。",
+      emptyAll: "查看全部指南（按主题）",
     },
     topicGrid: {
       heading: "按主题浏览",
@@ -248,6 +251,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       emptyBefore: "換個說法試試，或瀏覽",
       emptyBetween: "、",
       emptyAfter: "。",
+      emptyAll: "查看全部指南（按主題）",
     },
     topicGrid: {
       heading: "依主題瀏覽",
@@ -354,6 +358,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       emptyBefore: "Try different words, or browse ",
       emptyBetween: " or ",
       emptyAfter: ".",
+      emptyAll: "See all guides by topic",
     },
     topicGrid: {
       heading: "Browse by topic",
@@ -460,6 +465,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       emptyBefore: "دوسرے الفاظ آزمائیں، یا دیکھیں: ",
       emptyBetween: "، ",
       emptyAfter: "۔",
+      emptyAll: "تمام رہنمائی موضوع کے لحاظ سے دیکھیں",
     },
     topicGrid: {
       heading: "موضوع کے لحاظ سے دیکھیں",
@@ -566,6 +572,7 @@ export const SITE_UI: Record<GuideLocale, SiteUi> = {
       emptyBefore: "दूसरे शब्दों में खोजें, या देखें: ",
       emptyBetween: ", ",
       emptyAfter: "।",
+      emptyAll: "विषय के अनुसार सभी मार्गदर्शिकाएँ देखें",
     },
     topicGrid: {
       heading: "विषय के अनुसार देखें",

@@ -13,7 +13,10 @@ type HomeHeroProps = {
   locale?: GuideLocale;
 };
 
-export function HomeHero({ index, locale = "zh-CN" }: HomeHeroProps) {
+export function HomeHero({ index, locale = "zh-CN", untranslated = false }: HomeHeroProps & {
+  /** True when some home Guides are shown as Simplified Chinese originals in this language. */
+  untranslated?: boolean;
+}) {
   const ui = SITE_UI[locale];
   return (
     <section className="home-hero" aria-labelledby="home-title">
@@ -28,10 +31,12 @@ export function HomeHero({ index, locale = "zh-CN" }: HomeHeroProps) {
           </h1>
           <p className="home-hero-lead">
             {ui.hero.lead[0]}
+            {/* The break is hidden on phones; scripts that separate sentences with spaces need one there. */}
+            {locale.startsWith("zh") ? null : " "}
             <br className="home-hero-break" />
             {ui.hero.lead[1]}
           </p>
-          {ui.translationNotice && (
+          {ui.translationNotice && untranslated && (
             <p className="home-translation-notice" role="note">{ui.translationNotice}</p>
           )}
         </div>
@@ -154,6 +159,8 @@ function HomeSearch({ index, locale = "zh-CN" }: HomeHeroProps) {
             {copy.emptyBetween}
             <Link to={guideRoutePath(locale, "money")}>{GUIDE_UI[locale].domain.money}</Link>
             {copy.emptyAfter}
+            <br />
+            <Link to={`/${locale}/guides`}>{copy.emptyAll}</Link>
           </p>
         )}
       </div>

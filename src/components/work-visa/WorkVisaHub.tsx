@@ -89,7 +89,7 @@ export function WorkVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
           <h2 id="work-plan-title">{copy.planTitle}</h2>
           <p>{copy.planLead}</p>
         </div>
-        {state.status === "loading" && <p className="work-plan-status" role="status">{copy.loading}</p>}
+        {state.status === "loading" && <p className="work-plan-status page-loading" role="status">{copy.loading}</p>}
         {state.status === "error" && <p className="work-plan-status" role="status">{copy.unavailable}</p>}
         {state.status === "ready" &&
           WORK_VISA_TOPICS.map((topic) => (
