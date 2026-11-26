@@ -230,11 +230,11 @@ try {
     assert.equal(await live.locator("h2").innerText(), "实时服务");
     assert.equal(await live.locator(".live-subtitle").innerText(), "您的一站式英国实时生活信息中心");
     const cards = live.locator('.live-card[data-state="coming-soon"]');
-    assert.deepEqual(await cards.locator(".live-card-label").allInnerTexts(), ["今日英国头条", "美国股指", "英国股指"]);
+    assert.deepEqual(await cards.locator(".live-card-label").allInnerTexts(), ["今日英国头条", "美国股指", "全球股指与加密货币"]);
     assert.deepEqual(await cards.locator(".live-badge").allInnerTexts(), ["即将推出", "即将推出", "即将推出"]);
     assert.deepEqual(await cards.locator(".live-card-items").allInnerTexts(), [
       "S&P 500 · Nasdaq Composite · Dow Jones",
-      "FTSE 100",
+      "FTSE 100 · Bitcoin (BTC) · Ethereum (ETH)",
     ]);
     assert.equal(await cards.locator("a, button, input, select").count(), 0);
     // Placeholders carry no figures or source branding (only the index names' own numbers).
@@ -643,19 +643,30 @@ try {
     const live = p.locator(".live-panel");
     await live.locator('.market-card[data-state="live"]').first().waitFor();
     assert.equal(await live.locator('.live-card[data-state="coming-soon"]').count(), 1, "only the headline stays a placeholder");
-    assert.deepEqual(await live.locator(".market-card .live-card-label").allInnerTexts(), ["美国股指", "英国股指"]);
+    assert.deepEqual(await live.locator(".market-card .live-card-label").allInnerTexts(), ["美国股指", "全球股指与加密货币"]);
+    // Three rows per card: US indices left; FTSE 100, Bitcoin and Ethereum right.
+    assert.deepEqual(await live.locator(".market-card").evaluateAll((cards) => cards.map((c) => c.querySelectorAll(".market-row").length)), [3, 3]);
     const rows = live.locator(".market-row");
-    assert.deepEqual(await rows.locator(".market-name").allInnerTexts(), ["S&P 500", "Nasdaq Composite", "Dow Jones", "FTSE 100"]);
-    assert.deepEqual(await rows.evaluateAll((els) => els.map((el) => el.dataset.status)), ["live", "delayed", "stale", "closed"]);
-    assert.deepEqual(await rows.locator(".market-value").allInnerTexts(), ["5,985.25", "19,410.10", "—", "8,123.45"]);
-    assert.deepEqual(await rows.locator(".market-change").allInnerTexts(), ["+25.25 (+0.42%)", "−89.90 (−0.46%)", "0.00 (0.00%)"]);
-    assert.deepEqual(await rows.locator(".market-change").evaluateAll((els) => els.map((el) => el.dataset.direction)), ["up", "down", "flat"]);
-    assert.deepEqual(await rows.locator(".market-badge").allInnerTexts(), ["实时", "延迟数据", "数据已过时", "已收盘"]);
+    assert.deepEqual(await rows.locator(".market-name").allInnerTexts(),
+      ["S&P 500", "Nasdaq Composite", "Dow Jones", "FTSE 100", "Bitcoin (BTC)", "Ethereum (ETH)"]);
+    assert.deepEqual(await rows.evaluateAll((els) => els.map((el) => el.dataset.kind)), ["index", "index", "index", "index", "crypto", "crypto"]);
+    assert.deepEqual(await rows.evaluateAll((els) => els.map((el) => el.dataset.status)), ["live", "delayed", "stale", "closed", "live", "live"]);
+    assert.deepEqual(await rows.locator(".market-value").allInnerTexts(), ["5,985.25", "19,410.10", "—", "8,123.45", "$57,885.27", "$1,640.18"]);
+    // Index changes are since the previous close; the crypto change is marked as 24 hours. Ethereum has no verified
+    // 24-hour reference in the fixture, so it shows its price and no change.
+    assert.deepEqual(await rows.locator('.market-change > span[dir="ltr"]').allInnerTexts(),
+      ["+25.25 (+0.42%)", "−89.90 (−0.46%)", "0.00 (0.00%)", "−3,899.55 (−6.31%)"]);
+    assert.deepEqual(await rows.locator(".market-change").evaluateAll((els) => els.map((el) => el.dataset.direction)), ["up", "down", "flat", "down"]);
+    assert.deepEqual(await rows.locator(".market-window").allInnerTexts(), ["24小时"]);
+    assert.equal(await rows.nth(4).locator(".market-change").getAttribute("aria-label"), "24 小时涨跌 −3,899.55 (−6.31%)");
+    assert.equal(await rows.nth(3).locator(".market-change").getAttribute("aria-label"), "涨跌 0.00 (0.00%)");
+    assert.equal(await rows.nth(5).locator(".market-change").count(), 0);
+    assert.deepEqual(await rows.locator(".market-badge").allInnerTexts(), ["实时", "延迟数据", "数据已过时", "已收盘", "实时", "实时"]);
     // Live carries the small delay note; no other status does.
-    assert.deepEqual(await rows.locator(".market-delay").allInnerTexts(), ["约延迟 2 分钟"]);
+    assert.deepEqual(await rows.locator(".market-delay").allInnerTexts(), ["约延迟 2 分钟", "约延迟 2 分钟", "约延迟 3 分钟"]);
     // A market time for every shown value (UK time), none for the stale one.
     assert.equal(await rows.nth(2).locator("time").count(), 0);
-    for (const i of [0, 1, 3]) assert.match(await rows.nth(i).locator("time").innerText(), /\d{2}:\d{2}（英国时间）$/);
+    for (const i of [0, 1, 3, 4, 5]) assert.match(await rows.nth(i).locator("time").innerText(), /\d{2}:\d{2}（英国时间）$/);
     assert.deepEqual(await live.locator(".market-attribution").allInnerTexts(), [TEST_ATTRIBUTION]);
     assert.equal(await live.locator('#live-uk-label + bdi.market-attribution').innerText(), TEST_ATTRIBUTION);
     assert.deepEqual(errors, []);
@@ -668,10 +679,45 @@ try {
     assert.equal(await rtlCredit.innerText(), TEST_ATTRIBUTION);
     assert.equal(await rtlCredit.evaluate((el) => getComputedStyle(el).direction), "ltr");
     assert.equal(await noOverflow(rtl.p), true, "Urdu market cards fit at 360px");
+    assert.equal(await rtl.p.locator("#live-uk-label").innerText(), "عالمی انڈیکس اور کرپٹو");
+    const rtlBtc = rtl.p.locator('.market-row[data-kind="crypto"]').first();
+    assert.equal(await rtlBtc.locator(".market-value").evaluate((el) => getComputedStyle(el).direction), "ltr");
+    assert.equal(await rtlBtc.locator('.market-change > span[dir="ltr"]').innerText(), "−3,899.55 (−6.31%)");
+    assert.equal(await rtlBtc.locator(".market-window").innerText(), "24 گھنٹے");
+    assert.equal(await rtlBtc.evaluate((el) => getComputedStyle(el).direction), "rtl");
+    await rtl.p.locator(".live-markets").screenshot({ path: `${screenshots}/home-markets-ur-360.png` });
     await rtl.context.close();
+
+    // Every locale's second-card heading names crypto; mobile keeps both cards' three rows without overflow.
+    for (const [path, heading] of [["zh-CN", "全球股指与加密货币"], ["zh-TW", "全球股指與加密貨幣"], ["en", "Global Indices & Crypto"],
+      ["ur", "عالمی انڈیکس اور کرپٹو"], ["hi", "वैश्विक सूचकांक और क्रिप्टो"]]) {
+      const view = await page(360, { markets: () => marketIndices() });
+      await view.p.goto(`${baseURL}/${path}`);
+      await view.p.locator('.market-card[data-state="live"]').first().waitFor();
+      assert.equal(await view.p.locator("#live-uk-label").innerText(), heading, path);
+      assert.equal(await view.p.locator(".market-row").count(), 6, path);
+      assert.equal(await noOverflow(view.p), true, `${path} market cards fit at 360px`);
+      if (path === "en") {
+        assert.deepEqual(await view.p.locator(".market-window").allInnerTexts(), ["24h"]);
+        await view.p.locator(".live-markets").screenshot({ path: `${screenshots}/home-markets-en-360.png` });
+      }
+      assert.deepEqual(view.errors, [], path);
+      await view.context.close();
+    }
+
+    // A backend that does not serve crypto yet: the indices as before, the two pairs marked unavailable.
+    const legacy = await page(1440, { markets: () => marketIndices(Date.now(), {}, { crypto: false }) });
+    await legacy.p.goto(`${baseURL}/en`);
+    await legacy.p.locator('.market-card[data-state="live"]').first().waitFor();
+    const legacyRows = legacy.p.locator(".market-row");
+    assert.deepEqual(await legacyRows.evaluateAll((els) => els.map((el) => el.dataset.status)),
+      ["live", "delayed", "stale", "closed", "unavailable", "unavailable"]);
+    assert.deepEqual(await legacyRows.locator(".market-value").allInnerTexts(), ["5,985.25", "19,410.10", "—", "8,123.45", "—", "—"]);
+    await legacy.context.close();
     for (const [label, markets] of [
       ["mock source", () => { const m = marketIndices(); m.indices[0].source = "mock"; return m; }],
       ["no attribution", () => marketIndices(Date.now(), { attribution: "" })],
+      ["crypto mock source", () => { const m = marketIndices(); m.indices[4].source = "mock"; return m; }],
     ]) {
       const other = await page(1440, { markets });
       await other.p.goto(`${baseURL}/zh-CN`);
@@ -679,6 +725,8 @@ try {
       await other.p.waitForTimeout(300);
       assert.equal(await other.p.locator('.market-card[data-state="live"]').count(), 0, `${label}: no live cards`);
       assert.equal(await other.p.locator('.live-markets .live-card[data-state="coming-soon"]').count(), 2, `${label}: placeholders`);
+      assert.equal(await other.p.locator('.live-card[aria-labelledby="live-uk-label"] .live-card-items').innerText(),
+        "FTSE 100 · Bitcoin (BTC) · Ethereum (ETH)", `${label}: placeholder rows`);
       await other.context.close();
     }
     console.log("PASS market index cards (licensed fixture; mock and unattributed data refused)");

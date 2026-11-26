@@ -1,4 +1,4 @@
-import type { FreshnessStatus, MarketIndex } from "./api.ts";
+import type { FreshnessStatus, MarketIndex, MarketSymbol } from "./api.ts";
 
 /**
  * What an index card may show. The backend rates freshness from the market time only; the card follows that
@@ -28,6 +28,8 @@ const STATUS: Record<FreshnessStatus, CardStatus> = {
 export type IndexView = {
   symbol: MarketIndex["symbol"];
   name: string;
+  /** "index": points against the previous close. "crypto": a USD price against the price 24 hours earlier. */
+  kind: "index" | "crypto";
   status: CardStatus;
   /** Null when no number may be shown. */
   value: string | null;
@@ -47,17 +49,20 @@ export function indexView(index: MarketIndex): IndexView {
   const marketTime = index.observedAtSource === "EXCHANGE" || index.observedAtSource === "PROVIDER" ? index.observedAt : null;
   const showable = (status === "live" || status === "delayed" || status === "closed" || status === "unknown")
     && index.value !== null && marketTime !== null;
+  const kind = index.assetClass === "CRYPTO" ? "crypto" : "index";
   if (!showable) {
-    return { symbol: index.symbol, name: index.name, status: status === "unknown" ? "unavailable" : status, value: null,
+    return { symbol: index.symbol, name: index.name, kind, status: status === "unknown" ? "unavailable" : status, value: null,
       change: null, changePercent: null, direction: null, delayMinutes: null, observedAt: null };
   }
+  // A crypto change exists only with a verified 24-hour reference; without one, the price is shown alone.
   const change = index.change;
   const sign = change === null ? null : Math.sign(Number(change));
   return {
     symbol: index.symbol,
     name: index.name,
+    kind,
     status,
-    value: formatLevel(index.value as string),
+    value: kind === "crypto" ? formatUsd(index.value as string) : formatLevel(index.value as string),
     change: change === null ? null : formatSigned(change, 2),
     changePercent: index.changePercent === null ? null : `${formatSigned(index.changePercent, 2)}%`,
     direction: sign === null ? null : sign > 0 ? "up" : sign < 0 ? "down" : "flat",
@@ -69,6 +74,18 @@ export function indexView(index: MarketIndex): IndexView {
 /** Index levels in the usual form: thousands grouped, two decimals ("8,123.45"), the same in every locale. */
 export function formatLevel(decimal: string): string {
   return new Intl.NumberFormat("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(decimal));
+}
+
+/** USD prices: "$57,885.27", the same in every locale. */
+export function formatUsd(decimal: string): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    .format(Number(decimal));
+}
+
+/** A row for an instrument the backend did not send at all (crypto from a backend before V18). */
+export function unavailableView(symbol: MarketSymbol, name: string, kind: IndexView["kind"]): IndexView {
+  return { symbol, name, kind, status: "unavailable", value: null, change: null, changePercent: null, direction: null,
+    delayMinutes: null, observedAt: null };
 }
 
 /** "+23.33", "−4.10" (true minus sign), "0.00". */
@@ -92,6 +109,9 @@ export function formatMarketTime(instant: string, lang: string, now: number): st
   return `${date} ${clock}`;
 }
 
-/** US card first (S&P 500, Nasdaq Composite, Dow), then the UK card (FTSE 100), as approved for the homepage. */
+/**
+ * US card first (S&P 500, Nasdaq Composite, Dow), then the second card: FTSE 100, Bitcoin and Ethereum (owner
+ * decision 2026-11-21). Three rows each.
+ */
 export const US_SYMBOLS = ["SPX", "IXIC", "DJI"] as const;
-export const UK_SYMBOLS = ["UKX"] as const;
+export const UK_SYMBOLS = ["UKX", "BTCUSD", "ETHUSD"] as const;

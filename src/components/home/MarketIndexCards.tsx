@@ -4,9 +4,9 @@ import { Landmark, TrendingUp } from "lucide-react";
 import type { GuideLocale } from "../../guides/locales";
 import { GUIDE_LOCALE_LANG } from "../../guides/locales";
 import { LIVE_SERVICES_UI } from "../../home/liveServicesI18n";
-import { getMarketIndices } from "../../markets/api";
+import { getMarketIndices, isCrypto } from "../../markets/api";
 import type { MarketIndicesData, MarketSymbol } from "../../markets/api";
-import { formatMarketTime, indexView, UK_SYMBOLS, US_SYMBOLS } from "../../markets/present";
+import { formatMarketTime, indexView, UK_SYMBOLS, unavailableView, US_SYMBOLS } from "../../markets/present";
 import type { IndexView } from "../../markets/present";
 
 /** Short names on the cards; the backend's full name is kept as the tooltip. */
@@ -15,6 +15,8 @@ const SHORT_NAME: Record<MarketSymbol, string> = {
   SPX: "S&P 500",
   IXIC: "Nasdaq Composite",
   DJI: "Dow Jones",
+  BTCUSD: "Bitcoin (BTC)",
+  ETHUSD: "Ethereum (ETH)",
 };
 
 /**
@@ -65,8 +67,9 @@ function IndexRow({ view, locale, now }: { view: IndexView; locale: GuideLocale;
   const ui = LIVE_SERVICES_UI[locale].markets;
   const lang = GUIDE_LOCALE_LANG[locale];
   const changeText = view.change === null ? null : `${view.change}${view.changePercent ? ` (${view.changePercent})` : ""}`;
+  const crypto = view.kind === "crypto";
   return (
-    <li className="market-row" data-status={view.status}>
+    <li className="market-row" data-status={view.status} data-kind={view.kind}>
       <span className="market-name" lang="en" dir="ltr" title={view.name}>
         {SHORT_NAME[view.symbol]}
       </span>
@@ -74,8 +77,10 @@ function IndexRow({ view, locale, now }: { view: IndexView; locale: GuideLocale;
         {view.value ?? "—"}
       </span>
       {changeText && (
-        <span className="market-change" data-direction={view.direction ?? "flat"} dir="ltr" aria-label={`${ui.change} ${changeText}`}>
-          {changeText}
+        <span className="market-change" data-direction={view.direction ?? "flat"}
+          aria-label={`${crypto ? ui.change24h : ui.change} ${changeText}`}>
+          <span dir="ltr">{changeText}</span>
+          {crypto && <span className="market-window" aria-hidden="true">{ui.window24h}</span>}
         </span>
       )}
       <span className="market-meta">
@@ -110,7 +115,9 @@ function IndexCard({ id, icon, label, symbols, data, locale, now, attribution }:
         <ul className="market-rows">
           {symbols.map((symbol) => {
             const index = data.indices.find((i) => i.symbol === symbol);
-            return index ? <IndexRow key={symbol} view={indexView(index)} locale={locale} now={now} /> : null;
+            // A pair the backend does not serve yet still has its row, marked unavailable.
+            const view = index ? indexView(index) : unavailableView(symbol, SHORT_NAME[symbol], isCrypto(symbol) ? "crypto" : "index");
+            return <IndexRow key={symbol} view={view} locale={locale} now={now} />;
           })}
         </ul>
       </span>
@@ -119,7 +126,7 @@ function IndexCard({ id, icon, label, symbols, data, locale, now, attribution }:
 }
 
 /**
- * The homepage's US and UK index cards. Until the backend serves licensed, attributed index data they render
+ * The homepage's market cards: US indices, then FTSE 100 with Bitcoin and Ethereum (USD, rolling 24-hour change). Until the backend serves licensed, attributed index data they render
  * {@code placeholders} unchanged; afterwards each index shows its value, change, market time (UK time) and the
  * backend's freshness rating, with the provider's attribution in the FTSE 100 card.
  */

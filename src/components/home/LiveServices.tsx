@@ -13,7 +13,7 @@ import { WeatherShortcut } from "./WeatherShortcut";
 // Approved order of the shortcut row; Weather is the fourth tile.
 const TRAVEL_ORDER: readonly TravelToolId[] = ["underground", "rail", "roads"];
 const US_INDICES = ["S&P 500", "Nasdaq Composite", "Dow Jones"];
-const UK_INDICES = ["FTSE 100"];
+const UK_INDICES = ["FTSE 100", "Bitcoin (BTC)", "Ethereum (ETH)"];
 
 /**
  * Not-yet-available card. It shows only what is planned: no value, no

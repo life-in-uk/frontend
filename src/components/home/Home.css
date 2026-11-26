@@ -658,6 +658,14 @@ a.topic-card-body:hover {
 .market-change[data-direction="down"] {
   color: #a3261c;
 }
+/* Crypto: the change is over a rolling 24 hours, not since a close, and says so. */
+.market-window {
+  margin-inline-start: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--home-muted);
+  white-space: nowrap;
+}
 .market-meta {
   grid-column: 1 / -1;
   display: flex;

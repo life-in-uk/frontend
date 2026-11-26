@@ -6,8 +6,18 @@ import { parseInstant } from "../travel/freshness.ts";
  * publicly. This module only reads and checks the response: what may be shown is decided in present.ts.
  */
 
-export const MARKET_SYMBOLS = ["UKX", "SPX", "IXIC", "DJI"] as const;
+/** The four stock indices: always present, once each. */
+export const INDEX_SYMBOLS = ["UKX", "SPX", "IXIC", "DJI"] as const;
+/**
+ * BTC/USD and ETH/USD (backend V18): USD prices with a rolling 24-hour change. Each at most once, so this page works
+ * with a backend that does not serve them yet.
+ */
+export const CRYPTO_SYMBOLS = ["BTCUSD", "ETHUSD"] as const;
+export const MARKET_SYMBOLS = [...INDEX_SYMBOLS, ...CRYPTO_SYMBOLS] as const;
 export type MarketSymbol = (typeof MARKET_SYMBOLS)[number];
+export type CryptoSymbol = (typeof CRYPTO_SYMBOLS)[number];
+
+export const isCrypto = (symbol: MarketSymbol): symbol is CryptoSymbol => (CRYPTO_SYMBOLS as readonly string[]).includes(symbol);
 
 export const FRESHNESS_STATUSES = [
   "FRESH",
@@ -23,6 +33,10 @@ export type FreshnessStatus = (typeof FRESHNESS_STATUSES)[number];
 export type MarketIndex = {
   symbol: MarketSymbol;
   name: string;
+  /** INDEX: points, change against the previous close. CRYPTO: USD price, change over a rolling 24 hours. */
+  assetClass: "INDEX" | "CRYPTO";
+  currency: "USD" | null;
+  changeBasis: "PREVIOUS_CLOSE" | "ROLLING_24H";
   /** Decimal strings, never numbers (the backend keeps exact values). Null without data. */
   value: string | null;
   previousClose: string | null;
@@ -60,6 +74,13 @@ function parseIndex(value: unknown): MarketIndex | null {
   const session = value.market.session;
   if (typeof symbol !== "string" || !(MARKET_SYMBOLS as readonly string[]).includes(symbol)) return null;
   if (typeof value.name !== "string" || value.name.trim() === "") return null;
+  // Crypto must say what its number and change are; an index may omit these (a backend before V18).
+  const crypto = isCrypto(symbol as MarketSymbol);
+  const assetClass = value.assetClass ?? (crypto ? null : "INDEX");
+  const currency = value.currency ?? null;
+  const changeBasis = value.changeBasis ?? (crypto ? null : "PREVIOUS_CLOSE");
+  if (crypto ? assetClass !== "CRYPTO" || currency !== "USD" || changeBasis !== "ROLLING_24H"
+    : assetClass !== "INDEX" || currency !== null || changeBasis !== "PREVIOUS_CLOSE") return null;
   if (typeof status !== "string" || !(FRESHNESS_STATUSES as readonly string[]).includes(status)) return null;
   if (session !== "OPEN" && session !== "CLOSED" && session !== "UNKNOWN") return null;
   for (const field of [value.value, value.previousClose, value.change, value.changePercent]) {
@@ -74,6 +95,9 @@ function parseIndex(value: unknown): MarketIndex | null {
   return {
     symbol: symbol as MarketSymbol,
     name: value.name,
+    assetClass: assetClass as MarketIndex["assetClass"],
+    currency: currency as MarketIndex["currency"],
+    changeBasis: changeBasis as MarketIndex["changeBasis"],
     value: value.value as string | null,
     previousClose: value.previousClose as string | null,
     change: value.change as string | null,
@@ -96,8 +120,9 @@ export function parseMarketIndices(value: unknown): MarketIndicesData | null {
   const indices = value.indices.map(parseIndex);
   if (indices.some((index) => index === null)) return null;
   const parsed = indices as MarketIndex[];
-  // All four symbols, once each (the backend always sends all four, in a fixed order).
-  if (parsed.length !== MARKET_SYMBOLS.length || MARKET_SYMBOLS.some((s) => parsed.filter((i) => i.symbol === s).length !== 1)) return null;
+  // The four indices once each; the crypto pairs at most once each; nothing else.
+  const count = (s: MarketSymbol) => parsed.filter((i) => i.symbol === s).length;
+  if (INDEX_SYMBOLS.some((s) => count(s) !== 1) || CRYPTO_SYMBOLS.some((s) => count(s) > 1)) return null;
   // Mock data is never shown, whatever the backend says.
   if (parsed.some((index) => index.source === "mock")) return null;
   return { generatedAt: value.generatedAt, indices: parsed, attribution: value.attribution.trim() };

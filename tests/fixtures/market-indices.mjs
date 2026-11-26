@@ -11,6 +11,9 @@ const index = (symbol, name, exchange, timeZone, fields) => ({
   changePercent: null,
   source: "licensed-test",
   collectorStatus: "OK",
+  assetClass: "INDEX",
+  currency: null,
+  changeBasis: "PREVIOUS_CLOSE",
   provenance: null,
   market: { exchange, timeZone, session: "UNKNOWN", calendarCoveredThrough: "2027-12-31" },
   freshness: { status: "UNAVAILABLE", ageSeconds: null, basis: "observedAt", freshWithinSeconds: 1200, staleAfterSeconds: 3600 },
@@ -22,8 +25,18 @@ const provenance = (observedAt, observedAtSource = "PROVIDER") => ({
   observedAt, observedAtSource, collectedAt: observedAt, receivedAt: observedAt,
 });
 
-/** S&P 500 live, 2 minutes behind (up), Nasdaq delayed (down), Dow stale (no number), FTSE 100 closed (flat). */
-export function marketIndices(now = Date.now(), overrides = {}) {
+const crypto = (symbol, name, fields) => index(symbol, name, "CRYPTO_24_7", "UTC", {
+  assetClass: "CRYPTO", currency: "USD", changeBasis: "ROLLING_24H", reference24h: null, reference24hAt: null,
+  market: { exchange: "CRYPTO_24_7", timeZone: "UTC", session: "OPEN", calendarCoveredThrough: null },
+  ...fields,
+});
+
+/**
+ * S&P 500 live, 2 minutes behind (up), Nasdaq delayed (down), Dow stale (no number), FTSE 100 closed (flat);
+ * Bitcoin live with a rolling 24-hour change (down), Ethereum live without a verified 24-hour reference (price only).
+ * With { crypto: false }: the four-index response of a backend before V18.
+ */
+export function marketIndices(now = Date.now(), overrides = {}, { crypto: withCrypto = true } = {}) {
   return {
     generatedAt: new Date(now).toISOString(),
     collector: { status: "OK", basis: "heartbeatReceivedAt", heartbeatTimeoutSeconds: 360, sources: [{ source: "licensed-test", status: "OK" }] },
@@ -52,6 +65,17 @@ export function marketIndices(now = Date.now(), overrides = {}) {
         market: { exchange: "NYSE", timeZone: "America/New_York", session: "OPEN", calendarCoveredThrough: "2027-12-31" },
         freshness: { status: "STALE", ageSeconds: 14400, basis: "observedAt", freshWithinSeconds: 1200, staleAfterSeconds: 3600 },
       }),
+      ...(withCrypto ? [
+        crypto("BTCUSD", "Bitcoin", {
+          value: "57885.2700", change: "-3899.55", changePercent: "-6.31", reference24h: "61784.8200",
+          reference24hAt: at(now - 24 * 3_600_000, 2), provenance: provenance(at(now, 2)),
+          freshness: { status: "FRESH", ageSeconds: 120, basis: "observedAt", freshWithinSeconds: 1200, staleAfterSeconds: 3600 },
+        }),
+        crypto("ETHUSD", "Ethereum", {
+          value: "1640.1800", provenance: provenance(at(now, 3)),
+          freshness: { status: "FRESH", ageSeconds: 180, basis: "observedAt", freshWithinSeconds: 1200, staleAfterSeconds: 3600 },
+        }),
+      ] : []),
     ],
     attribution: TEST_ATTRIBUTION,
     ...overrides,
