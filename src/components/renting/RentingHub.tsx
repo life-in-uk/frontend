@@ -8,7 +8,6 @@ import { GUIDE_LOCALE_LANG, guideRoutePath } from "../../guides/locales";
 import type { GuideLocale } from "../../guides/locales";
 import { RENTING_COPY, RENTING_GUIDE_SLUGS } from "../../guides/rentingJourney";
 import { Link } from "../Link";
-import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import { RentingJourney } from "./RentingJourney";
 import { CLUSTER_COPY, clusterGroupsFor } from "../../guides/topicClusters";
 import { ClusterOfficialSources } from "../guides/TopicCluster";
@@ -55,9 +54,6 @@ export function RentingHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
 
   return (
     <main id="main" className="work-visa-page work-hub renting-hub">
-      <div className="guide-toolbar">
-        <GuideLanguageSelect locale={locale} domain="renting" />
-      </div>
       <section className="work-hero" aria-labelledby="renting-title">
         <span className="eyebrow work-eyebrow">
           <House size={15} aria-hidden="true" />

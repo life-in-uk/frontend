@@ -32,7 +32,6 @@ import {
 import { applyGuideSeo, clearGuideSeo, hubAlternates } from "../../guides/seo";
 import { Link } from "../Link";
 import { CategoryArt } from "./CategoryArt";
-import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import "./Health.css";
 
 type State =
@@ -332,7 +331,6 @@ export function HealthHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       lang={translatedPage ? GUIDE_LOCALE_LANG[locale] : undefined}
       dir={translatedPage ? textDirection(locale) : undefined}
     >
-      <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain="health" /></div>
       <section className="health-hero" aria-labelledby="health-title">
         <div className="health-hero-copy">
           <span className="eyebrow">

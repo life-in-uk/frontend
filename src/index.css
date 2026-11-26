@@ -113,6 +113,24 @@ svg {
 .skip-link:focus {
   top: 16px;
 }
+/* Content pages start a consistent distance below the header (the language selector, which used to
+   sit above each page, now lives in the header on every page). */
+main.guide-page,
+main.work-visa-page,
+main.family-visa-page,
+main.health-page,
+main.money-page {
+  padding-top: 28px;
+}
+@media (max-width: 560px) {
+  main.guide-page,
+  main.work-visa-page,
+  main.family-visa-page,
+  main.health-page,
+  main.money-page {
+    padding-top: 20px;
+  }
+}
 /* In-app navigation to a page whose chunk is still loading (App.tsx). */
 .route-loading {
   min-height: 100vh;

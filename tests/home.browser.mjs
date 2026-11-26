@@ -264,7 +264,9 @@ try {
     );
     assert.equal(await p.locator(".underground-card, .roads-card, .rail-card").count(), 0);
     if (!REAL)
-      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/guides/locales/zh-CN", "/api/market-indices/latest", "/api/travel/underground", "/api/weather/current"]);
+      // The Simplified Chinese home reads its Guide list once (/api/guides), not a second identical
+      // /api/guides/locales/zh-CN list for the header's sections.
+      assert.deepEqual([...new Set(requests)].sort(), ["/api/bank-holidays", "/api/guides", "/api/market-indices/latest", "/api/travel/underground", "/api/weather/current"]);
     assert.equal(requests.filter((path) => path === "/api/travel/underground").length, 1);
     assert.equal(finished.filter((path) => path === "/api/weather/current").length, 1);
     assert.ok(!requests.some((path) => /^\/api\/(travel\/roads|places|rail)/.test(path)));

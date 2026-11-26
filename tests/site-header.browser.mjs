@@ -6,7 +6,8 @@
 //
 //   PLAYWRIGHT_MODULE=… FRONTEND_URL=http://127.0.0.1:5179 npm run test:header:browser
 import assert from "node:assert/strict";
-import { HOME_TOPICS, topicHref } from "../src/home/topics.ts";
+import { availableHomeTopics, HOME_TOPICS, topicHref } from "../src/home/topics.ts";
+import { HOUSEHOLD_CATEGORY } from "../src/guides/household.ts";
 import { GUIDE_LOCALES, guideHomePath, guideRoutePath } from "../src/guides/locales.ts";
 import { SITE_UI } from "../src/guides/siteUi.ts";
 
@@ -17,14 +18,28 @@ const WIDTHS = [320, 390, 768, 1024, 1440, 1920];
 const WIDE = 1024; // from here the bar shows one menu per group, when it fits
 let checks = 0;
 
-/** Expected header destinations: every launched section, per locale. */
-const expectedTopics = (locale) =>
-  HOME_TOPICS.map((topic) => topicHref(topic, locale)).filter(Boolean).sort();
+// Sections that appear only once they have published Guides (Education, Household, University) are
+// decided by the published list for the page's language. The fixture publishes Education and
+// Household Guides and no University Guide, so the header must link the first two and not the third.
+const AT = "2026-11-20T10:00:00Z";
+const PUBLISHED = [
+  { slug: "uk-school-stages-and-year-groups", category: "education" },
+  { slug: "uk-broadband-contracts-switching", category: HOUSEHOLD_CATEGORY },
+].map((g) => ({ ...g, title: g.slug, summary: g.slug, publishedAt: AT, updatedAt: AT }));
 
-async function open(width, path, { touch = false } = {}) {
+/** Expected header destinations: every launched section the published list allows, per locale. */
+const expectedTopics = (locale, published = true) =>
+  availableHomeTopics(false, published, published).map((topic) => topicHref(topic, locale)).filter(Boolean).sort();
+
+async function open(width, path, { touch = false, api = true } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 900 }, hasTouch: touch, isMobile: false });
-  // The header never depends on data; keep pages quiet and deterministic.
-  await context.route("**/api/**", (route) => route.fulfill({ status: 503, body: "{}" }));
+  // Deterministic data: the published Guide lists (which decide the conditional sections); every
+  // other API answers 503, which the header never needs.
+  await context.route("**/api/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (api && (path === "/api/guides" || /^\/api\/guides\/locales\/[^/]+$/.test(path))) return route.fulfill({ json: PUBLISHED });
+    return route.fulfill({ status: 503, body: "{}" });
+  });
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -79,6 +94,8 @@ for (const locale of GUIDE_LOCALES) {
     for (const path of pages) {
       const label = `${locale} ${width}px ${path}`;
       const { page, context, errors } = await open(width, path);
+      // The published list decides the conditional sections; wait until the header has it.
+      await page.waitForFunction(() => document.querySelector(".masthead")?.innerHTML.includes("/education"), null, { timeout: 10000 });
       await assertFits(page, ".masthead-brand, .masthead-top, .masthead-menu-button, .masthead-search, .masthead-about, .masthead-language select", label);
       const found = [];
       // From 1024px the category row is used when it fits; it must fall back
@@ -124,11 +141,24 @@ for (const locale of GUIDE_LOCALES) {
         assert.equal(await page.locator(`.masthead a:has-text("${ui.topics[topic.id].title}")`).count(), 0, `${label}: ${topic.id} must not be linked`);
       // Search stays one tap away in every layout.
       assert.ok(await page.locator(".masthead-search").isVisible(), `${label}: search`);
-      if (path === guideHomePath(locale)) assert.ok(languageInHeader && (await page.locator(".masthead-language select").isVisible()), `${label}: language`);
+      // One language selector, in the header, on every page type.
+      assert.ok(languageInHeader && (await page.locator(".masthead-language select").isVisible()), `${label}: language`);
+      assert.equal(await page.locator("main select").count(), 0, `${label}: no second language selector`);
       assert.deepEqual(errors, [], label);
       await context.close();
     }
   }
+}
+
+// 1b. Without the published list (API down) the conditional sections stay hidden; the rest remain.
+for (const locale of ["zh-CN", "en"]) {
+  const { page, context } = await open(390, guideHomePath(locale), { api: false });
+  await page.locator(".masthead-menu-button").click();
+  const found = [...new Set(await hrefs(page, ".masthead-sheet"))].filter((href) => href !== guideHomePath(locale) && !href.includes("#")).sort();
+  assert.deepEqual(found, expectedTopics(locale, false), `${locale}: sections without the published list`);
+  assert.ok(expectedTopics(locale, false).length < expectedTopics(locale).length);
+  await context.close();
+  checks++;
 }
 
 // 2. Keyboard on the wide bar (left-to-right and right-to-left).

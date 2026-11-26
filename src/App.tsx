@@ -68,12 +68,11 @@ function App() {
   const universityAvailable = categories?.has(UNIVERSITY_CATEGORY) ?? false;
   const householdAvailable = categories?.has(HOUSEHOLD_CATEGORY) ?? false;
   const educationAvailable = categories?.has("education") ?? false;
-  // Pages with their own language selector (hubs, Guides, the Guide index)
-  // don't get a second one in the header.
+  // One language selector, in the header, on every public page: it keeps the same page in the
+  // other language (localeSwitchPath), and pages that know which languages they exist in report
+  // them (components/site/pageLanguages.ts) so the others are disabled.
   const headerSwitch =
-    route.name === "home" || route.name === "localized-home" || route.name === "not-found" || route.name === "topic" || route.name === "travel"
-      ? (next: GuideLocale) => localeSwitchPath(route, next)
-      : undefined;
+    route.name === "owner-editorial" ? undefined : (next: GuideLocale) => localeSwitchPath(route, next);
 
   useEffect(() => {
     document.documentElement.lang = GUIDE_LOCALE_LANG[activeLocale];

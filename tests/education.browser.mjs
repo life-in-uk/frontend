@@ -73,8 +73,11 @@ try {
         await page.locator('head link[hreflang="en-GB"]').waitFor({ state: "attached" });
         assert.equal(await page.locator('head link[hreflang="hi"]').count(), 0);
         if (locale === "ur") {
-          await page.locator('main select option[value="en"]:enabled').waitFor({ state: "attached" });
-          await page.locator("main select").selectOption("en");
+          // The site's one language selector is in the header; on a Guide it enables only published languages.
+          assert.equal(await page.locator("main select").count(), 0, "no second language selector in the page");
+          await page.locator('.masthead-language select option[value="en"]:enabled').waitFor({ state: "attached" });
+          assert.equal(await page.locator('.masthead-language select option[value="hi"]').evaluate((o) => o.disabled), true, "unpublished language disabled");
+          await page.locator(".masthead-language select").selectOption("en");
           await page.waitForURL(`**/en/education/${EDUCATION_ARRIVALS}`);
           await page.getByRole("heading", { level: 1, name: EDUCATION_COPY.en.arrivals, exact: true }).waitFor();
           assert.equal(await page.locator("html").getAttribute("dir"), "ltr");

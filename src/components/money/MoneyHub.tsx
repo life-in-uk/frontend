@@ -36,7 +36,6 @@ import {
 import type { AffiliateOffer } from "./affiliate";
 import "../guides/Guide.css";
 import "./Money.css";
-import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 
 type ListState =
   | { status: "loading" }
@@ -146,7 +145,6 @@ export function MoneyHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       lang={translatedPage ? GUIDE_LOCALE_LANG[locale] : undefined}
       dir={translatedPage ? textDirection(locale) : undefined}
     >
-      <div className="guide-toolbar"><GuideLanguageSelect locale={locale} domain="money" /></div>
       <section className="money-hero" aria-labelledby="money-title">
         <div className="money-hero-copy">
           <span className="eyebrow money-eyebrow">

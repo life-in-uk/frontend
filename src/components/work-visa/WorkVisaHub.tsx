@@ -12,7 +12,6 @@ import {
   workVisaTopicsFor,
 } from "../../guides/workVisaPlan";
 import { Link } from "../Link";
-import { GuideLanguageSelect } from "../guides/GuideLanguageSelect";
 import { SettlementCrossLink } from "../settlement/SettlementCrossLink";
 import "./WorkVisa.css";
 
@@ -51,9 +50,6 @@ export function WorkVisaHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
 
   return (
     <main id="main" className="work-visa-page work-hub">
-      <div className="guide-toolbar">
-        <GuideLanguageSelect locale={locale} domain="work-visa" />
-      </div>
       <section className="work-hero" aria-labelledby="work-title">
         <span className="eyebrow work-eyebrow">
           <Briefcase size={15} aria-hidden="true" />

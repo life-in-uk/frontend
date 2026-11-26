@@ -13,7 +13,7 @@ import { relatedLinksFor } from "../../guides/topicClusters";
 import type { ResolvedGuide } from "../../guides/topicClusters";
 import { formatUkDateFor, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
-import { GuideLanguageSelect } from "./GuideLanguageSelect";
+import { useReportAvailableLocales } from "../site/pageLanguages";
 import { GuideMarkdown } from "./GuideMarkdown";
 import { titleReferencesFor } from "../../guides/titleReferences";
 import { guideStructuredData } from "../../seo/structuredData";
@@ -75,6 +75,8 @@ export function GuidePage({
   const [published, setPublished] = useState<GuideMetadata[] | undefined>(() => startupGuides(locale));
   const references = useMemo(() => titleReferencesFor(domain, locale, published, slug), [domain, locale, published, slug]);
   const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>([locale]);
+  // The header's language selector offers only the languages this Guide is published in.
+  useReportAvailableLocales(availableLocales);
   const ui = GUIDE_UI[locale];
   const notice = guideNotice(domain.id, slug, locale);
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -219,9 +221,6 @@ export function GuidePage({
           )}
         </ol>
       </nav>
-      <div className="guide-toolbar">
-        <GuideLanguageSelect locale={locale} domain={domain.id} slug={slug} available={availableLocales} />
-      </div>
 
       {state.status === "loading" && (
         <p className="guide-status page-loading" role="status">{ui.loading}</p>
