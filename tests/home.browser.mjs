@@ -230,7 +230,7 @@ try {
     assert.equal(await live.locator("h2").innerText(), "实时服务");
     assert.equal(await live.locator(".live-subtitle").innerText(), "您的一站式英国实时生活信息中心");
     const cards = live.locator('.live-card[data-state="coming-soon"]');
-    assert.deepEqual(await cards.locator(".live-card-label").allInnerTexts(), ["今日英国头条", "美国股指", "英国股指与加密货币"]);
+    assert.deepEqual(await cards.locator(".live-card-label").allInnerTexts(), ["今日英国头条", "美国股指", "全球股指与加密货币"]);
     assert.deepEqual(await cards.locator(".live-badge").allInnerTexts(), ["即将推出", "即将推出", "即将推出"]);
     assert.deepEqual(await cards.locator(".live-card-items").allInnerTexts(), [
       "S&P 500 · Nasdaq Composite · Dow Jones",
@@ -643,7 +643,7 @@ try {
     const live = p.locator(".live-panel");
     await live.locator('.market-card[data-state="live"]').first().waitFor();
     assert.equal(await live.locator('.live-card[data-state="coming-soon"]').count(), 1, "only the headline stays a placeholder");
-    assert.deepEqual(await live.locator(".market-card .live-card-label").allInnerTexts(), ["美国股指", "英国股指与加密货币"]);
+    assert.deepEqual(await live.locator(".market-card .live-card-label").allInnerTexts(), ["美国股指", "全球股指与加密货币"]);
     // Three rows per card: US indices left; FTSE 100, Bitcoin and Ethereum right.
     assert.deepEqual(await live.locator(".market-card").evaluateAll((cards) => cards.map((c) => c.querySelectorAll(".market-row").length)), [3, 3]);
     const rows = live.locator(".market-row");
@@ -679,7 +679,7 @@ try {
     assert.equal(await rtlCredit.innerText(), TEST_ATTRIBUTION);
     assert.equal(await rtlCredit.evaluate((el) => getComputedStyle(el).direction), "ltr");
     assert.equal(await noOverflow(rtl.p), true, "Urdu market cards fit at 360px");
-    assert.equal(await rtl.p.locator("#live-uk-label").innerText(), "برطانوی انڈیکس اور کرپٹو");
+    assert.equal(await rtl.p.locator("#live-uk-label").innerText(), "عالمی انڈیکس اور کرپٹو");
     const rtlBtc = rtl.p.locator('.market-row[data-kind="crypto"]').first();
     assert.equal(await rtlBtc.locator(".market-value").evaluate((el) => getComputedStyle(el).direction), "ltr");
     assert.equal(await rtlBtc.locator('.market-change > span[dir="ltr"]').innerText(), "−3,899.55 (−6.31%)");
@@ -689,8 +689,8 @@ try {
     await rtl.context.close();
 
     // Every locale's second-card heading names crypto; mobile keeps both cards' three rows without overflow.
-    for (const [path, heading] of [["zh-CN", "英国股指与加密货币"], ["zh-TW", "英國股指與加密貨幣"], ["en", "UK index & crypto"],
-      ["ur", "برطانوی انڈیکس اور کرپٹو"], ["hi", "ब्रिटेन सूचकांक और क्रिप्टो"]]) {
+    for (const [path, heading] of [["zh-CN", "全球股指与加密货币"], ["zh-TW", "全球股指與加密貨幣"], ["en", "Global Indices & Crypto"],
+      ["ur", "عالمی انڈیکس اور کرپٹو"], ["hi", "वैश्विक सूचकांक और क्रिप्टो"]]) {
       const view = await page(360, { markets: () => marketIndices() });
       await view.p.goto(`${baseURL}/${path}`);
       await view.p.locator('.market-card[data-state="live"]').first().waitFor();

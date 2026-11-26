@@ -15,7 +15,7 @@ export type LiveServicesUi = {
   headline: { label: string };
   markets: {
     us: string;
-    /** Second card: FTSE 100, Bitcoin and Ethereum. Never describes crypto as UK stock indices. */
+    /** Second card: FTSE 100, Bitcoin and Ethereum ("Global Indices & Crypto"). Never describes crypto as stock indices. */
     uk: string;
     /** Badge per card status: the backend's freshness rating, never upgraded. */
     status: Record<CardStatus, string>;
@@ -55,7 +55,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "今日英国头条" },
     markets: {
       us: "美国股指",
-      uk: "英国股指与加密货币",
+      uk: "全球股指与加密货币",
       status: { live: "实时", delayed: "延迟数据", closed: "已收盘", unknown: "市场状态未知", stale: "数据已过时", unavailable: "暂无数据" },
       asOf: (time) => `${time}（英国时间）`,
       change: "涨跌",
@@ -116,7 +116,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "今日英國頭條" },
     markets: {
       us: "美國股指",
-      uk: "英國股指與加密貨幣",
+      uk: "全球股指與加密貨幣",
       status: { live: "即時", delayed: "延遲資料", closed: "已收盤", unknown: "市場狀態未知", stale: "資料已過時", unavailable: "暫無資料" },
       asOf: (time) => `${time}（英國時間）`,
       change: "漲跌",
@@ -177,7 +177,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "Today's UK headline" },
     markets: {
       us: "US indices",
-      uk: "UK index & crypto",
+      uk: "Global Indices & Crypto",
       status: { live: "Live", delayed: "Delayed", closed: "Closed", unknown: "Status unknown", stale: "Out of date", unavailable: "Unavailable" },
       asOf: (time) => `${time} UK time`,
       change: "Change",
@@ -238,7 +238,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "آج کی برطانوی سرخی" },
     markets: {
       us: "امریکی انڈیکس",
-      uk: "برطانوی انڈیکس اور کرپٹو",
+      uk: "عالمی انڈیکس اور کرپٹو",
       status: { live: "لائیو", delayed: "تاخیر سے", closed: "مارکیٹ بند", unknown: "مارکیٹ کی صورتحال نامعلوم", stale: "پرانا ڈیٹا", unavailable: "دستیاب نہیں" },
       asOf: (time) => `${time} (برطانوی وقت)`,
       change: "تبدیلی",
@@ -299,7 +299,7 @@ export const LIVE_SERVICES_UI: Record<GuideLocale, LiveServicesUi> = {
     headline: { label: "आज की ब्रिटेन की सुर्ख़ी" },
     markets: {
       us: "अमेरिकी सूचकांक",
-      uk: "ब्रिटेन सूचकांक और क्रिप्टो",
+      uk: "वैश्विक सूचकांक और क्रिप्टो",
       status: { live: "लाइव", delayed: "विलंबित", closed: "बाज़ार बंद", unknown: "बाज़ार की स्थिति अज्ञात", stale: "पुराना डेटा", unavailable: "उपलब्ध नहीं" },
       asOf: (time) => `${time} (यूके समय)`,
       change: "बदलाव",

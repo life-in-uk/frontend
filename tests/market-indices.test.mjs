@@ -208,7 +208,7 @@ test("copy: every market string in all five locales", () => {
 
 test("copy: the second card's heading never calls crypto a UK stock index", () => {
   assert.deepEqual(GUIDE_LOCALES.map((l) => LIVE_SERVICES_UI[l].markets.uk),
-    ["英国股指与加密货币", "英國股指與加密貨幣", "UK index & crypto", "برطانوی انڈیکس اور کرپٹو", "ब्रिटेन सूचकांक और क्रिप्टो"]);
+    ["全球股指与加密货币", "全球股指與加密貨幣", "Global Indices & Crypto", "عالمی انڈیکس اور کرپٹو", "वैश्विक सूचकांक और क्रिप्टो"]);
   assert.equal(LIVE_SERVICES_UI.en.markets.window24h, "24h");
   assert.equal(LIVE_SERVICES_UI.en.markets.change24h, "24-hour change");
 });
