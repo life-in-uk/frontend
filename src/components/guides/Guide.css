@@ -36,7 +36,8 @@
   font: inherit;
 }
 .guide-index-header {
-  max-width: 46rem;
+  max-width: 56rem; /* the width of the list below it */
+  box-sizing: border-box;
   margin: 24px auto 28px;
   padding: 32px;
   border: 1px solid var(--color-border);
@@ -55,7 +56,7 @@
 }
 .localized-guide-list > li > a {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   height: 100%;
@@ -67,7 +68,16 @@
   text-decoration: none;
 }
 .localized-guide-list > li > a:hover { border-color: var(--color-brand); }
-.localized-guide-list > li > a > span { display: grid; gap: 8px; min-width: 0; }
+.localized-guide-list > li > a > span { display: grid; align-content: start; gap: 8px; min-width: 0; }
+/* A listing shows the start of each summary (three lines); the Guide page shows it in full. */
+.localized-guide-list > li > a > span > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  color: var(--color-muted);
+}
 .localized-guide-list strong, .localized-guide-list span { overflow-wrap: anywhere; }
 .localized-guide-list time { color: var(--color-muted); font-size: var(--text-sm); }
 .guide-article[dir="rtl"] .guide-body ul:not([class]),
@@ -75,11 +85,90 @@
 .guide-article[dir="rtl"] .task-marker { left: auto; right: 0; }
 .guide-article[dir="rtl"] .guide-body blockquote { border-left: 0; border-right: 4px solid var(--color-brand); border-radius: 16px 0 0 16px; }
 
+/* /{locale}/guides: jump links, then one section per topic (LocalizedGuideIndex.tsx). */
+.guide-index-jump {
+  max-width: 56rem;
+  margin: 0 auto 8px;
+}
+.guide-index-jump h2 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-muted);
+  margin-bottom: 8px;
+}
+.guide-index-jump ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.guide-index-jump a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+.guide-index-jump a:hover { border-color: var(--color-brand); }
+.guide-index-jump-count {
+  min-width: 1.5em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-verified-soft);
+  color: var(--color-brand);
+  font-size: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.guide-index-section {
+  max-width: 56rem;
+  margin: 32px auto 0;
+  scroll-margin-top: 16px;
+}
+.guide-index-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-bottom: 12px;
+}
+.guide-index-section-head h2 { font-size: var(--text-lg); }
+.guide-index-section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+[dir="rtl"] .guide-index-section-link svg { transform: scaleX(-1); }
+
 @media (max-width: 680px) {
   .localized-guide-list { grid-template-columns: 1fr; }
   .guide-index-header { padding: 24px; }
 }
 
+/* Breadcrumb and language selector share the article's column, so a Guide has one left edge. */
+.guide-page > .breadcrumb,
+.guide-page > .breadcrumb + .guide-toolbar {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+.localized-guide-index > .guide-toolbar {
+  max-width: 56rem;
+  margin-inline: auto;
+}
 .breadcrumb ol {
   display: flex;
   flex-wrap: wrap;
@@ -219,7 +308,63 @@
 .guide-body > * + * {
   margin-top: 16px;
 }
+/* "On this page": the Guide's sections (GuidePage.tsx, Guides with four or more). */
+.guide-toc {
+  margin-top: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+}
+.guide-toc summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 18px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-text);
+  list-style-position: inside;
+}
+.guide-toc summary::marker,
+.guide-toc summary::-webkit-details-marker {
+  color: var(--color-muted);
+}
+.guide-toc summary svg {
+  color: var(--color-brand);
+}
+.guide-toc-count {
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-verified-soft);
+  color: var(--color-brand);
+  font-size: 12px;
+  text-align: center;
+}
+.guide-toc ol {
+  margin: 0;
+  padding: 0 18px 14px;
+  padding-inline-start: 42px;
+  display: grid;
+  gap: 2px;
+}
+.guide-toc li {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.guide-toc a {
+  display: inline-block;
+  padding-block: 6px; /* a comfortable touch target in a dense list */
+  color: var(--color-brand);
+  text-decoration: none;
+}
+.guide-toc a:hover {
+  text-decoration: underline;
+}
 .guide-body h2 {
+  scroll-margin-top: 16px;
   font-size: 1.4375rem;
   font-weight: 700;
   line-height: 1.5;
@@ -308,8 +453,16 @@
 .guide-body blockquote > * + * {
   margin-top: 10px;
 }
+/* Links inside sentences must not rely on colour alone (WCAG 1.4.1): the brand green is only 1.6:1
+   against the body text, so they keep an underline. */
 .guide-body a {
   color: var(--color-brand);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.guide-body a:hover {
+  text-decoration-thickness: 2px;
 }
 .guide-body code {
   font-size: 0.9em;

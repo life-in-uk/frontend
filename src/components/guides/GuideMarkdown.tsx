@@ -26,6 +26,8 @@ type Props = {
   sources: Map<string, GuideSource>;
   open: ReadonlySet<string>;
   onToggle: (occurrenceId: string) => void;
+  /** Anchor ids for top-level section headings (guideSections), for the "On this page" list. */
+  sectionIds?: ReadonlyMap<Block, string>;
 };
 
 /**
@@ -42,6 +44,7 @@ export function GuideMarkdown({
   sources,
   open,
   onToggle,
+  sectionIds,
 }: Props) {
   const ui = GUIDE_UI[locale];
   // Occurrence ids are assigned in document order so repeated keys stay distinct.
@@ -183,7 +186,7 @@ export function GuideMarkdown({
           const Tag = block.level <= 2 ? "h2" : block.level === 3 ? "h3" : "h4";
           return (
             <Fragment key={index}>
-              <Tag>{renderInline(block.children, ids)}</Tag>
+              <Tag id={sectionIds?.get(block)}>{renderInline(block.children, ids)}</Tag>
               {panels}
             </Fragment>
           );
