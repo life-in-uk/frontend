@@ -206,10 +206,12 @@ try {
     // The supplied local hero photo loads (no remote images).
     const heroImage = p.locator(".health-hero-image");
     assert.equal(await heroImage.isVisible(), true);
+    // WebP, with a phone-sized file (the original PNG was 2.4 MB).
     assert.equal(
       await heroImage.getAttribute("src"),
-      "/images/health/health-nhs-hero.png",
+      "/images/health/health-nhs-hero.webp",
     );
+    assert.match(await heroImage.getAttribute("srcset"), /health-nhs-hero-800\.webp 800w/);
     assert.ok(await heroImage.evaluate((img) => img.naturalWidth > 0));
     // Compact action row: calm 999 action and the "where to go" Guide.
     const emergency = p.locator(".health-emergency");

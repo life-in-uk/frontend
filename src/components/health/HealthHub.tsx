@@ -372,7 +372,9 @@ export function HealthHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
         <div className="health-hero-media">
           <img
             className="health-hero-image"
-            src="/images/health/health-nhs-hero.png"
+            src="/images/health/health-nhs-hero.webp"
+            srcSet="/images/health/health-nhs-hero-800.webp 800w, /images/health/health-nhs-hero.webp 1672w"
+            sizes="(max-width: 960px) 100vw, 640px"
             alt=""
             width={1672}
             height={941}

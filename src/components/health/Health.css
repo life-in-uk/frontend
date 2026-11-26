@@ -697,21 +697,21 @@
   }
 }
 
-@media (max-width: 360px) {
-  /* Narrow phones: two tidy columns instead of a single ragged stack. */
+@media (max-width: 560px) {
+  /* Phones: one full-width row per question. The labels are Guide titles, which are long in
+     English, Urdu and Hindi, so they wrap instead of running into each other. */
   .intent-chips {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
   .intent-chip {
     width: 100%;
-    justify-content: center;
-    padding: 8px;
-    font-size: 13px;
-    white-space: nowrap;
-  }
-  .intent-chip svg {
-    display: none;
+    box-sizing: border-box;
+    justify-content: flex-start;
+    border-radius: 14px;
+    padding: 10px 14px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
   }
 }
 
