@@ -24,6 +24,7 @@
     "test:money-ni:browser": "node tests/money-ni-number.browser.mjs",
     "test:family-visit:browser": "node tests/family-visit.browser.mjs",
     "test:home:browser": "node tests/home.browser.mjs",
+    "test:uiux:browser": "node tests/uiux.browser.mjs",
     "test:guide-search:browser": "node tests/guide-search.browser.mjs",
     "test:travel:browser": "node tests/travel-page.browser.mjs",
     "test:travel-production:browser": "node tests/travel-production-isolation.browser.mjs",
