@@ -132,6 +132,9 @@ await check("Guide sections list: open on desktop, collapsed on phones, anchors 
   await desktop.p.waitForTimeout(300);
   const top = await desktop.p.locator("#guide-section-4").evaluate((el) => el.getBoundingClientRect().top);
   assert.ok(top >= 0 && top < 80, `anchor scroll (${top})`);
+  // The Money section's approved disclaimer, once (the synthetic text has none of its own).
+  assert.equal(await desktop.p.locator(".guide-notice").count(), 1);
+  assert.match(await desktop.p.locator(".guide-notice").innerText(), /^This guide provides general information and does not constitute personalised financial, investment or tax advice\./);
   const link = desktop.p.locator(".guide-body a[href^='https://www.gov.uk']");
   assert.match(await link.evaluate((el) => getComputedStyle(el).textDecorationLine), /underline/);
   const edges = await desktop.p.evaluate(() => ["nav.breadcrumb", ".guide-article"]

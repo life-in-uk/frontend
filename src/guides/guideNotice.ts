@@ -1,38 +1,84 @@
-// A one-line general-information notice for the Guides whose published text
-// has none of its own: every Health Guide and the first bank account Guide.
-// All other Guides end with their own "general information, not … advice"
-// footer, so they get nothing here (no repeated disclaimers). Interface text
-// only: the approved Guide wording is not changed, and no review is claimed.
-
+// The disclaimer shown under a Guide, chosen by the Guide's subject (its section), in the reader's
+// language. It is shown only when the Guide's own published text in that language has no equivalent
+// "general information" statement, so a reader never sees two disclaimers. Interface text only: the
+// approved Guide wording, its hashes and the structured data are not changed, and no review is claimed.
+//
+// Wording: the English texts are the owner-approved disclaimers (2026-11-26). The Simplified Chinese,
+// Traditional Chinese, Urdu and Hindi texts are translations of them made for this release; they have
+// not had an independent human linguistic review.
 import type { GuideDomainId } from "./domains.ts";
 import type { GuideLocale } from "./locales.ts";
 
 type Localized = Readonly<Record<GuideLocale, string>>;
 
-const HEALTH: Localized = {
-  "zh-CN": "本文是根据文中所列官方资料整理的一般信息，不是医疗建议；你自己的健康问题，请咨询 GP、药剂师或 NHS 111。",
-  "zh-TW": "本文是根據文中所列官方資料整理的一般資訊，不是醫療建議；你自己的健康問題，請諮詢 GP、藥劑師或 NHS 111。",
-  en: "General information based on the official sources listed in this Guide, not medical advice. For your own health, ask a GP, a pharmacist or NHS 111.",
-  ur: "یہ اس رہنمائی میں درج سرکاری ذرائع پر مبنی عمومی معلومات ہے، طبی مشورہ نہیں۔ اپنی صحت کے بارے میں GP، فارماسسٹ یا NHS 111 سے پوچھیں۔",
-  hi: "यह इस मार्गदर्शिका में दिए गए आधिकारिक स्रोतों पर आधारित सामान्य जानकारी है, चिकित्सा सलाह नहीं। अपनी सेहत के बारे में GP, फ़ार्मासिस्ट या NHS 111 से पूछें।",
+export type NoticeKind = "general" | "immigration" | "money" | "health" | "legal";
+
+export const NOTICES: Readonly<Record<NoticeKind, Localized>> = {
+  general: {
+    en: "This guide provides general information only. Individual circumstances may vary. Check the relevant official sources before making important decisions.",
+    "zh-CN": "本指南仅提供一般信息。每个人的情况可能不同，作出重要决定前，请查阅相关官方资料。",
+    "zh-TW": "本指南僅提供一般資訊。每個人的情況可能不同，做出重要決定前，請查閱相關官方資料。",
+    ur: "یہ رہنمائی صرف عمومی معلومات فراہم کرتی ہے۔ ہر شخص کے حالات مختلف ہو سکتے ہیں۔ اہم فیصلے کرنے سے پہلے متعلقہ سرکاری ذرائع ضرور دیکھیں۔",
+    hi: "यह मार्गदर्शिका केवल सामान्य जानकारी देती है। हर व्यक्ति की परिस्थितियाँ अलग हो सकती हैं। महत्वपूर्ण निर्णय लेने से पहले संबंधित आधिकारिक स्रोत ज़रूर देखें।",
+  },
+  immigration: {
+    en: "This guide provides general information and does not constitute immigration or legal advice. Immigration rules may change, and individual circumstances vary. Check current GOV.UK guidance and seek advice from a regulated immigration adviser where necessary.",
+    "zh-CN": "本指南提供一般信息，不构成移民或法律建议。移民规则可能变化，每个人的情况也各不相同。请查阅 GOV.UK 的最新指引，必要时向受监管的移民顾问寻求建议。",
+    "zh-TW": "本指南提供一般資訊，不構成移民或法律建議。移民規則可能變動，每個人的情況也各不相同。請查閱 GOV.UK 的最新指引，必要時向受監管的移民顧問尋求建議。",
+    ur: "یہ رہنمائی عمومی معلومات فراہم کرتی ہے اور امیگریشن یا قانونی مشورہ نہیں ہے۔ امیگریشن کے قواعد بدل سکتے ہیں اور ہر شخص کے حالات مختلف ہوتے ہیں۔ GOV.UK کی تازہ ترین رہنمائی دیکھیں اور ضرورت ہو تو کسی ریگولیٹڈ امیگریشن مشیر سے مشورہ لیں۔",
+    hi: "यह मार्गदर्शिका सामान्य जानकारी देती है और इसे आप्रवासन या क़ानूनी सलाह नहीं माना जाना चाहिए। आप्रवासन नियम बदल सकते हैं और हर व्यक्ति की परिस्थितियाँ अलग होती हैं। GOV.UK का मौजूदा मार्गदर्शन देखें और ज़रूरत हो तो किसी विनियमित आप्रवासन सलाहकार से सलाह लें।",
+  },
+  money: {
+    en: "This guide provides general information and does not constitute personalised financial, investment or tax advice. Check current official guidance and seek qualified professional advice where necessary.",
+    "zh-CN": "本指南提供一般信息，不构成针对个人的财务、投资或税务建议。请查阅最新的官方指引，必要时向合格的专业人士咨询。",
+    "zh-TW": "本指南提供一般資訊，不構成針對個人的財務、投資或稅務建議。請查閱最新的官方指引，必要時向合格的專業人士諮詢。",
+    ur: "یہ رہنمائی عمومی معلومات فراہم کرتی ہے اور ذاتی مالی، سرمایہ کاری یا ٹیکس مشورہ نہیں ہے۔ تازہ ترین سرکاری رہنمائی دیکھیں اور ضرورت ہو تو کسی اہل پیشہ ور سے مشورہ لیں۔",
+    hi: "यह मार्गदर्शिका सामान्य जानकारी देती है और इसे व्यक्तिगत वित्तीय, निवेश या कर सलाह नहीं माना जाना चाहिए। मौजूदा आधिकारिक मार्गदर्शन देखें और ज़रूरत हो तो किसी योग्य पेशेवर से सलाह लें।",
+  },
+  health: {
+    en: "This guide provides general information and is not a substitute for professional medical advice, diagnosis or treatment.",
+    "zh-CN": "本指南提供一般信息，不能替代专业的医疗建议、诊断或治疗。",
+    "zh-TW": "本指南提供一般資訊，不能取代專業的醫療建議、診斷或治療。",
+    ur: "یہ رہنمائی عمومی معلومات فراہم کرتی ہے اور پیشہ ورانہ طبی مشورے، تشخیص یا علاج کا متبادل نہیں ہے۔",
+    hi: "यह मार्गदर्शिका सामान्य जानकारी देती है और पेशेवर चिकित्सा सलाह, निदान या उपचार का विकल्प नहीं है।",
+  },
+  legal: {
+    en: "This guide provides general information and does not constitute legal advice. Your rights and responsibilities may depend on your circumstances and the applicable jurisdiction.",
+    "zh-CN": "本指南提供一般信息，不构成法律建议。你的权利和责任可能取决于你的具体情况以及适用的司法辖区。",
+    "zh-TW": "本指南提供一般資訊，不構成法律建議。你的權利和責任可能取決於你的具體情況以及適用的司法管轄區。",
+    ur: "یہ رہنمائی عمومی معلومات فراہم کرتی ہے اور قانونی مشورہ نہیں ہے۔ آپ کے حقوق اور ذمہ داریاں آپ کے حالات اور متعلقہ دائرۂ اختیار پر منحصر ہو سکتی ہیں۔",
+    hi: "यह मार्गदर्शिका सामान्य जानकारी देती है और इसे क़ानूनी सलाह नहीं माना जाना चाहिए। आपके अधिकार और ज़िम्मेदारियाँ आपकी परिस्थितियों और लागू क्षेत्राधिकार पर निर्भर कर सकती हैं।",
+  },
 };
 
-const MONEY: Localized = {
-  "zh-CN": "本文是根据文中所列资料整理的一般信息，不是理财或法律建议；银行的条件可能随时变化，申请前请以银行当时公布的说明为准。",
-  "zh-TW": "本文是根據文中所列資料整理的一般資訊，不是理財或法律建議；銀行的條件可能隨時變化，申請前請以銀行當時公布的說明為準。",
-  en: "General information based on the sources listed in this Guide, not financial or legal advice. Banks' conditions can change, so check what the bank says at the time you apply.",
-  ur: "یہ اس رہنمائی میں درج ذرائع پر مبنی عمومی معلومات ہے، مالی یا قانونی مشورہ نہیں۔ بینکوں کی شرائط بدل سکتی ہیں، اس لیے درخواست کے وقت بینک کی بات دیکھیں۔",
-  hi: "यह इस मार्गदर्शिका में दिए गए स्रोतों पर आधारित सामान्य जानकारी है, वित्तीय या क़ानूनी सलाह नहीं। बैंकों की शर्तें बदल सकती हैं, इसलिए आवेदन के समय बैंक की जानकारी देखें।",
+/** Each section's subject: visas, settlement and university/student visas are immigration matters. */
+export const NOTICE_KIND: Readonly<Record<GuideDomainId, NoticeKind>> = {
+  "family-visa": "immigration",
+  "work-visa": "immigration",
+  settlement: "immigration",
+  "university-applications-student-visas": "immigration",
+  money: "money",
+  health: "health",
+  renting: "legal",
+  education: "general",
+  "household-services": "general",
 };
 
-/** Guides (by section and slug) that get a notice, because their text has no disclaimer of its own. */
-export const NOTICE_SLUGS: Readonly<Partial<Record<GuideDomainId, "all" | readonly string[]>>> = {
-  health: "all",
-  money: ["open-uk-bank-account-new-arrival"],
+/** An equivalent statement already in a Guide's own text, per language ("general information"). */
+const OWN_DISCLAIMER: Readonly<Record<GuideLocale, RegExp>> = {
+  en: /general information/i,
+  "zh-CN": /一般(?:性)?信息/u,
+  "zh-TW": /一般(?:性)?資訊/u,
+  ur: /(?:عمومی|عام) معلومات/u,
+  hi: /सामान्य जानकारी/u,
 };
 
-export function guideNotice(domainId: GuideDomainId, slug: string, locale: GuideLocale): string | null {
-  const rule = NOTICE_SLUGS[domainId];
-  if (!rule || (rule !== "all" && !rule.includes(slug))) return null;
-  return (domainId === "health" ? HEALTH : MONEY)[locale];
+/** Whether the Guide's published text in this language already says it is general information. */
+export function hasOwnDisclaimer(content: string, locale: GuideLocale): boolean {
+  return OWN_DISCLAIMER[locale].test(content);
+}
+
+/** The notice for a Guide in its section and language, or null when its own text already has one. */
+export function guideNotice(domainId: GuideDomainId, locale: GuideLocale, content: string): string | null {
+  return hasOwnDisclaimer(content, locale) ? null : NOTICES[NOTICE_KIND[domainId]][locale];
 }

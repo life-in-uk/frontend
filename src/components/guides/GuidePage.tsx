@@ -17,7 +17,7 @@ import { useReportAvailableLocales } from "../site/pageLanguages";
 import { GuideMarkdown } from "./GuideMarkdown";
 import { titleReferencesFor } from "../../guides/titleReferences";
 import { guideStructuredData } from "../../seo/structuredData";
-import { guideNotice } from "../../guides/guideNotice";
+import { GuideDisclaimer } from "./GuideDisclaimer";
 import "./Guide.css";
 
 /** Optional section-specific look; the page works without any of it. */
@@ -78,7 +78,6 @@ export function GuidePage({
   // The header's language selector offers only the languages this Guide is published in.
   useReportAvailableLocales(availableLocales);
   const ui = GUIDE_UI[locale];
-  const notice = guideNotice(domain.id, slug, locale);
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => () => clearGuideSeo(), []);
@@ -310,7 +309,7 @@ export function GuidePage({
               onToggle={toggle}
             />
           </div>
-          {notice && <p className="guide-notice">{notice}</p>}
+          <GuideDisclaimer domain={domain.id} locale={locale} content={state.guide.content} />
           {related.length > 0 && (
             <aside className="related-guides" aria-labelledby="related-title">
               <h2 id="related-title">{ui.related}</h2>

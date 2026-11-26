@@ -15,6 +15,7 @@
 //   PLAYWRIGHT_MODULE=… FRONTEND_URL=http://127.0.0.1:4173 API_BASE=http://127.0.0.1:8188 npm run test:seo:browser
 import assert from "node:assert/strict";
 import { CURATED_RELATED_SECTIONS, TOPIC_CLUSTERS } from "../src/guides/topicClusters.ts";
+import { hasOwnDisclaimer } from "../src/guides/guideNotice.ts";
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const FRONTEND = (process.env.FRONTEND_URL || "http://127.0.0.1:4173").replace(/\/$/, "");
@@ -87,6 +88,8 @@ for (const entry of entries) {
   }
   // Trust signals (Phase 4B): every English Guide says it is general information, in its own text or the notice.
   if (slug && locale === "en") ok(/general information/i.test(text), `${path} general-information disclaimer`);
+  // ... and in every language: the Guide's own statement or its section's notice (guideNotice.ts).
+  if (slug) ok(hasOwnDisclaimer(text, locale), `${path} general-information disclaimer (${locale})`);
   // Internal links go straight to a canonical page (or an app-only route), never through a 301.
   for (const [, href] of root.matchAll(/href="(\/[^"#?]*)/g)) {
     const target = href.replace(/(.)\/$/, "$1") || "/";

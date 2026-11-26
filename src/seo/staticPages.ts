@@ -292,7 +292,8 @@ export function staticGuidePage(input: StaticGuideInput): StaticPage {
   const body = withoutRepeatedUpdatedLine(titled, guide.updatedAt);
   const others = domainGuides([...input.published], domain).filter((item) => item.slug !== guide.slug);
   const curated = CURATED_RELATED_SECTIONS.has(domain.id);
-  const notice = guideNotice(domain.id, guide.slug, locale);
+  // The same section disclaimer as the app (components/guides/GuideDisclaimer.tsx).
+  const notice = guideNotice(domain.id, locale, guide.content);
   const hubHref = guideRoutePath(locale, domain.id);
   const html = [
     renderSiteNav(locale, input.published),

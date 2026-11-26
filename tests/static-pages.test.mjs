@@ -156,20 +156,37 @@ test("Guide pages: three-level breadcrumb and one JSON-LD script in the head; hu
   assert.doesNotMatch(fillTemplate(TEMPLATE, hub), /application\/ld\+json/);
 });
 
-test("general-information notice: Health Guides and the bank account Guide only (their text has none); other Guides unchanged", async () => {
-  const { guideNotice } = await import("../src/guides/guideNotice.ts");
+test("section disclaimer: the approved notice for the Guide's subject, unless its own text already has one", async () => {
+  const { guideNotice, hasOwnDisclaimer, NOTICES, NOTICE_KIND } = await import("../src/guides/guideNotice.ts");
+  const kinds = { health: "health", money: "money", renting: "legal", "family-visa": "immigration", "work-visa": "immigration",
+    settlement: "immigration", "university-applications-student-visas": "immigration", education: "general", "household-services": "general" };
+  assert.deepEqual(NOTICE_KIND, kinds, "every section has a subject");
+  const own = { en: "This guide is general information, not legal advice.", "zh-CN": "本文是一般信息，不是法律建议。",
+    "zh-TW": "本文是一般資訊，不是法律建議。", ur: "یہ عام معلومات ہیں، قانونی مشورہ نہیں۔", hi: "यह सामान्य जानकारी है, क़ानूनी सलाह नहीं।" };
   for (const locale of ["zh-CN", "zh-TW", "en", "ur", "hi"]) {
-    assert.ok(guideNotice("health", "registering-with-a-gp-england", locale), `${locale} health`);
-    assert.ok(guideNotice("money", "open-uk-bank-account-new-arrival", locale), `${locale} bank`);
-    assert.equal(guideNotice("money", "national-insurance-number-newcomers", locale), null, "the NI Guide has its own disclaimer");
-    assert.equal(guideNotice("renting", "renting-council-tax", locale), null);
-    assert.doesNotMatch(guideNotice("health", "x", locale), /review|审核|審核|lawyer|律师|solicitor/i, "no review is claimed");
+    for (const [domain, kind] of Object.entries(kinds)) {
+      assert.equal(guideNotice(domain, locale, "# Title\n\nText without a disclaimer."), NOTICES[kind][locale], `${locale} ${domain}`);
+      // No second disclaimer where the Guide's own text already has an equivalent one.
+      assert.equal(guideNotice(domain, locale, `# Title\n\n> ${own[locale]}`), null, `${locale} ${domain} own`);
+    }
+    for (const [kind, text] of Object.entries(NOTICES)) {
+      assert.ok(text[locale].trim(), `${kind} ${locale}`);
+      // Every notice is itself a general-information statement in its language (the SEO trust check).
+      assert.ok(hasOwnDisclaimer(text[locale], locale), `${kind} ${locale} says general information`);
+      assert.doesNotMatch(text[locale], /review|审核|審核|lawyer|律师|律師|solicitor/i, "no review is claimed");
+    }
   }
+  // The approved English wording, verbatim.
+  assert.equal(NOTICES.general.en, "This guide provides general information only. Individual circumstances may vary. Check the relevant official sources before making important decisions.");
+  assert.equal(NOTICES.health.en, "This guide provides general information and is not a substitute for professional medical advice, diagnosis or treatment.");
+  // Prerendered pages render the same element as the app.
   const health = meta("registering-with-a-gp-england", "Registering with a GP", "health-nhs");
   const page = staticGuidePage({ origin: ORIGIN, locale: "ur", domainId: "health", guide: { ...health, content: "# Registering with a GP\n\nText.", sources: [], evidence: [] }, published: [health], availableLocales: ["ur"] });
-  assert.match(page.body, /<p class="guide-notice">یہ اس رہنمائی میں درج سرکاری ذرائع پر مبنی عمومی معلومات ہے/);
+  assert.ok(page.body.includes(`<p class="guide-notice">${NOTICES.health.ur}</p>`));
   const renting = staticGuidePage({ origin: ORIGIN, locale: "en", domainId: "renting", guide: GUIDE, published: PUBLISHED, availableLocales: ["en"] });
-  assert.doesNotMatch(renting.body, /guide-notice/);
+  assert.ok(renting.body.includes(`<p class="guide-notice">${NOTICES.legal.en}</p>`), "a Renting Guide without its own disclaimer gets the legal notice");
+  const withOwn = staticGuidePage({ origin: ORIGIN, locale: "en", domainId: "renting", guide: { ...GUIDE, content: `${GUIDE.content}\n\n> ${own.en}` }, published: PUBLISHED, availableLocales: ["en"] });
+  assert.doesNotMatch(withOwn.body, /guide-notice/);
 });
 
 test("a home page: canonical /{locale}, five hreflang + x-default /zh-CN, crawlable sections and direct canonical links", () => {
