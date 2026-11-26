@@ -64,9 +64,33 @@ a {
   text-underline-offset: 4px;
 }
 a:focus-visible,
-button:focus-visible {
+button:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
   outline: 3px solid var(--color-accent);
   outline-offset: 4px;
+}
+/* Checkboxes and radio buttons: at least 24 × 24 px targets (WCAG 2.5.8), drawn in the brand colour. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  min-width: 1.5rem;
+  accent-color: var(--color-brand);
+}
+/* Motion is decoration only. Individual sections already honour this; this covers the rest
+   (header menus, home cards, smooth scrolling). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 button,
 a {
@@ -91,6 +115,11 @@ svg {
 }
 /* In-app navigation to a page whose chunk is still loading (App.tsx). */
 .route-loading {
+  min-height: 100vh;
+}
+/* A page still loading its Guides keeps a full screen of height, so the footer does not appear in
+   the first view and then jump away when the list arrives (measured CLS 0.27–0.39 before). */
+main:has(.page-loading) {
   min-height: 100vh;
 }
 

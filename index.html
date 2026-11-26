@@ -5,6 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Life in UK · 在英国，把日子过明白。</title>
+    <script>
+      // Pages that are not prerendered (e.g. /ur/travel) start from this shell: set the language and
+      // text direction before the first paint, so an Urdu page does not render left-to-right and
+      // then flip when the app starts (a large layout shift). Same mapping as GUIDE_LOCALE_LANG.
+      (function () {
+        var lang = { "zh-CN": "zh-CN", "zh-TW": "zh-TW", en: "en-GB", ur: "ur", hi: "hi" }[location.pathname.split("/")[1]];
+        if (lang) {
+          document.documentElement.lang = lang;
+          document.documentElement.dir = lang === "ur" ? "rtl" : "ltr";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

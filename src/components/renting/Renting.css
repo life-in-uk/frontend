@@ -33,10 +33,16 @@
   background: var(--color-surface);
   min-width: 0;
 }
+/* The question sits inside the card, not on its border (a floated legend joins the content). */
 .renting-question legend {
-  padding-inline: 6px;
+  float: inline-start;
+  width: 100%;
+  padding: 0;
   font-weight: 700;
   color: var(--color-text);
+}
+.renting-question legend + * {
+  clear: both;
 }
 .renting-option {
   display: flex;
@@ -58,9 +64,9 @@
 .renting-option input,
 .renting-task input {
   flex: none;
-  margin-top: 0.35em;
-  width: 18px;
-  height: 18px;
+  margin-top: 0.15em;
+  width: 24px; /* WCAG 2.5.8 target size */
+  height: 24px;
   accent-color: var(--work-ink);
 }
 .renting-option span {

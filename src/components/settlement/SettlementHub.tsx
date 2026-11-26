@@ -96,7 +96,7 @@ export function SettlementHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
           <h2 id="settlement-plan-title">{copy.planTitle}</h2>
           <p>{copy.planLead}</p>
         </div>
-        {state.status === "loading" && <p className="work-plan-status" role="status">{copy.loading}</p>}
+        {state.status === "loading" && <p className="work-plan-status page-loading" role="status">{copy.loading}</p>}
         {state.status === "error" && <p className="work-plan-status" role="status">{copy.unavailable}</p>}
         {state.status === "ready" &&
           SETTLEMENT_TOPICS.map((topic) => (
