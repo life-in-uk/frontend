@@ -2,7 +2,7 @@
 
 **Search description** — How Life in UK sources, checks, translates and corrects practical Guides for people living in the UK.
 
-Life in UK helps people find and understand practical information about living in the UK. Our Guides are available in Simplified Chinese, Traditional Chinese, English, Urdu and Hindi. We are independent of the UK government, the NHS and the providers we discuss.
+Life in UK helps people find and understand practical information about living in the UK. The core Guides are free to read. They are available in Simplified Chinese, Traditional Chinese, English, Urdu and Hindi. We are independent of the UK government, the NHS and the providers we discuss.
 
 ## How we choose sources
 
@@ -14,7 +14,7 @@ We use AI to assist research, drafting and translation. We compare material clai
 
 ## Corrections
 
-To report an error, use the correction contact on this page. Include the Guide link, language, the passage in question and an official source if you have one. Please leave out personal medical, immigration and financial documents or account details. We check the claim against the source and record a revised version and its date when a material correction is made.
+When a public corrections contact is available, we will list it here. To report an error, include the Guide link, language, the passage in question and an official source if you have one. Please leave out personal medical, immigration and financial documents or account details. We check the claim against the source and record a revised version and its date when a material correction is made.
 
 ## Independence and limitations
 
