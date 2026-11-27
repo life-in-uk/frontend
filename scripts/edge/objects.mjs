@@ -5,9 +5,17 @@ import { readdirSync } from "node:fs";
 import { extname, join, relative, sep } from "node:path";
 import { REDIRECTS_FILE } from "../seo/redirects.mjs";
 import { SPA_ROUTES_FILE } from "../seo/routes.mjs";
+import { RELEASE_PAGES_FILE, SITEMAP_FILE } from "../seo/sitemap.mjs";
 
 /** Build manifests used to generate the edge function; never uploaded. */
 export const INTERNAL_FILES = new Set([REDIRECTS_FILE, SPA_ROUTES_FILE]);
+
+/**
+ * Uploaded by its own deploy steps, never with the other files: the sitemap is
+ * and the release page list are published in two phases around the function
+ * switch (scripts/edge/publish-sitemap.mjs).
+ */
+export const SEPARATELY_UPLOADED = new Set([SITEMAP_FILE, RELEASE_PAGES_FILE]);
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -35,9 +43,11 @@ export function contentTypeFor(key) {
   return TYPES[extname(key).toLowerCase()] ?? "application/octet-stream";
 }
 
-/** Hashed build assets are immutable; HTML always revalidates; other public files cache for an hour. */
+/** Hashed build assets are immutable; HTML and the sitemap always revalidate; other public files cache for an hour. */
 export function cacheControlFor(key) {
   if (key.startsWith("assets/")) return IMMUTABLE;
+  // The sitemap changes with every release and is narrowed during one: revalidate like HTML.
+  if (key === SITEMAP_FILE || key === RELEASE_PAGES_FILE) return REVALIDATE;
   if (key.endsWith(".html")) return REVALIDATE;
   return SHORT;
 }

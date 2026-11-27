@@ -4,7 +4,7 @@
 // and the tests.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fillTemplate, staticGuidePage, staticHomePage, staticHubPage, staticTopicPage } from "../../src/seo/staticPages.ts";
+import { fillTemplate, staticAboutPage, staticGuidePage, staticHomePage, staticHubPage, staticIndexPage, staticTopicPage } from "../../src/seo/staticPages.ts";
 import { aliasFor, expectedPages, ROOT_ALIAS } from "./inventory.mjs";
 import { writeNotFound } from "./routes.mjs";
 
@@ -27,6 +27,10 @@ export async function prerender({ distDir, origin, inventory }) {
     const availableLocales = page.alternates.map((row) => row.locale);
     const rendered = page.kind === "guide"
       ? staticGuidePage({ origin, locale: page.locale, domainId: page.domainId, guide: inventory.details[page.locale].get(page.slug), published, availableLocales })
+      : page.kind === "about"
+        ? staticAboutPage({ origin, locale: page.locale, published })
+      : page.kind === "index"
+        ? staticIndexPage({ origin, locale: page.locale, published, availableLocales })
       : page.kind === "home"
         ? staticHomePage({ origin, locale: page.locale, source: inventory.lists["zh-CN"], published })
         : page.kind === "topic"
@@ -36,6 +40,7 @@ export async function prerender({ distDir, origin, inventory }) {
             })
           : staticHubPage({
               origin, locale: page.locale, domainId: page.domainId, published, availableLocales,
+              topicPaths: pages.filter((other) => other.kind === "topic" && other.locale === page.locale).map((other) => other.path),
               details: [...inventory.details[page.locale].values()].filter((guide) => published.some((meta) => meta.slug === guide.slug && meta.category === guide.category)),
             });
     if (!rendered) throw new Error(`No content for required page ${page.path}`);

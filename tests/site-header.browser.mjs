@@ -131,10 +131,10 @@ for (const locale of GUIDE_LOCALES) {
         await assertFits(page, ".masthead-sheet, .masthead-sheet .masthead-link, .masthead-sheet .masthead-upcoming > span, .masthead-group-label", `${label} sheet`);
         found.push(...(await hrefs(page, ".masthead-sheet")));
         assert.ok(found.includes(guideHomePath(locale)), `${label}: Home in menu`);
-        assert.ok(found.some((href) => href.endsWith("#about")), `${label}: About in menu`);
+        assert.ok(found.includes(`/${locale}/about`), `${label}: About page in menu`);
       }
       // Every launched section, and nothing unlaunched, is linked.
-      const topicLinks = [...new Set(found)].filter((href) => href !== guideHomePath(locale) && !href.includes("#")).sort();
+      const topicLinks = [...new Set(found)].filter((href) => href !== guideHomePath(locale) && href !== `/${locale}/about` && !href.includes("#")).sort();
       assert.deepEqual(topicLinks, expectedTopics(locale), `${label}: section links`);
       // Upcoming sections are listed but never as links.
       for (const topic of HOME_TOPICS.filter((t) => !topicHref(t, locale)))
@@ -154,7 +154,7 @@ for (const locale of GUIDE_LOCALES) {
 for (const locale of ["zh-CN", "en"]) {
   const { page, context } = await open(390, guideHomePath(locale), { api: false });
   await page.locator(".masthead-menu-button").click();
-  const found = [...new Set(await hrefs(page, ".masthead-sheet"))].filter((href) => href !== guideHomePath(locale) && !href.includes("#")).sort();
+  const found = [...new Set(await hrefs(page, ".masthead-sheet"))].filter((href) => href !== guideHomePath(locale) && href !== `/${locale}/about` && !href.includes("#")).sort();
   assert.deepEqual(found, expectedTopics(locale, false), `${locale}: sections without the published list`);
   assert.ok(expectedTopics(locale, false).length < expectedTopics(locale).length);
   await context.close();

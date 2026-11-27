@@ -1,6 +1,7 @@
 // Guide JSON-LD (src/seo/structuredData.ts): built only from published values
-// and canonical URL helpers, no invented author/publisher/reviewer, breadcrumb
-// equal to the visible one, and safe to embed in a <script> element.
+// and canonical URL helpers; the site as publisher (an Organization with only
+// its name and URL), never an author, reviewer or rating; breadcrumb equal to
+// the visible one; safe to embed in a <script> element.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { guideStructuredData, serializeJsonLd } from "../src/seo/structuredData.ts";
@@ -12,13 +13,16 @@ test("Article and BreadcrumbList use canonical /{locale}/ URLs and the published
   for (const locale of GUIDE_LOCALES) {
     const data = guideStructuredData({ origin: "https://lifeinuk.info", locale, domainId: "renting", guide });
     assert.equal(data["@context"], "https://schema.org");
-    const [article, crumbs] = data["@graph"];
+    const byType = (type) => data["@graph"].find((node) => node["@type"] === type);
+    const [article, crumbs, org] = [byType("Article"), byType("BreadcrumbList"), byType("Organization")];
     const url = `https://lifeinuk.info/${locale}/renting/renting-council-tax`;
     assert.deepEqual(
       { type: article["@type"], headline: article.headline, description: article.description, inLanguage: article.inLanguage, datePublished: article.datePublished, dateModified: article.dateModified, url: article.url, main: article.mainEntityOfPage },
       { type: "Article", headline: guide.title, description: guide.summary, inLanguage: GUIDE_LOCALE_LANG[locale], datePublished: guide.publishedAt, dateModified: guide.updatedAt, url, main: url },
     );
-    for (const claim of ["author", "publisher", "reviewedBy", "aggregateRating", "review"]) assert.equal(article[claim], undefined, claim);
+    for (const claim of ["author", "reviewedBy", "aggregateRating", "review"]) assert.equal(article[claim], undefined, claim);
+    assert.deepEqual(article.publisher, { "@id": "https://lifeinuk.info/#organization" });
+    assert.deepEqual(org, { "@type": "Organization", "@id": "https://lifeinuk.info/#organization", name: "Life in UK", url: "https://lifeinuk.info/" }, "name and URL only");
     assert.deepEqual(crumbs.itemListElement.map((row) => [row.position, row.name, row.item]), [
       [1, GUIDE_UI[locale].home, `https://lifeinuk.info/${locale}`],
       [2, GUIDE_UI[locale].domain.renting, `https://lifeinuk.info/${locale}/renting`],

@@ -21,6 +21,7 @@ import { deploySite, staleObjects, uploadGroups } from "../scripts/edge/deploy-s
 import { compareBucket, preflightSite, READ_ONLY_CALLS } from "../scripts/edge/preflight-site.mjs";
 import { createHash } from "node:crypto";
 import { uploadObjects } from "../scripts/edge/objects.mjs";
+import { renderSitemap, sitemapEntries } from "../scripts/seo/sitemap.mjs";
 import { generateViewerRequest, loadViewerRequest, MAX_FUNCTION_BYTES, viewerEvent } from "../scripts/edge/viewer-request.mjs";
 
 const ORIGIN = "https://lifeinuk.info";
@@ -71,6 +72,8 @@ async function build(inv = inventory()) {
   writeFileSync(join(dir, "favicon.svg"), "<svg/>");
   await prerender({ distDir: dir, origin: ORIGIN, inventory: inv });
   await writeRedirects(dir, expectedPages(inv));
+  // As build:release does: the release's own sitemap (served from the bucket).
+  writeFileSync(join(dir, "sitemap.xml"), renderSitemap(sitemapEntries(dir, ORIGIN)));
   return dir;
 }
 
@@ -122,10 +125,10 @@ test("the generated function is ES5, fits the quota and serves every page, redir
   const { code, bytes, stats } = generateViewerRequest({ distDir: dir });
   assert.doesNotThrow(() => acorn.parse(code, { ecmaVersion: 5 }), "CloudFront function source must parse as ES5");
   assert.ok(bytes < MAX_FUNCTION_BYTES);
-  // Guides: alpha ×5, beta ×1, GP ×3; hubs: renting ×5, health ×3; homes ×5.
-  assert.equal(stats.localizedPages, 22);
-  // zh-CN short URLs: the root, two hubs and three Guides.
-  assert.equal(stats.redirects, 6);
+  // Guides: alpha ×5, beta ×1, GP ×3; hubs: renting ×5, health ×3; homes ×5; Guide indexes ×5; About ×5.
+  assert.equal(stats.localizedPages, 32);
+  // zh-CN short URLs: the root, two hubs, the Guide index, About and three Guides.
+  assert.equal(stats.redirects, 8);
   const handle = loadViewerRequest(code);
   const unordered = viewerEvent("/renting", { query: "b=%E4%B8%AD&a=2&a=1&flag" });
   assert.equal(handle(unordered).headers.location.value,
@@ -232,7 +235,7 @@ test("the generator refuses builds whose redirects disagree with their pages, an
   writeFileSync(file, JSON.stringify({ ...manifest, redirects: [...manifest.redirects, { from: "/money", to: "/zh-CN/money", status: 301 }] }));
   assert.throws(() => generateViewerRequest({ distDir: dir }), /\/money: expected 301 to \/zh-CN\/money/);
   writeFileSync(file, JSON.stringify(manifest));
-  assert.throws(() => generateViewerRequest({ distDir: dir, maxBytes: 2000 }), /KeyValueStore/);
+  assert.throws(() => generateViewerRequest({ distDir: dir, maxBytes: 2000 }), /CloudFront Functions limit/);
   rmSync(dir, { recursive: true });
 });
 

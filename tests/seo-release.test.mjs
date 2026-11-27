@@ -5,7 +5,7 @@
 // reference static host must follow the documented hosting contract.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expectedPages } from "../scripts/seo/inventory.mjs";
@@ -69,10 +69,12 @@ test("a correct release build validates, with counts taken from the inventory", 
   const { errors, report } = await validate(dir, inv);
   assert.deepEqual(errors, []);
   // Guides: alpha ×3 locales, beta ×1, GP ×2. Hubs: renting zh-CN/en/ur, health zh-CN/en. Home pages: always five.
-  // No Family & Visa Guide is published, so no topic page. zh-CN short URLs: 3 Guides + 2 hubs (alias pages) + the root.
-  assert.deepEqual(report.expected, { guides: 6, hubs: 5, homes: 5, topics: 0, aliases: 6 });
-  assert.deepEqual(report.valid, { guide: 6, hub: 5, home: 5, topic: 0, alias: 5 });
-  assert.equal(report.redirects, 6);
+  // No Family & Visa Guide is published, so no topic page. Guide indexes: zh-CN, en, ur (the locales with a Guide).
+  // zh-CN short URLs: 3 Guides + 2 hubs + the index (alias pages) + the root.
+  // About pages: always five. zh-CN short URLs also include /about.
+  assert.deepEqual(report.expected, { guides: 6, hubs: 5, homes: 5, topics: 0, indexes: 3, abouts: 5, aliases: 8 });
+  assert.deepEqual(report.valid, { guide: 6, hub: 5, home: 5, topic: 0, index: 3, about: 5, alias: 7 });
+  assert.equal(report.redirects, 8);
   rmSync(dir, { recursive: true });
 });
 
@@ -81,7 +83,7 @@ test("growing the inventory grows the expected pages; no total is hardcoded", as
   const dir = await build(inv);
   const { errors, report } = await validate(dir, inv);
   assert.deepEqual(errors, []);
-  assert.deepEqual(report.expected, { guides: 8, hubs: 6, homes: 5, topics: 0, aliases: 7 });
+  assert.deepEqual(report.expected, { guides: 8, hubs: 6, homes: 5, topics: 0, indexes: 4, abouts: 5, aliases: 9 });
   rmSync(dir, { recursive: true });
 });
 
@@ -150,6 +152,8 @@ test("zh-CN short URLs: canonical on /zh-CN/…, a 301 in the manifest, never a 
   const manifest = JSON.parse(readFileSync(join(dir, REDIRECTS_FILE), "utf8")).redirects;
   assert.deepEqual(manifest.map((row) => `${row.from} ${row.to} ${row.status}`), [
     "/ /zh-CN 301",
+    "/about /zh-CN/about 301",
+    "/guides /zh-CN/guides 301",
     "/health /zh-CN/health 301",
     "/health/registering-with-a-gp /zh-CN/health/registering-with-a-gp 301",
     "/renting /zh-CN/renting 301",
@@ -265,16 +269,22 @@ test("Guide JSON-LD: one Article + BreadcrumbList matching the page; hubs carry 
     const html = readFileSync(join(dir, "ur/renting/renting-alpha/index.html"), "utf8");
     const scripts = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
     assert.equal(scripts.length, 1);
-    const [article, crumbs] = JSON.parse(scripts[0][1])["@graph"];
+    const graph = JSON.parse(scripts[0][1])["@graph"];
+    const [article, crumbs] = ["Article", "BreadcrumbList"].map((type) => graph.find((node) => node["@type"] === type));
     assert.equal(article["@type"], "Article");
     assert.equal(article.headline, "renting-alpha title (ur)");
     assert.equal(article.inLanguage, "ur");
     assert.equal(article.url, `${ORIGIN}/ur/renting/renting-alpha`);
     assert.equal(article.dateModified, "2026-11-16T14:25:00Z");
     assert.equal(article.author, undefined);
-    assert.equal(article.publisher, undefined);
+    assert.deepEqual(article.publisher, { "@id": `${ORIGIN}/#organization` }, "the site publishes; no author");
     assert.deepEqual(crumbs.itemListElement.map((row) => row.item), [`${ORIGIN}/ur`, `${ORIGIN}/ur/renting`, `${ORIGIN}/ur/renting/renting-alpha`]);
     assert.doesNotMatch(readFileSync(join(dir, "ur/renting/index.html"), "utf8"), /application\/ld\+json/);
+    // An Organization claiming more than the site's name and URL fails the release.
+    const org = `{"@type":"Organization","@id":"${ORIGIN}/#organization","name":"Life in UK","url":"${ORIGIN}/"}`;
+    assert.ok(html.includes(org));
+    writeFileSync(join(dir, "ur/renting/renting-alpha/index.html"), html.replace(org, org.replace("}", ',"logo":"x"}')));
+    assert.ok((await validate(dir, inv)).errors.includes("/ur/renting/renting-alpha: the Organization must be the site's name and URL only"));
     // Tampered headline: the release must fail.
     writeFileSync(join(dir, "ur/renting/renting-alpha/index.html"), html.replace('"headline":"renting-alpha title (ur)"', '"headline":"Something else"'));
     const { errors } = await validate(dir, inv);
@@ -318,8 +328,11 @@ test("university Guides add five-language pages and only published locale hubs",
   ]));
   const inv = inventory(spec);
   const pages = expectedPages(inv);
-  assert.deepEqual(pages.filter((row) => row.domainId !== category), baseline);
-  assert.equal(pages.length - baseline.length, 50);
+  // Guide indexes follow the published locales (two more here), so they are compared separately.
+  const withoutIndex = (rows) => rows.filter((row) => row.kind !== "index");
+  assert.deepEqual(withoutIndex(pages).filter((row) => row.domainId !== category), withoutIndex(baseline));
+  assert.equal(withoutIndex(pages).length - withoutIndex(baseline).length, 50);
+  assert.deepEqual(pages.filter((row) => row.kind === "index").map((row) => row.path), locales.map((locale) => `/${locale}/guides`));
   const { matchRoute, localeSwitchPath } = await import("../src/router.ts");
   const path = `/ur/${category}/university-fixture-0`;
   const route = matchRoute(path);
@@ -478,4 +491,21 @@ test("Household hubs and details use the published locale inventory and canonica
   } finally {
     rmSync(dir, { recursive: true });
   }
+});
+
+test("every page links its other language versions, and a page no other page links to fails the release", async () => {
+  const inv = inventory(BASE);
+  const dir = await build(inv);
+  const en = join(dir, "en", "renting", "renting-alpha", "index.html");
+  assert.match(readFileSync(en, "utf8"), /<footer class="static-footer">[\s\S]*href="\/ur\/renting\/renting-alpha" hreflang="ur"/);
+  writeFileSync(en, readFileSync(en, "utf8").replace(/<footer class="static-footer">[\s\S]*?<\/footer>/, ""));
+  let { errors } = await validate(dir, inv);
+  assert.ok(errors.includes("/en/renting/renting-alpha: no link to its ur version /ur/renting/renting-alpha"), errors.join("\n"));
+  // Remove every link to the Urdu page: it becomes an orphan.
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(join(d, e.name)) : e.name === "index.html" ? [join(d, e.name)] : []);
+  for (const file of walk(dir)) if (!file.includes(join("ur", "renting", "renting-alpha")))
+    writeFileSync(file, readFileSync(file, "utf8").replaceAll('href="/ur/renting/renting-alpha"', 'href="#"'));
+  ({ errors } = await validate(dir, inv));
+  assert.ok(errors.includes("/ur/renting/renting-alpha: orphan page (no other prerendered page links to it)"), errors.join("\n"));
+  rmSync(dir, { recursive: true });
 });

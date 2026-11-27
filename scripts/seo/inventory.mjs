@@ -87,6 +87,16 @@ export function expectedPages(inventory) {
         alternates: locales.map((alt) => ({ locale: alt, path: localizedGuidePath(alt, domainId) })),
       });
   }
+  // The all-Guides index, in every locale with a published Guide (frontend-only: not in the backend sitemap).
+  const indexLocales = LOCALES.filter((locale) => inventory.lists[locale].length > 0);
+  for (const locale of indexLocales)
+    pages.push({
+      kind: "index", locale, path: `/${locale}/guides`,
+      alternates: indexLocales.map((alt) => ({ locale: alt, path: `/${alt}/guides` })),
+    });
+  // The About and editorial-policy page, in every locale (frontend-only, like the index).
+  const abouts = LOCALES.map((locale) => ({ locale, path: `/${locale}/about` }));
+  for (const about of abouts) pages.push({ kind: "about", ...about, alternates: abouts });
   const homes = LOCALES.map((locale) => ({ locale, path: guideHomePath(locale) }));
   for (const home of homes) pages.push({ kind: "home", ...home, alternates: homes });
   for (const topic of FAMILY_VISA_TOPICS) {

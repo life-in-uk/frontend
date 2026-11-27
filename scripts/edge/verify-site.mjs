@@ -87,7 +87,7 @@ export function releaseExpectations(distDir) {
   return { pages, redirects, spa, shell, notFound, asset };
 }
 
-export async function verifySite({ base, distDir = "dist", host, connectIp, production = false, concurrency = 8, apiDetails = true, log = () => {} }) {
+export async function verifySite({ base, distDir = "dist", host, connectIp, production = false, concurrency = 8, apiDetails = true, sitemapPartial = false, log = () => {} }) {
   const baseUrl = new URL(base);
   const publicHost = host ?? baseUrl.hostname;
   const origin = `https://${publicHost}`;
@@ -264,7 +264,9 @@ export async function verifySite({ base, distDir = "dist", host, connectIp, prod
     const locs = [...decoded(response).toString("utf8").matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]));
     const paths = new Set(locs.map((url) => url.pathname));
     const want = new Set(expect.pages.map((page) => page.path));
-    const missing = [...want].filter((path) => !paths.has(path));
+    // Partial: during a deploy the sitemap may still be the phase-1 one (deploy-site.mjs), which
+    // lists only URLs both releases serve; it must never list a URL this release does not serve.
+    const missing = sitemapPartial ? [] : [...want].filter((path) => !paths.has(path));
     const extra = [...paths].filter((path) => !want.has(path));
     if (missing.length || extra.length) return `${missing.length} missing, ${extra.length} unexpected (e.g. ${[...missing, ...extra].slice(0, 3).join(", ")})`;
     const origins = [...new Set(locs.map((url) => url.origin))];
@@ -307,6 +309,7 @@ function parseArgs(argv) {
     else if (name === "--concurrency") args.concurrency = Number(value());
     else if (name === "--production") args.production = true;
     else if (name === "--skip-api-details") args.apiDetails = false;
+    else if (name === "--sitemap-partial") args.sitemapPartial = true;
     else throw new Error(`unknown option ${name}`);
   }
   if (!args.base) throw new Error("--base is required (for example https://lifeinuk.info)");

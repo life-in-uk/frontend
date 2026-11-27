@@ -14,6 +14,7 @@ import {
   FamilyVisaTopicPage,
   HealthHub,
   LocalizedGuideIndex,
+  AboutPage,
   MoneyHub,
   OwnerEditorialPage,
   RentingHub,
@@ -24,7 +25,8 @@ import {
 import { GUIDE_DOMAINS, UNIVERSITY_CATEGORY } from "./guides/domains";
 import { HOUSEHOLD_CATEGORY } from "./guides/household";
 import { applyGuideSeo, clearGuideSeo, homeAlternates, homeDescription } from "./guides/seo";
-import { GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, textDirection } from "./guides/locales";
+import { GUIDE_LOCALE_LANG, GUIDE_LOCALES, GUIDE_UI, guideHomePath, textDirection } from "./guides/locales";
+import { useAvailableLocales } from "./components/site/pageLanguages";
 import { currentPath, localeSwitchPath, matchRoute, pageRoute, routeLocale, subscribeToLocation } from "./router";
 import type { GuideLocale } from "./guides/locales";
 import { SITE_UI } from "./guides/siteUi";
@@ -40,7 +42,9 @@ function App() {
         ? route.domain
         : route.name === "travel"
           ? "travel"
-          : undefined;
+          : route.name === "about"
+            ? "about"
+            : undefined;
   const hubDomain = route.name === "hub" ? route.domain : undefined;
   const familyVisaHub =
     hubDomain === "family-visa" || (route.name === "localized-hub" && route.domain === "family-visa");
@@ -73,6 +77,14 @@ function App() {
   // them (components/site/pageLanguages.ts) so the others are disabled.
   const headerSwitch =
     route.name === "owner-editorial" ? undefined : (next: GuideLocale) => localeSwitchPath(route, next);
+  // The same languages as plain links in the footer (crawlable; the selector is a <select>).
+  const pageLocales = useAvailableLocales();
+  const footerLanguages = headerSwitch
+    ? GUIDE_LOCALES.filter((candidate) => !pageLocales || pageLocales.includes(candidate)).flatMap((candidate) => {
+        const href = headerSwitch(candidate);
+        return href ? [{ locale: candidate, href }] : [];
+      })
+    : [];
 
   useEffect(() => {
     document.documentElement.lang = GUIDE_LOCALE_LANG[activeLocale];
@@ -171,6 +183,7 @@ function App() {
           <GuidePage key={route.slug} domain={GUIDE_DOMAINS.renting} slug={route.slug} />
         )}
         {route.name === "localized-index" && <LocalizedGuideIndex locale={route.locale} />}
+        {route.name === "about" && <AboutPage locale={route.locale} />}
         {/* Health keeps its editorial landing page and Guide look in every locale. */}
         {route.name === "localized-hub" && route.domain === "health" && <HealthHub key={route.locale} locale={route.locale} />}
         {route.name === "localized-hub" && route.domain === "money" && <MoneyHub key={route.locale} locale={route.locale} />}
@@ -187,7 +200,7 @@ function App() {
         {route.name === "travel" && <TravelPage key={activeLocale} locale={activeLocale} />}
         {route.name === "not-found" && <NotFoundPage locale={activeLocale} />}
       </Suspense>
-      <SiteFooter locale={activeLocale} universityAvailable={universityAvailable} educationAvailable={educationAvailable} householdAvailable={householdAvailable} />
+      <SiteFooter locale={activeLocale} universityAvailable={universityAvailable} educationAvailable={educationAvailable} householdAvailable={householdAvailable} languages={footerLanguages} />
     </>
   );
 }

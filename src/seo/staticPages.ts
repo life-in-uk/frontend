@@ -20,8 +20,12 @@ import { HOUSEHOLD_CATEGORY } from "../guides/household.ts";
 import { UNIVERSITY_CATEGORY, domainGuides, GUIDE_DOMAINS } from "../guides/domains.ts";
 import type { GuideDomain, GuideDomainId } from "../guides/domains.ts";
 import { formatUkDateFor } from "../guides/format.ts";
+import { GUIDE_INDEX_COPY } from "../guides/guideIndex.ts";
+import { ABOUT_CONTENT } from "../about/aboutContent.ts";
+import { groupGuidesByDomain } from "../guides/indexGroups.ts";
 import {
   GUIDE_LOCALE_HREFLANG,
+  GUIDE_LOCALE_LABELS,
   GUIDE_LOCALE_LANG,
   GUIDE_LOCALES,
   GUIDE_UI,
@@ -38,7 +42,7 @@ import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales.ts";
 import { RENTING_COPY, RENTING_MOVE_OUT_STEPS, RENTING_STEPS } from "../guides/rentingJourneyData.ts";
 import { SITE_UI } from "../guides/siteUi.ts";
 import { splitTitleReferences, titleReferencesFor } from "../guides/titleReferences.ts";
-import { guideStructuredData, serializeJsonLd } from "./structuredData.ts";
+import { aboutStructuredData, guideStructuredData, serializeJsonLd } from "./structuredData.ts";
 import { guideNotice } from "../guides/guideNotice.ts";
 import { CLUSTER_COPY, clusterGroupsFor, crossSectionLinksFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
 import type { ResolvedGroup } from "../guides/topicClusters.ts";
@@ -54,6 +58,7 @@ import { FAMILY_VISA_PUBLISHED_STRINGS } from "../guides/familyVisaPublishedWord
 import { JOURNEY_GUIDES } from "../guides/familyVisaJourney.ts";
 import type { GuideAvailability, JourneyGuideId } from "../guides/familyVisaJourney.ts";
 import type { LocalizedJourneyGuides } from "../components/family-visa/localizedJourney.ts";
+import { FAMILY_VISA_STRINGS } from "../guides/familyVisaStringsLocales.ts";
 import { familyVisaTopicPath } from "../router.ts";
 import type { FamilyVisaTopicId } from "../router.ts";
 
@@ -339,7 +344,27 @@ export type StaticHubInput = {
   availableLocales: readonly GuideLocale[];
   /** Full published Guides of this section in this locale, for hub content drawn from them. */
   details?: readonly GuideDetail[];
+  /** Family Visa topic pages prerendered in this locale (their paths), linked from the hub as in the app. */
+  topicPaths?: readonly string[];
 };
+
+/** The Family Visa hub's "special circumstances" links, with the app's wording (FamilyVisaHub.tsx). */
+const FAMILY_VISA_TOPIC_LINKS: Readonly<Record<FamilyVisaTopicId, string>> = {
+  "children-from-previous-relationship": "孩子来自上一段关系，如何准备英国签证材料？",
+};
+
+function familyVisaString(locale: GuideLocale, text: string): string {
+  return locale === "zh-CN" ? text : FAMILY_VISA_STRINGS[locale]?.[text] ?? text;
+}
+
+/** Links to the prerendered topic pages, so the static hub reaches them as the app does. */
+function renderFamilyVisaTopics(locale: GuideLocale, topicPaths: readonly string[]): string {
+  const items = (Object.keys(FAMILY_VISA_TOPIC_LINKS) as FamilyVisaTopicId[])
+    .filter((topic) => topicPaths.includes(familyVisaTopicPath(locale, topic)))
+    .map((topic) => `<li><a href="${escapeHtml(familyVisaTopicPath(locale, topic))}">${escapeHtml(familyVisaString(locale, FAMILY_VISA_TOPIC_LINKS[topic]))}</a></li>`);
+  if (items.length === 0) return "";
+  return `<section class="static-topic" data-topic="special-circumstances"><h2>${escapeHtml(familyVisaString(locale, "特殊情况"))}</h2><ul>${items.join("")}</ul></section>`;
+}
 
 const QUICK_ANSWERS_TITLE: Localized = {
   "zh-CN": "常见问题的简短回答",
@@ -451,6 +476,7 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
         ? renderEducationSections(guides, locale, input.published, domain)
         : renderGuideList(guides, locale, domain),
     pathways ? `<p><a href="${guideRoutePath(locale, "work-visa", pathways.slug)}">${escapeHtml(pathways.title)}</a></p>` : "",
+    domain.id === "family-visa" ? renderFamilyVisaTopics(locale, input.topicPaths ?? []) : "",
     `</main>`,
   ].join("\n");
   const head: PageHead = {
@@ -462,6 +488,76 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
       locale: candidate,
       href: absolute(origin, localizedGuidePath(candidate, domain.id)),
     })),
+  };
+  return { head, body: html };
+}
+
+export type StaticIndexInput = {
+  origin: string;
+  locale: GuideLocale;
+  /** Published Guides in this locale (all sections). */
+  published: readonly GuideMetadata[];
+  /** Locales with at least one published Guide (for hreflang). */
+  availableLocales: readonly GuideLocale[];
+};
+
+/** The all-Guides index as a static page: every published Guide of the locale, grouped by section as in the app. */
+export function staticIndexPage(input: StaticIndexInput): StaticPage | null {
+  const { origin, locale, published } = input;
+  if (published.length === 0) return null;
+  const copy = GUIDE_INDEX_COPY[locale];
+  const groups = groupGuidesByDomain(published);
+  const jump = groups
+    .map(({ domain }) => `<li><a href="#guides-${escapeHtml(domain)}">${escapeHtml(GUIDE_UI[locale].domain[domain])}</a></li>`)
+    .join("");
+  const sections = groups.map(({ domain, guides }) => {
+    const items = guides
+      .map((guide) => `<li><a href="${escapeHtml(guideRoutePath(locale, domain, guide.slug))}">${escapeHtml(guide.title)}</a><p>${escapeHtml(guide.summary)}</p></li>`)
+      .join("");
+    return `<section class="static-topic" id="guides-${escapeHtml(domain)}"><h2>${escapeHtml(GUIDE_UI[locale].domain[domain])}</h2>`
+      + `<p><a href="${escapeHtml(localizedGuidePath(locale, domain))}">${escapeHtml(copy.open)}</a></p><ul>${items}</ul></section>`;
+  }).join("");
+  const html = [
+    renderSiteNav(locale, published),
+    `<main id="main" class="static-page static-index">`,
+    `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><a href="${guideHomePath(locale)}">${escapeHtml(GUIDE_UI[locale].home)}</a></nav>`,
+    `<h1>${escapeHtml(copy.title)}</h1>`,
+    `<p class="static-summary">${escapeHtml(copy.description)}</p>`,
+    `<nav aria-label="${escapeHtml(copy.topics)}"><h2>${escapeHtml(copy.topics)}</h2><ul>${jump}</ul></nav>`,
+    sections,
+    `</main>`,
+  ].join("\n");
+  const head: PageHead = {
+    locale,
+    title: `${copy.title} · Life in UK`,
+    description: copy.description,
+    canonical: absolute(origin, `/${locale}/guides`),
+    alternates: GUIDE_LOCALES.filter((candidate) => input.availableLocales.includes(candidate))
+      .map((candidate) => ({ locale: candidate, href: absolute(origin, `/${candidate}/guides`) })),
+  };
+  return { head, body: html };
+}
+
+/** The About and editorial-policy page as a static page (the same copy as the app, src/about/aboutContent.ts). */
+export function staticAboutPage(input: { origin: string; locale: GuideLocale; published: readonly GuideMetadata[] }): StaticPage {
+  const { origin, locale } = input;
+  const copy = ABOUT_CONTENT[locale];
+  const html = [
+    renderSiteNav(locale, input.published),
+    `<main id="main" class="static-page static-about">`,
+    `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><a href="${guideHomePath(locale)}">${escapeHtml(GUIDE_UI[locale].home)}</a></nav>`,
+    `<h1>${escapeHtml(copy.title)}</h1>`,
+    ...copy.intro.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`),
+    ...copy.sections.map((section) => `<section id="${escapeHtml(section.id)}"><h2>${escapeHtml(section.heading)}</h2>${section.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</section>`),
+    `</main>`,
+  ].join("\n");
+  const head: PageHead = {
+    locale,
+    title: `${copy.title} · Life in UK`,
+    description: copy.description,
+    canonical: absolute(origin, `/${locale}/about`),
+    alternates: GUIDE_LOCALES.map((candidate) => ({ locale: candidate, href: absolute(origin, `/${candidate}/about`) })),
+    structuredData: aboutStructuredData({ origin, locale, title: copy.title, description: copy.description }),
   };
   return { head, body: html };
 }
@@ -629,12 +725,30 @@ export function staticTopicPage(input: TopicInput & { origin: string; published:
  * direction, title, head tags, and the page markup inside #root (React
  * replaces it when the app starts).
  */
+/**
+ * The page in each of its languages as plain links (the app footer has the same
+ * list), so every language version is reachable by a link, not only by hreflang.
+ */
+export function renderLanguageLinks(head: PageHead): string {
+  const about = `<p><a href="/${head.locale}/about">${escapeHtml(SITE_UI[head.locale].about)}</a></p>`;
+  if (head.alternates.length < 2) return `<footer class="static-footer">${about}</footer>`;
+  const items = head.alternates.map(({ locale, href }) => {
+    const attrs = `lang="${GUIDE_LOCALE_LANG[locale]}" dir="${textDirection(locale)}"`;
+    return locale === head.locale
+      ? `<li><span aria-current="page" ${attrs}>${escapeHtml(GUIDE_LOCALE_LABELS[locale])}</span></li>`
+      : `<li><a href="${escapeHtml(new URL(href).pathname)}" hreflang="${GUIDE_LOCALE_HREFLANG[locale]}" ${attrs}>${escapeHtml(GUIDE_LOCALE_LABELS[locale])}</a></li>`;
+  }).join("");
+  const label = escapeHtml(GUIDE_UI[head.locale].language);
+  return `<footer class="static-footer">${about}<nav aria-label="${label}"><h2>${label}</h2><ul>${items}</ul></nav></footer>`;
+}
+
 export function fillTemplate(template: string, page: StaticPage): string {
   const { locale } = page.head;
+  const body = page.body + renderLanguageLinks(page.head);
   const html = template
     .replace(/<html lang="[^"]*"( dir="[^"]*")?>/, `<html lang="${GUIDE_LOCALE_LANG[locale]}" dir="${textDirection(locale)}">`)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(page.head.title)}</title>\n    ${renderHead(page.head)}`)
-    .replace('<div id="root"></div>', `<div id="root">${page.body}</div>`);
-  if (!html.includes(`<div id="root">${page.body}`)) throw new Error("index.html template has no empty #root");
+    .replace('<div id="root"></div>', `<div id="root">${body}</div>`);
+  if (!html.includes(`<div id="root">${body}`)) throw new Error("index.html template has no empty #root");
   return html;
 }
