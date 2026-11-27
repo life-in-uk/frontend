@@ -5,7 +5,7 @@
 // reference static host must follow the documented hosting contract.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expectedPages } from "../scripts/seo/inventory.mjs";
@@ -478,4 +478,21 @@ test("Household hubs and details use the published locale inventory and canonica
   } finally {
     rmSync(dir, { recursive: true });
   }
+});
+
+test("every page links its other language versions, and a page no other page links to fails the release", async () => {
+  const inv = inventory(BASE);
+  const dir = await build(inv);
+  const en = join(dir, "en", "renting", "renting-alpha", "index.html");
+  assert.match(readFileSync(en, "utf8"), /<footer class="static-footer">[\s\S]*href="\/ur\/renting\/renting-alpha" hreflang="ur"/);
+  writeFileSync(en, readFileSync(en, "utf8").replace(/<footer class="static-footer">[\s\S]*?<\/footer>/, ""));
+  let { errors } = await validate(dir, inv);
+  assert.ok(errors.includes("/en/renting/renting-alpha: no link to its ur version /ur/renting/renting-alpha"), errors.join("\n"));
+  // Remove every link to the Urdu page: it becomes an orphan.
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(join(d, e.name)) : e.name === "index.html" ? [join(d, e.name)] : []);
+  for (const file of walk(dir)) if (!file.includes(join("ur", "renting", "renting-alpha")))
+    writeFileSync(file, readFileSync(file, "utf8").replaceAll('href="/ur/renting/renting-alpha"', 'href="#"'));
+  ({ errors } = await validate(dir, inv));
+  assert.ok(errors.includes("/ur/renting/renting-alpha: orphan page (no other prerendered page links to it)"), errors.join("\n"));
+  rmSync(dir, { recursive: true });
 });

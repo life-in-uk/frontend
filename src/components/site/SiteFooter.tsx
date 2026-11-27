@@ -1,11 +1,14 @@
 import { availableHomeTopics, topicHref } from "../../home/topics";
 import { Link } from "../Link";
-import { guideHomePath, type GuideLocale } from "../../guides/locales";
+import { GUIDE_LOCALE_HREFLANG, GUIDE_LOCALE_LABELS, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { SITE_UI } from "../../guides/siteUi";
 import "./Site.css";
 
-/** Shared site footer: section navigation, About and the independence note. */
-export function SiteFooter({ locale = "zh-CN", universityAvailable = false, educationAvailable = false, householdAvailable = false }: { locale?: GuideLocale; universityAvailable?: boolean; educationAvailable?: boolean; householdAvailable?: boolean }) {
+/** This page in another language: a plain link, so every language version is reachable by links. */
+export type LanguageLink = { locale: GuideLocale; href: string };
+
+/** Shared site footer: section navigation, About, this page's languages and the independence note. */
+export function SiteFooter({ locale = "zh-CN", universityAvailable = false, educationAvailable = false, householdAvailable = false, languages = [] }: { locale?: GuideLocale; universityAvailable?: boolean; educationAvailable?: boolean; householdAvailable?: boolean; languages?: readonly LanguageLink[] }) {
   const ui = SITE_UI[locale];
   const home = guideHomePath(locale);
   const about = home === "/" ? "/#about" : `${home}#about`;
@@ -69,6 +72,26 @@ export function SiteFooter({ locale = "zh-CN", universityAvailable = false, educ
               </li>
             </ul>
           </div>
+          {languages.length > 1 && (
+            <div>
+              <h2>{GUIDE_UI[locale].language}</h2>
+              <ul>
+                {languages.map((language) => (
+                  <li key={language.locale}>
+                    {language.locale === locale ? (
+                      <span aria-current="page" lang={GUIDE_LOCALE_LANG[language.locale]} dir={textDirection(language.locale)}>
+                        {GUIDE_LOCALE_LABELS[language.locale]}
+                      </span>
+                    ) : (
+                      <Link to={language.href} hrefLang={GUIDE_LOCALE_HREFLANG[language.locale]} lang={GUIDE_LOCALE_LANG[language.locale]} dir={textDirection(language.locale)}>
+                        {GUIDE_LOCALE_LABELS[language.locale]}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </nav>
       </div>
       <div className="site-footer-bottom">
