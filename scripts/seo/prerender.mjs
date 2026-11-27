@@ -36,6 +36,7 @@ export async function prerender({ distDir, origin, inventory }) {
             })
           : staticHubPage({
               origin, locale: page.locale, domainId: page.domainId, published, availableLocales,
+              topicPaths: pages.filter((other) => other.kind === "topic" && other.locale === page.locale).map((other) => other.path),
               details: [...inventory.details[page.locale].values()].filter((guide) => published.some((meta) => meta.slug === guide.slug && meta.category === guide.category)),
             });
     if (!rendered) throw new Error(`No content for required page ${page.path}`);
