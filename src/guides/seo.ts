@@ -30,6 +30,15 @@ export function guideAlternates(
 }
 
 /** A topic hub in every locale (/{locale}/{domain}); hubs exist in all five. */
+/**
+ * A section hub's alternates as the page itself declares them: on a prerendered
+ * hub, only the languages its hreflang links list (a section need not be
+ * published in every language); otherwise every language, as before.
+ */
+export function pageHubAlternates(origin: string, domain: string, known: readonly GuideLocale[] | undefined): AlternatePage[] {
+  return hubAlternates(origin, domain).filter(({ locale }) => !known || known.includes(locale));
+}
+
 export function hubAlternates(origin: string, domain: string): AlternatePage[] {
   return GUIDE_LOCALES.map((locale) => ({ locale, href: new URL(localizedGuidePath(locale, domain), origin).href }));
 }

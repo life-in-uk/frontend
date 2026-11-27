@@ -55,6 +55,11 @@ jobs:
       - name: Release build (type-check, prerender, SEO validation)
         run: npm run build:release
 
+      - name: Rendered SEO (Chrome on a site built from recorded API fixtures; no production requests)
+        env:
+          PLAYWRIGHT_CHANNEL: chrome
+        run: node tests/seo-rendered.ci.mjs
+
       - name: Release output (local URLs, noindex, build origin and API, robots.txt)
         run: node scripts/ci/check-release-output.mjs --expect-api "$API_BASE"
 
