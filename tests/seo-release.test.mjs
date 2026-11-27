@@ -69,10 +69,11 @@ test("a correct release build validates, with counts taken from the inventory", 
   const { errors, report } = await validate(dir, inv);
   assert.deepEqual(errors, []);
   // Guides: alpha ×3 locales, beta ×1, GP ×2. Hubs: renting zh-CN/en/ur, health zh-CN/en. Home pages: always five.
-  // No Family & Visa Guide is published, so no topic page. zh-CN short URLs: 3 Guides + 2 hubs (alias pages) + the root.
-  assert.deepEqual(report.expected, { guides: 6, hubs: 5, homes: 5, topics: 0, aliases: 6 });
-  assert.deepEqual(report.valid, { guide: 6, hub: 5, home: 5, topic: 0, alias: 5 });
-  assert.equal(report.redirects, 6);
+  // No Family & Visa Guide is published, so no topic page. Guide indexes: zh-CN, en, ur (the locales with a Guide).
+  // zh-CN short URLs: 3 Guides + 2 hubs + the index (alias pages) + the root.
+  assert.deepEqual(report.expected, { guides: 6, hubs: 5, homes: 5, topics: 0, indexes: 3, aliases: 7 });
+  assert.deepEqual(report.valid, { guide: 6, hub: 5, home: 5, topic: 0, index: 3, alias: 6 });
+  assert.equal(report.redirects, 7);
   rmSync(dir, { recursive: true });
 });
 
@@ -81,7 +82,7 @@ test("growing the inventory grows the expected pages; no total is hardcoded", as
   const dir = await build(inv);
   const { errors, report } = await validate(dir, inv);
   assert.deepEqual(errors, []);
-  assert.deepEqual(report.expected, { guides: 8, hubs: 6, homes: 5, topics: 0, aliases: 7 });
+  assert.deepEqual(report.expected, { guides: 8, hubs: 6, homes: 5, topics: 0, indexes: 4, aliases: 8 });
   rmSync(dir, { recursive: true });
 });
 
@@ -150,6 +151,7 @@ test("zh-CN short URLs: canonical on /zh-CN/…, a 301 in the manifest, never a 
   const manifest = JSON.parse(readFileSync(join(dir, REDIRECTS_FILE), "utf8")).redirects;
   assert.deepEqual(manifest.map((row) => `${row.from} ${row.to} ${row.status}`), [
     "/ /zh-CN 301",
+    "/guides /zh-CN/guides 301",
     "/health /zh-CN/health 301",
     "/health/registering-with-a-gp /zh-CN/health/registering-with-a-gp 301",
     "/renting /zh-CN/renting 301",
@@ -318,8 +320,11 @@ test("university Guides add five-language pages and only published locale hubs",
   ]));
   const inv = inventory(spec);
   const pages = expectedPages(inv);
-  assert.deepEqual(pages.filter((row) => row.domainId !== category), baseline);
-  assert.equal(pages.length - baseline.length, 50);
+  // Guide indexes follow the published locales (two more here), so they are compared separately.
+  const withoutIndex = (rows) => rows.filter((row) => row.kind !== "index");
+  assert.deepEqual(withoutIndex(pages).filter((row) => row.domainId !== category), withoutIndex(baseline));
+  assert.equal(withoutIndex(pages).length - withoutIndex(baseline).length, 50);
+  assert.deepEqual(pages.filter((row) => row.kind === "index").map((row) => row.path), locales.map((locale) => `/${locale}/guides`));
   const { matchRoute, localeSwitchPath } = await import("../src/router.ts");
   const path = `/ur/${category}/university-fixture-0`;
   const route = matchRoute(path);
