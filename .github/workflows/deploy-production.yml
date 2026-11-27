@@ -195,6 +195,14 @@ jobs:
             scripts/edge/publish-sitemap.mjs
           sparse-checkout-cone-mode: false
 
+      # deploy-site and preflight-site refuse a release whose working tree is not clean, and the
+      # tooling checkout above is an untracked directory inside it. Exclude it in .git/info/exclude
+      # (not .gitignore), so this also holds when rolling back to a commit that predates it.
+      - name: Keep the tooling checkout out of the release's git status
+        run: |
+          echo "/tooling/" >> "$(git rev-parse --git-path info/exclude)"
+          test -z "$(git status --porcelain)" || { git status --porcelain; exit 1; }
+
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -212,6 +220,7 @@ jobs:
 
       - name: Re-check the release before any AWS access
         run: |
+          set -o pipefail # a failed release check must fail this step, not be hidden by tail
           node scripts/ci/check-release-output.mjs --expect-api "$API_BASE"
           node scripts/edge/deploy-site.mjs --bucket "$SITE_BUCKET" --distribution "$DISTRIBUTION" --function "$FUNCTION" | tail -n 3
         env:
