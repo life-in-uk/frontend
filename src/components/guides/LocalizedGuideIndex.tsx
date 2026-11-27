@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, CalendarDays, GraduationCap, House } from "lucide-react";
-import { getLocalizedGuides } from "../../guides/api";
+import { getLocalizedGuides, startupAlternateLocales } from "../../guides/api";
+import { currentPath } from "../../router";
 import type { GuideMetadata } from "../../guides/api";
 import { EDUCATION_COPY, educationSections } from "../../guides/education";
 import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY, HOUSEHOLD_SECTIONS, householdSections } from "../../guides/household";
@@ -34,7 +35,8 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
   const household = domain === HOUSEHOLD_CATEGORY;
   const description = education?.description ?? (household ? HOUSEHOLD_COPY[locale].description
     : domain === UNIVERSITY_CATEGORY ? UNIVERSITY_COPY[locale].description : strings.description);
-  const [available, setAvailable] = useState<GuideLocale[]>([locale]);
+  // On a prerendered hub its hreflang links already say which languages it has.
+  const [available, setAvailable] = useState<GuideLocale[]>(() => startupAlternateLocales(currentPath()) ?? [locale]);
   // A section hub exists only in languages with a published Guide there; the all-Guides index in all.
   useReportAvailableLocales(domain ? available : undefined);
   useEffect(() => {
@@ -56,6 +58,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
 
   useEffect(() => {
     if (!domain || state.status !== "ready" || state.guides.length === 0) return;
+    if (startupAlternateLocales(currentPath())?.includes(locale)) return;
     const controller = new AbortController();
     const other = GUIDE_LOCALES.filter((candidate) => candidate !== locale);
     Promise.allSettled(other.map(async (candidate) => {
@@ -71,6 +74,13 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
 
   useEffect(() => {
     if (domain && state.status === "loading") return;
+    // A failed request says nothing about the hub: keep its head tags (prerendered,
+    // if any) rather than marking it noindex. Only a hub with no Guides is noindex.
+    if (state.status === "error") {
+      document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
+      document.documentElement.dir = textDirection(locale);
+      return;
+    }
     const canonicalPath = domain ? localizedGuidePath(locale, domain) : `/${locale}/guides`;
     const origin = window.location.origin;
     const hasContent = !domain || (state.status === "ready" && state.guides.length > 0);

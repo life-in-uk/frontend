@@ -411,7 +411,7 @@
 }
 .site-footer-nav {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   gap: 32px;
 }
 .site-footer-nav h2 {
@@ -427,6 +427,7 @@
 }
 /* Links wrap as text (a flex row split "NHS 111" from its note into two columns on phones). */
 .site-footer-nav a,
+.site-footer-nav [aria-current="page"],
 .site-footer-upcoming {
   display: inline-block;
   padding-block: 7px;
@@ -440,6 +441,11 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
+}
+/* The page's own language in the language list: same type, marked as current. */
+.site-footer-nav [aria-current="page"] {
+  font-weight: 600;
+  color: #fff;
 }
 .site-footer-nav a:hover {
   color: #fff;

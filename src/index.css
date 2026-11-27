@@ -152,7 +152,8 @@ main:has(.page-loading) {
 /* Prerendered pages (scripts/prerender.mjs): readable before or without
    JavaScript; the app replaces this markup when it starts. */
 .static-header,
-.static-page {
+.static-page,
+.static-footer {
   width: min(100% - 32px, 760px);
   margin-inline: auto;
   overflow-wrap: anywhere;
@@ -174,6 +175,22 @@ main:has(.page-loading) {
 }
 .static-page {
   padding-block: 24px 48px;
+}
+.static-footer {
+  padding-block: 16px 32px;
+  border-top: 1px solid var(--color-border);
+}
+.static-footer h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.static-footer ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
 }
 .static-page h1 {
   margin-block: 12px;
