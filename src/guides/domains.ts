@@ -168,6 +168,11 @@ export const WORK_VISA_GUIDE_DOMAIN: GuideDomain = {
     "skilled-worker-english-documents": ["skilled-worker-switch-extend-change-employer", "skilled-worker-dependants"],
     "skilled-worker-switch-extend-change-employer": ["skilled-worker-english-documents", "skilled-worker-job-loss-sponsorship-ends", "graduate-visa-uk"],
     "uk-options-after-graduation": ["skilled-worker-switch-extend-change-employer"],
+    // The four sponsored-work Guides: each links only Guides its own text links to.
+    "find-uk-jobs-with-visa-sponsorship": ["check-skilled-worker-job-offer", "skilled-worker-sponsorship-cos", "graduate-visa-uk"],
+    "check-skilled-worker-job-offer": ["find-uk-jobs-with-visa-sponsorship", "skilled-worker-occupations-salary", "graduate-visa-uk"],
+    "health-and-care-worker-visa": ["adult-social-care-worker-sponsorship", "skilled-worker-switch-extend-change-employer", "skilled-worker-settlement-ilr"],
+    "adult-social-care-worker-sponsorship": ["health-and-care-worker-visa", "uk-options-after-graduation"],
     "graduate-visa-uk": ["skilled-worker-switch-extend-change-employer"],
     "skilled-worker-job-loss-sponsorship-ends": ["skilled-worker-switch-extend-change-employer", "skilled-worker-settlement-ilr"],
     "skilled-worker-dependants": ["skilled-worker-occupations-salary", "skilled-worker-settlement-ilr"],
