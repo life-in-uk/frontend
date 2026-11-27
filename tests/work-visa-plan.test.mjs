@@ -136,3 +136,14 @@ test(
     }
   },
 );
+
+test("every Work Visa Guide has curated related Guides, all of them Work Visa Guides", () => {
+  const related = GUIDE_DOMAINS["work-visa"].relatedGuides;
+  for (const slug of WORK_VISA_SLUGS) {
+    assert.ok(related[slug]?.length >= 1, `${slug}: related Guides`);
+    for (const target of related[slug]) {
+      assert.ok(WORK_VISA_SLUGS.includes(target), `${slug} -> ${target}: a Work Visa Guide`);
+      assert.notEqual(target, slug);
+    }
+  }
+});
