@@ -29,7 +29,9 @@ import {
   textDirection,
   type GuideLocale,
 } from "../../guides/locales";
-import { applyGuideSeo, clearGuideSeo, hubAlternates } from "../../guides/seo";
+import { applyGuideSeo, clearGuideSeo, pageHubAlternates } from "../../guides/seo";
+import { startupAlternateLocales } from "../../guides/api";
+import { currentPath } from "../../router";
 import { Link } from "../Link";
 import { CategoryArt } from "./CategoryArt";
 import "./Health.css";
@@ -294,7 +296,7 @@ export function HealthHub({ locale = "zh-CN" }: { locale?: GuideLocale }) {
       canonical: new URL(localizedGuidePath(locale, "health"), window.location.origin).href,
       title: `${GUIDE_UI[locale].domain.health} · Life in UK`,
       description: copy.lead,
-      alternates: hubAlternates(window.location.origin, "health"),
+      alternates: pageHubAlternates(window.location.origin, "health", startupAlternateLocales(currentPath())),
     });
     return () => clearGuideSeo();
   }, [locale, translatedPage, copy]);
