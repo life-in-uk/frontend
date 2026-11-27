@@ -1,7 +1,9 @@
 # Edge function capacity: options (SEO audit F10)
 
-Status: **proposal only. Nothing here is implemented, and no AWS resource is
-changed without owner approval.**
+Status: **Option A approved and implemented** (PR "Edge: hashed page set").
+Measured on the 460-page release, the function went from 8,603 to 6,094
+bytes; the page set went from 3,973 bytes to 736 (8 per entry). Option B
+(KeyValueStore) is not introduced.
 
 ## The limit
 

@@ -235,7 +235,7 @@ test("the generator refuses builds whose redirects disagree with their pages, an
   writeFileSync(file, JSON.stringify({ ...manifest, redirects: [...manifest.redirects, { from: "/money", to: "/zh-CN/money", status: 301 }] }));
   assert.throws(() => generateViewerRequest({ distDir: dir }), /\/money: expected 301 to \/zh-CN\/money/);
   writeFileSync(file, JSON.stringify(manifest));
-  assert.throws(() => generateViewerRequest({ distDir: dir, maxBytes: 2000 }), /KeyValueStore/);
+  assert.throws(() => generateViewerRequest({ distDir: dir, maxBytes: 2000 }), /CloudFront Functions limit/);
   rmSync(dir, { recursive: true });
 });
 
