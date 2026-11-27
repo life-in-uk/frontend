@@ -8,12 +8,14 @@
 // Per request it does what the CloudFront distribution does:
 //   1. runs the viewer-request function (generated from dist/, as on deploy);
 //   2. a generated response (301, 404) is returned as is;
-//   3. /api/*, /sitemap.xml and /robots.txt go to the backend unchanged, and
+//   3. /api/* and /robots.txt go to the backend unchanged, and
 //      its status, headers and body come back unchanged: the distribution
 //      has no custom error responses, so API JSON errors survive;
 //   4. everything else is an S3 GetObject of the (rewritten) key from the
 //      upload set, with the upload's Content-Type and Cache-Control; a missing
 //      key is S3's 404 NoSuchKey (the bucket policy grants s3:ListBucket).
+//      That includes /sitemap.xml: the release's own sitemap, as once the
+//      CloudFront /sitemap.xml behaviour is removed (docs/seo/frontend-sitemap.md).
 // Not emulated: TLS, compression of S3 objects and edge caching.
 import { createServer, request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
@@ -23,7 +25,7 @@ import { fileURLToPath } from "node:url";
 import { uploadObjects } from "./objects.mjs";
 import { generateViewerRequest, loadViewerRequest } from "./viewer-request.mjs";
 
-const API_PATH = (path) => path.startsWith("/api/") || path === "/sitemap.xml" || path === "/robots.txt";
+const API_PATH = (path) => path.startsWith("/api/") || path === "/robots.txt";
 const FORWARDED = ["accept", "accept-encoding", "accept-language", "user-agent", "if-none-match", "if-modified-since"];
 const RETURNED = ["content-type", "content-encoding", "cache-control", "vary", "etag", "last-modified", "location"];
 
