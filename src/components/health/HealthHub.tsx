@@ -143,7 +143,7 @@ const COPY: Record<GuideLocale, HubCopy> = {
     groups: {
       start: { title: "New to the UK? Start here", description: "Whether healthcare costs money, how to register with a GP, and what to do when family visit." },
       "ill-now": { title: "I'm unwell now", description: "When you feel unwell, first work out who to go to." },
-      medicines: { title: "Medicines and long-term conditions", description: "Buying medicines, prescriptions, medical and vaccination records brought from China, and language help when seeing a doctor." },
+      medicines: { title: "Medicines and long-term conditions", description: "Prescriptions, medicines you already take, and how to ask for an interpreter. There is also a separate Guide for medical and vaccination records issued in China." },
       dental: { title: "Teeth", description: "Routine dental care and sudden toothache are two different routes." },
       other: { title: "More health guides", description: "" },
     },
@@ -170,7 +170,7 @@ const COPY: Record<GuideLocale, HubCopy> = {
     groups: {
       start: { title: "برطانیہ نئے آئے ہیں؟ یہاں سے شروع کریں", description: "علاج کے پیسے لگتے ہیں یا نہیں، GP کے ساتھ رجسٹریشن کیسے ہو، اور گھر والے ملنے آئیں تو کیا کریں۔" },
       "ill-now": { title: "میں ابھی بیمار ہوں", description: "طبیعت خراب ہو تو پہلے یہ سمجھیں کہ کس کے پاس جانا ہے۔" },
-      medicines: { title: "دوائیں اور طویل مدتی بیماریاں", description: "دوائیں خریدنا، نسخے، چین سے لائے گئے میڈیکل اور ویکسینیشن ریکارڈ، اور ڈاکٹر کے پاس زبان کے لیے مدد۔" },
+      medicines: { title: "دوائیں اور طویل مدتی بیماریاں", description: "نسخوں، پہلے سے استعمال کی جانے والی دواؤں اور ترجمان مانگنے کے بارے میں رہنمائی۔ چین میں جاری طبی اور ویکسینیشن ریکارڈ کے لیے الگ رہنمائی بھی ہے۔" },
       dental: { title: "دانت", description: "دانتوں کا معمول کا علاج اور اچانک دانت کا درد، دونوں کے راستے الگ ہیں۔" },
       other: { title: "صحت سے متعلق مزید رہنمائی", description: "" },
     },
@@ -197,7 +197,7 @@ const COPY: Record<GuideLocale, HubCopy> = {
     groups: {
       start: { title: "ब्रिटेन में नए हैं? यहाँ से शुरू करें", description: "इलाज का ख़र्च लगता है या नहीं, GP के साथ रजिस्ट्रेशन कैसे करें, और परिवार वाले मिलने आएँ तो क्या करें।" },
       "ill-now": { title: "मैं अभी बीमार हूँ", description: "तबीयत ख़राब हो तो पहले यह समझें कि किसके पास जाना है।" },
-      medicines: { title: "दवाइयाँ और लंबी बीमारियाँ", description: "दवाइयाँ ख़रीदना, पर्चे, चीन से लाए गए मेडिकल और टीकाकरण रिकॉर्ड, और डॉक्टर के पास भाषा संबंधी मदद।" },
+      medicines: { title: "दवाइयाँ और लंबी बीमारियाँ", description: "पर्चों, पहले से ली जा रही दवाइयों और दुभाषिया माँगने की जानकारी। चीन में जारी मेडिकल और टीकाकरण रिकॉर्ड के लिए अलग गाइड भी है।" },
       dental: { title: "दाँत", description: "दाँतों की नियमित देखभाल और अचानक दाँत दर्द, दोनों के रास्ते अलग हैं।" },
       other: { title: "स्वास्थ्य से जुड़ी और मार्गदर्शिकाएँ", description: "" },
     },
