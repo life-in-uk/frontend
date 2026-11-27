@@ -18,7 +18,7 @@ import { resolveReleaseOrigin } from "./seo/origin.mjs";
 import { prerender } from "./seo/prerender.mjs";
 import { withRetryOn429 } from "./seo/retry.mjs";
 import { writeRedirects } from "./seo/redirects.mjs";
-import { RELEASE_PAGES_FILE, renderReleasePages, renderSitemap, SITEMAP_FILE, sitemapEntries } from "./seo/sitemap.mjs";
+import { checkEmbeddedReleasePages, embedReleasePages, RELEASE_PAGES_FILE, renderReleasePages, renderSitemap, SITEMAP_FILE, sitemapEntries } from "./seo/sitemap.mjs";
 import { formatReport, validateSeoOutput } from "./seo/validate.mjs";
 
 const API = (process.env.API_BASE || "http://127.0.0.1:8188").replace(/\/$/, "");
@@ -74,6 +74,9 @@ try {
   const entries = sitemapEntries(DIST, origin);
   writeFileSync(resolve(DIST, SITEMAP_FILE), renderSitemap(entries), "utf8");
   writeFileSync(resolve(DIST, RELEASE_PAGES_FILE), renderReleasePages(entries), "utf8");
+  // The same list embedded in the release, so every page knows its own release's pages.
+  const embedded = embedReleasePages(DIST, entries);
+  console.log(`  release page list embedded as ${embedded}`);
   console.log(`  ${written.length} HTML files, ${redirects.length} redirects, sitemap of ${entries.length} URLs (${entries.filter((entry) => entry.lastmod).length} with lastmod)`);
   console.log("▶ Validate");
   const { errors, report } = await validateSeoOutput({ distDir: DIST, inventory, origin, release: true });
@@ -85,6 +88,7 @@ try {
   for (const page of expectedPages(inventory))
     if (!listed.has(`${origin}${page.path}`)) errors.push(`${SITEMAP_FILE} is missing ${page.path}`);
   if (listed.size !== expectedPages(inventory).length) errors.push(`${SITEMAP_FILE} lists ${listed.size} URLs for ${expectedPages(inventory).length} canonical pages`);
+  errors.push(...checkEmbeddedReleasePages(DIST, expectedPages(inventory).map((page) => page.path)));
   report.errors = errors.length;
   console.log(formatReport(report, errors));
   if (sitemap.count !== undefined) console.log(`  Backend sitemap URLs: ${sitemap.count}`);

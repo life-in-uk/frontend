@@ -13,8 +13,9 @@
 //   1. Before the new edge function goes live: only URLs that both the release
 //      being replaced and the new one serve (transitionEntries).
 //   2. After the public site has been verified: the full sitemap.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 
 export const SITEMAP_FILE = "sitemap.xml";
 /**
@@ -110,4 +111,63 @@ export function releasePageLocs(json, origin) {
   const data = JSON.parse(json);
   if (!Array.isArray(data?.pages)) throw new Error(`${RELEASE_PAGES_FILE} has no pages array`);
   return new Set(data.pages.map((path) => `${origin}${path}`));
+}
+
+/** The meta element that binds every HTML file of a release to its embedded page list. */
+export const RELEASE_PAGES_META = "release-pages";
+
+function htmlFiles(distDir) {
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const file = join(dir, entry.name);
+      if (entry.isDirectory()) { if (entry.name !== "assets") walk(file); }
+      else if (entry.name.endsWith(".html")) files.push(file);
+    }
+  };
+  walk(distDir);
+  return files;
+}
+
+/**
+ * Embeds the release's page list in the release: an immutable, content-hashed
+ * asset (/assets/release-pages-<hash>.json), named by a <meta> in every HTML
+ * file of dist/ (pages, the app shell, the 404 page). A page therefore always
+ * knows the page set of the release that served it, also in an open tab after
+ * a later deploy (earlier assets stay available for days). Idempotent.
+ */
+export function embedReleasePages(distDir, entries) {
+  const body = renderReleasePages(entries);
+  const hash = createHash("sha256").update(body).digest("hex").slice(0, 16);
+  const url = `/assets/release-pages-${hash}.json`;
+  mkdirSync(join(distDir, "assets"), { recursive: true });
+  writeFileSync(join(distDir, url.slice(1)), body, "utf8");
+  const tag = `<meta name="${RELEASE_PAGES_META}" content="${url}">`;
+  for (const file of htmlFiles(distDir)) {
+    const html = readFileSync(file, "utf8").replace(/\s*<meta name="release-pages" content="[^"]*">/g, "");
+    if (!html.includes("<head>")) throw new Error(`${relative(distDir, file).split(sep).join("/")}: no <head>`);
+    writeFileSync(file, html.replace("<head>", `<head>\n    ${tag}`), "utf8");
+  }
+  return url;
+}
+
+/** Problems with the embedded page list of a release: every HTML file names the same list, and it lists exactly `paths`. */
+export function checkEmbeddedReleasePages(distDir, paths) {
+  const errors = [];
+  const urls = new Map();
+  for (const file of htmlFiles(distDir)) {
+    const found = [...readFileSync(file, "utf8").matchAll(/<meta name="release-pages" content="([^"]*)">/g)].map((m) => m[1]);
+    const where = relative(distDir, file).split(sep).join("/");
+    if (found.length !== 1) errors.push(`${where}: expected one release-pages meta, found ${found.length}`);
+    else urls.set(found[0], [...(urls.get(found[0]) ?? []), where]);
+  }
+  if (urls.size > 1) errors.push(`HTML files name ${urls.size} different release page lists`);
+  for (const url of urls.keys()) {
+    const file = join(distDir, url.replace(/^\//, ""));
+    if (!/^\/assets\/release-pages-[0-9a-f]{16}\.json$/.test(url) || !existsSync(file)) { errors.push(`${url}: missing`); continue; }
+    const listed = JSON.parse(readFileSync(file, "utf8")).pages;
+    const want = [...paths].sort();
+    if (JSON.stringify([...listed].sort()) !== JSON.stringify(want)) errors.push(`${url}: does not list exactly the ${want.length} canonical pages`);
+  }
+  return errors;
 }

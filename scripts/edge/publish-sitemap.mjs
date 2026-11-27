@@ -7,7 +7,9 @@
 //   node scripts/edge/publish-sitemap.mjs --phase full       --dist dist --bucket <b> --distribution <id> [--execute]
 //
 // transition (before the deploy switches the edge function): replace both with
-//   the pages that both the live release and the new one serve. Pages the new
+//   the pages that both the live release and the new one serve, and wait until
+//   their invalidation has completed, so no edge still serves the previous ones
+//   when the function switches. Pages the new
 //   release withdraws leave before they stop being served; new pages wait for
 //   phase 2. The live set is read from the public sitemap when the bucket serves
 //   it, otherwise from the public page list; with neither, nothing is narrowed.
@@ -79,8 +81,16 @@ export async function publishSitemap({ phase, distDir = "dist", bucket, distribu
       else log(`  aws ${args.join(" ")}`);
     }
     const invalidate = ["cloudfront", "create-invalidation", "--distribution-id", distribution, "--paths", ...Object.keys(FILES).map((file) => `/${file}`)];
-    if (execute) log(`  invalidation ${aws(invalidate).Invalidation.Id}`);
-    else log(`  aws ${invalidate.join(" ")}`);
+    if (execute) {
+      const id = aws(invalidate).Invalidation.Id;
+      log(`  invalidation ${id}`);
+      // Until it completes an edge may still serve the previous files; the deploy must not
+      // switch the edge function while a file listing a page it withdraws can still be served.
+      if (phase === "transition") {
+        aws(["cloudfront", "wait", "invalidation-completed", "--distribution-id", distribution, "--id", id], { json: false });
+        log("  invalidation completed");
+      }
+    } else log(`  aws ${invalidate.join(" ")}${phase === "transition" ? " (then wait until it completes)" : ""}`);
     return bodies;
   };
   try {

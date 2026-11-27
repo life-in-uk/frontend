@@ -1,55 +1,89 @@
-// Catalogue consistency: API lists are narrowed to the Guides the deployed
-// release has pages for (/release-pages.json), so the app never links a Guide
-// published after the release or removed by a rollback; without the list the
-// app is unchanged (fail open), and a failed fetch is retried later.
+// Catalogue consistency: Guide lists from the API are narrowed to the Guides
+// that the release which served the page has pages for (its embedded,
+// content-hashed page list) and that the live release still serves
+// (/release-pages.json). There is never an unfiltered fallback in a release
+// build: a missing, malformed, stale or unreachable live list leaves the
+// embedded list; a missing or malformed embedded list fails the lists like an
+// API error (and is asked again). Without the meta (dev server) nothing is
+// narrowed. Scenarios: publication, withdrawal, rollback.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clearReleaseGuides, clearSessionCache, getGuides, getLocalizedGuides } from "../src/guides/api.ts";
+import { clearReleaseGuides, clearSessionCache, getGuides, getLocalizedGuides, ReleaseInventoryError } from "../src/guides/api.ts";
 
+const EMBEDDED = "/assets/release-pages-0123456789abcdef.json";
 const meta = (slug, category = "money") => ({ slug, category, title: slug, summary: "s", publishedAt: "2026-11-27T10:00:00Z", updatedAt: "2026-11-27T10:00:00Z" });
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-const LIST = [meta("uk-paye-tax-codes-national-insurance"), meta("new-money-guide")];
+// The API lists an existing Guide, a Guide published after this release, and one this release had but a later one withdrew.
+const LIST = [meta("uk-paye-tax-codes-national-insurance"), meta("uk-first-credit-card"), meta("withdrawn-guide")];
+const page = (slug, locale = "en") => `/${locale}/money/${slug}`;
+const R1 = ["/en", "/en/money", page("uk-paye-tax-codes-national-insurance"), page("withdrawn-guide"), page("uk-paye-tax-codes-national-insurance", "zh-CN"), page("withdrawn-guide", "zh-CN")];
 
-function withBrowser(t, pages) {
-  globalThis.window = globalThis.window ?? {};
+/** A release page: its embedded list and the live list answer as given (a value, a status, "malformed" or "network"). */
+function release(t, { embedded = { pages: R1 }, live = { pages: R1 }, withMeta = true } = {}) {
+  globalThis.document = { querySelector: (selector) => (withMeta && selector === 'meta[name="release-pages"]' ? { content: EMBEDDED } : null) };
   clearReleaseGuides();
   clearSessionCache();
-  const calls = [];
+  const state = { embedded, live, calls: [] };
+  const answer = (value) => {
+    if (value === "network") throw new TypeError("network");
+    if (value === "malformed") return new Response("{not json", { status: 200 });
+    if (typeof value === "number") return json({}, value);
+    return json(value);
+  };
   t.mock.method(globalThis, "fetch", async (url) => {
-    calls.push(String(url));
-    if (String(url) === "/release-pages.json") return typeof pages === "function" ? pages() : pages === null ? json({}, 404) : json({ pages });
+    state.calls.push(String(url));
+    if (String(url) === EMBEDDED) return answer(state.embedded);
+    if (String(url) === "/release-pages.json") return answer(state.live);
     return json(LIST);
   });
-  t.after(() => { delete globalThis.window; clearReleaseGuides(); clearSessionCache(); });
-  return calls;
+  t.after(() => { delete globalThis.document; clearReleaseGuides(); clearSessionCache(); });
+  return state;
 }
+const slugs = async (locale = "en") => (await getLocalizedGuides(locale)).map((g) => g.slug);
 
-test("publication: a Guide published after the release is not listed until a release has its page", async (t) => {
-  withBrowser(t, ["/en", "/en/money", "/en/money/uk-paye-tax-codes-national-insurance", "/zh-CN/money/uk-paye-tax-codes-national-insurance", "/en/family-visa/topics/x"]);
-  assert.deepEqual((await getLocalizedGuides("en")).map((g) => g.slug), ["uk-paye-tax-codes-national-insurance"]);
-  assert.deepEqual((await getGuides()).map((g) => g.slug), ["uk-paye-tax-codes-national-insurance"], "zh-CN too");
-  assert.deepEqual((await getLocalizedGuides("ur")).map((g) => g.slug), [], "not in this locale's release");
+test("publication: a Guide published after this release is never linked, whatever the live list says", async (t) => {
+  // Mid-deploy, the live list may already be the next release's (it lists the new Guide).
+  release(t, { live: { pages: [...R1, page("uk-first-credit-card")] } });
+  assert.deepEqual(await slugs(), ["uk-paye-tax-codes-national-insurance", "withdrawn-guide"]);
+  assert.deepEqual((await getGuides()).map((g) => g.slug), ["uk-paye-tax-codes-national-insurance", "withdrawn-guide"], "zh-CN too");
 });
 
-test("rollback: a release without the page hides the Guide; a later release with it shows it", async (t) => {
-  let pages = ["/en/money/uk-paye-tax-codes-national-insurance"];
-  withBrowser(t, () => json({ pages }));
-  assert.equal((await getLocalizedGuides("en")).length, 1);
-  pages = ["/en/money/uk-paye-tax-codes-national-insurance", "/en/money/new-money-guide"];
-  clearReleaseGuides();
-  clearSessionCache();
-  assert.equal((await getLocalizedGuides("en")).length, 2);
+test("withdrawal and rollback: a Guide the live release no longer serves is hidden in an open tab of the older release", async (t) => {
+  release(t, { live: { pages: R1.filter((p) => !p.includes("withdrawn-guide")) } });
+  assert.deepEqual(await slugs(), ["uk-paye-tax-codes-national-insurance"]);
 });
 
-test("fail open: without a page list (dev server, older release, error) every listed Guide shows, and it is asked again", async (t) => {
-  let answer = () => json({}, 404);
-  const calls = withBrowser(t, () => answer());
-  assert.equal((await getLocalizedGuides("en")).length, 2);
+test("live list missing, malformed, stale or unreachable: the embedded list alone, never the unfiltered catalogue", async (t) => {
+  for (const live of [404, 503, "malformed", "network", { pages: "x" }, { pages: [] }, { pages: [42] }]) {
+    const state = release(t, { live });
+    assert.deepEqual(await slugs(), ["uk-paye-tax-codes-national-insurance", "withdrawn-guide"], JSON.stringify(live));
+    assert.ok(!(await slugs()).includes("uk-first-credit-card"));
+    assert.ok(state.calls.includes(EMBEDDED));
+  }
+});
+
+test("embedded list missing, malformed or unreachable: the lists fail (error state, never unfiltered), and it is asked again", async (t) => {
+  for (const embedded of [404, "malformed", "network", { nope: 1 }, { pages: [] }]) {
+    const state = release(t, { embedded });
+    await assert.rejects(getLocalizedGuides("en"), ReleaseInventoryError, JSON.stringify(embedded));
+    state.embedded = { pages: R1 };
+    clearSessionCache();
+    assert.deepEqual(await slugs(), ["uk-paye-tax-codes-national-insurance", "withdrawn-guide"], "recovers once the list loads");
+  }
+});
+
+test("a later live list applies: the live list is asked again after a minute, the embedded one is kept", async (t) => {
+  const state = release(t);
+  assert.equal((await slugs()).length, 2);
+  state.live = { pages: R1.filter((p) => !p.includes("withdrawn-guide")) };
   clearSessionCache();
-  answer = () => { throw new TypeError("network"); };
-  assert.equal((await getLocalizedGuides("en")).length, 2);
-  clearSessionCache();
-  answer = () => json({ pages: ["/en/money/new-money-guide"] });
-  assert.deepEqual((await getLocalizedGuides("en")).map((g) => g.slug), ["new-money-guide"], "a later successful list applies");
-  assert.equal(calls.filter((c) => c === "/release-pages.json").length, 3);
+  t.mock.timers.enable({ apis: ["Date"], now: Date.now() + 61_000 });
+  assert.deepEqual(await slugs(), ["uk-paye-tax-codes-national-insurance"]);
+  assert.equal(state.calls.filter((c) => c === EMBEDDED).length, 1, "the embedded list is immutable and fetched once");
+});
+
+test("not a release build (no meta, e.g. the dev server): nothing to narrow", async (t) => {
+  const state = release(t, { withMeta: false });
+  assert.deepEqual(await slugs(), ["uk-paye-tax-codes-national-insurance", "uk-first-credit-card", "withdrawn-guide"]);
+  assert.ok(!state.calls.some((c) => c.includes("release-pages")));
 });
