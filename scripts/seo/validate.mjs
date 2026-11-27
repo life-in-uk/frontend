@@ -12,7 +12,7 @@ import { REDIRECTS_FILE } from "./redirects.mjs";
 import { isSpaRoute, NOT_FOUND_FILE, SPA_ROUTES_FILE } from "./routes.mjs";
 
 /** Minimum visible text of a page's <main> (characters, whitespace collapsed). */
-const MIN_TEXT = { guide: 200, hub: 80, home: 200, topic: 200, index: 80 };
+const MIN_TEXT = { guide: 200, hub: 80, home: 200, topic: 200, index: 80, about: 400 };
 
 const decode = (value) => value.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 const textOf = (html) => decode(html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
@@ -51,6 +51,13 @@ function parsePage(html) {
  * origin), release (forbid local/private origins; require the redirect
  * manifest). Returns { errors, report }.
  */
+/** The graph's Organization is exactly the site's name and home URL: no logo, contact, address or profiles. */
+function organizationOnly(graph, origin) {
+  const orgs = (graph ?? []).filter((node) => node["@type"] === "Organization");
+  return orgs.length === 1 && JSON.stringify(Object.keys(orgs[0]).sort()) === JSON.stringify(["@id", "@type", "name", "url"])
+    && orgs[0]["@id"] === `${origin}/#organization` && orgs[0].name === "Life in UK" && orgs[0].url === `${origin}/`;
+}
+
 export async function validateSeoOutput({ distDir, inventory, origin, release = false }) {
   const errors = [];
   const fail = (message) => errors.push(message);
@@ -78,7 +85,7 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
   const routesFile = join(distDir, SPA_ROUTES_FILE);
   const routes = existsSync(routesFile) ? JSON.parse(await readFile(routesFile, "utf8")) : null;
   const canonicalOwners = new Map();
-  const counts = { guide: 0, hub: 0, home: 0, topic: 0, index: 0, alias: 0 };
+  const counts = { guide: 0, hub: 0, home: 0, topic: 0, index: 0, about: 0, alias: 0 };
   // Pages that link to each page (server HTML, not counting itself): every page needs one.
   const inbound = new Map(pages.map((page) => [page.path, new Set()]));
   for (const page of pages) {
@@ -194,15 +201,32 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
     const parsed = parsePage(html);
     if (!article || article.headline !== page.title || article.url !== canonical || article.mainEntityOfPage !== canonical
       || article.inLanguage !== GUIDE_LOCALE_LANG[page.locale] || article.description !== parsed.description
-      || !article.datePublished || !article.dateModified || article.author || article.publisher || article.reviewedBy)
+      || !article.datePublished || !article.dateModified || article.author || article.reviewedBy
+      || article.publisher?.["@id"] !== `${origin}/#organization`)
       fail(`${page.path}: Article JSON-LD does not match the page`);
+    if (!organizationOnly(graph, origin)) fail(`${page.path}: the Organization must be the site's name and URL only`);
     if (crumbs.length !== 3 || crumbs[2].item !== canonical || crumbs[2].name !== page.title || crumbs.some((row, index) => row.position !== index + 1 || !row.item?.startsWith(origin)))
       fail(`${page.path}: BreadcrumbList JSON-LD does not match the visible breadcrumb`);
     if (!html.includes(`datetime="${article?.dateModified}"`)) fail(`${page.path}: dateModified is not the date the page shows`);
   }
-  for (const page of pages.filter((row) => row.kind !== "guide")) {
+  // About pages: an AboutPage about (and published by) the site's Organization.
+  for (const page of pages.filter((row) => row.kind === "about")) {
     const file = join(distDir, page.path, "index.html");
-    if (existsSync(file) && /application\/ld\+json/.test(await readFile(file, "utf8"))) fail(`${page.path}: only Guide pages carry structured data`);
+    if (!existsSync(file)) continue;
+    const html = await readFile(file, "utf8");
+    const scripts = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    let graph;
+    try { graph = scripts.length === 1 ? JSON.parse(scripts[0])["@graph"] : undefined; } catch { graph = undefined; }
+    const about = graph?.find((node) => node["@type"] === "AboutPage");
+    const parsed = parsePage(html);
+    const org = `${origin}/#organization`;
+    if (!about || about.url !== `${origin}${page.path}` || about.name !== parsed.h1[0] || about.description !== parsed.description
+      || about.inLanguage !== GUIDE_LOCALE_LANG[page.locale] || about.about?.["@id"] !== org || about.publisher?.["@id"] !== org || !organizationOnly(graph, origin))
+      fail(`${page.path}: AboutPage JSON-LD does not match the page`);
+  }
+  for (const page of pages.filter((row) => row.kind !== "guide" && row.kind !== "about")) {
+    const file = join(distDir, page.path, "index.html");
+    if (existsSync(file) && /application\/ld\+json/.test(await readFile(file, "utf8"))) fail(`${page.path}: only Guide and About pages carry structured data`);
   }
 
   let redirects = 0;
@@ -227,7 +251,7 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
     expected: {
       guides: pages.filter((p) => p.kind === "guide").length, hubs: pages.filter((p) => p.kind === "hub").length,
       homes: pages.filter((p) => p.kind === "home").length, topics: pages.filter((p) => p.kind === "topic").length,
-      indexes: pages.filter((p) => p.kind === "index").length, aliases: aliases.size,
+      indexes: pages.filter((p) => p.kind === "index").length, abouts: pages.filter((p) => p.kind === "about").length, aliases: aliases.size,
     },
     valid: counts,
     generatedFiles: generated.length,
@@ -245,8 +269,8 @@ export function formatReport(report, errors) {
     lines.push(
       `  Guide pages: ${report.valid.guide}/${report.expected.guides}   Topic hubs: ${report.valid.hub}/${report.expected.hubs}   ` +
         `Home pages: ${report.valid.home}/${report.expected.homes}   Family Visa topic pages: ${report.valid.topic}/${report.expected.topics}   ` +
-        `Guide indexes: ${report.valid.index}/${report.expected.indexes ?? 0}   ` +
-        `Canonical URLs: ${report.expected.guides + report.expected.hubs + report.expected.homes + report.expected.topics + (report.expected.indexes ?? 0)}   ` +
+        `Guide indexes: ${report.valid.index}/${report.expected.indexes ?? 0}   About pages: ${report.valid.about ?? 0}/${report.expected.abouts ?? 0}   ` +
+        `Canonical URLs: ${report.expected.guides + report.expected.hubs + report.expected.homes + report.expected.topics + (report.expected.indexes ?? 0) + (report.expected.abouts ?? 0)}   ` +
         `zh-CN short URLs: ${report.valid.alias}/${report.expected.aliases - 1} pages + root redirect` +
         (report.release ? `   Redirects: ${report.redirects}` : "") + `   HTML files: ${report.generatedFiles}`,
     );

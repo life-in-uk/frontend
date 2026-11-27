@@ -1,6 +1,6 @@
 import { availableHomeTopics, topicHref } from "../../home/topics";
 import { Link } from "../Link";
-import { GUIDE_LOCALE_HREFLANG, GUIDE_LOCALE_LABELS, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, textDirection, type GuideLocale } from "../../guides/locales";
+import { GUIDE_LOCALE_HREFLANG, GUIDE_LOCALE_LABELS, GUIDE_LOCALE_LANG, GUIDE_UI, textDirection, type GuideLocale } from "../../guides/locales";
 import { SITE_UI } from "../../guides/siteUi";
 import "./Site.css";
 
@@ -10,8 +10,7 @@ export type LanguageLink = { locale: GuideLocale; href: string };
 /** Shared site footer: section navigation, About, this page's languages and the independence note. */
 export function SiteFooter({ locale = "zh-CN", universityAvailable = false, educationAvailable = false, householdAvailable = false, languages = [] }: { locale?: GuideLocale; universityAvailable?: boolean; educationAvailable?: boolean; householdAvailable?: boolean; languages?: readonly LanguageLink[] }) {
   const ui = SITE_UI[locale];
-  const home = guideHomePath(locale);
-  const about = home === "/" ? "/#about" : `${home}#about`;
+  const about = `/${locale}/about`;
   return (
     <footer className="site-footer">
       <div className="site-footer-inner">
@@ -48,7 +47,7 @@ export function SiteFooter({ locale = "zh-CN", universityAvailable = false, educ
                 <Link to={about}>{ui.about}</Link>
               </li>
               <li>
-                <Link to={about}>{ui.footer.sources}</Link>
+                <Link to={`${about}#sources`}>{ui.footer.sources}</Link>
               </li>
             </ul>
           </div>

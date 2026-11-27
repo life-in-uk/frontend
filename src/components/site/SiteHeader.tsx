@@ -13,7 +13,7 @@ import "./Site.css";
 
 type SiteHeaderProps = {
   /** The launched section currently shown, for aria-current. */
-  current: "home" | GuideDomainId | "travel" | undefined;
+  current: "home" | GuideDomainId | "travel" | "about" | undefined;
   universityAvailable?: boolean; educationAvailable?: boolean; householdAvailable?: boolean;
   locale?: GuideLocale;
   /**
@@ -292,7 +292,7 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAv
         <span className="masthead-search-text" aria-hidden="true">{ui.search.button}</span>
       </Link>
       {!compact && (
-        <Link to={homeAnchor("about")} className="masthead-about" onClick={onHomeSection(home, "about", false)}>
+        <Link to={`/${locale}/about`} className="masthead-about" aria-current={current === "about" ? "page" : undefined}>
           {ui.about}
         </Link>
       )}
@@ -345,9 +345,9 @@ export function SiteHeader({ current, locale = "zh-CN", switchPath, universityAv
                 <ul className="masthead-menu-list masthead-sheet-about">
                   <li>
                     <Link
-                      to={homeAnchor("about")}
+                      to={`/${locale}/about`}
                       className="masthead-link"
-                      onClick={onHomeSection(home, "about", false, closeAll)}
+                      onClick={closeAll}
                     >
                       {ui.about}
                     </Link>
