@@ -20,6 +20,8 @@ import { HOUSEHOLD_CATEGORY } from "../guides/household.ts";
 import { UNIVERSITY_CATEGORY, domainGuides, GUIDE_DOMAINS } from "../guides/domains.ts";
 import type { GuideDomain, GuideDomainId } from "../guides/domains.ts";
 import { formatUkDateFor } from "../guides/format.ts";
+import { GUIDE_INDEX_COPY } from "../guides/guideIndex.ts";
+import { groupGuidesByDomain } from "../guides/indexGroups.ts";
 import {
   GUIDE_LOCALE_HREFLANG,
   GUIDE_LOCALE_LANG,
@@ -462,6 +464,52 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
       locale: candidate,
       href: absolute(origin, localizedGuidePath(candidate, domain.id)),
     })),
+  };
+  return { head, body: html };
+}
+
+export type StaticIndexInput = {
+  origin: string;
+  locale: GuideLocale;
+  /** Published Guides in this locale (all sections). */
+  published: readonly GuideMetadata[];
+  /** Locales with at least one published Guide (for hreflang). */
+  availableLocales: readonly GuideLocale[];
+};
+
+/** The all-Guides index as a static page: every published Guide of the locale, grouped by section as in the app. */
+export function staticIndexPage(input: StaticIndexInput): StaticPage | null {
+  const { origin, locale, published } = input;
+  if (published.length === 0) return null;
+  const copy = GUIDE_INDEX_COPY[locale];
+  const groups = groupGuidesByDomain(published);
+  const jump = groups
+    .map(({ domain }) => `<li><a href="#guides-${escapeHtml(domain)}">${escapeHtml(GUIDE_UI[locale].domain[domain])}</a></li>`)
+    .join("");
+  const sections = groups.map(({ domain, guides }) => {
+    const items = guides
+      .map((guide) => `<li><a href="${escapeHtml(guideRoutePath(locale, domain, guide.slug))}">${escapeHtml(guide.title)}</a><p>${escapeHtml(guide.summary)}</p></li>`)
+      .join("");
+    return `<section class="static-topic" id="guides-${escapeHtml(domain)}"><h2>${escapeHtml(GUIDE_UI[locale].domain[domain])}</h2>`
+      + `<p><a href="${escapeHtml(localizedGuidePath(locale, domain))}">${escapeHtml(copy.open)}</a></p><ul>${items}</ul></section>`;
+  }).join("");
+  const html = [
+    renderSiteNav(locale, published),
+    `<main id="main" class="static-page static-index">`,
+    `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><a href="${guideHomePath(locale)}">${escapeHtml(GUIDE_UI[locale].home)}</a></nav>`,
+    `<h1>${escapeHtml(copy.title)}</h1>`,
+    `<p class="static-summary">${escapeHtml(copy.description)}</p>`,
+    `<nav aria-label="${escapeHtml(copy.topics)}"><h2>${escapeHtml(copy.topics)}</h2><ul>${jump}</ul></nav>`,
+    sections,
+    `</main>`,
+  ].join("\n");
+  const head: PageHead = {
+    locale,
+    title: `${copy.title} · Life in UK`,
+    description: copy.description,
+    canonical: absolute(origin, `/${locale}/guides`),
+    alternates: GUIDE_LOCALES.filter((candidate) => input.availableLocales.includes(candidate))
+      .map((candidate) => ({ locale: candidate, href: absolute(origin, `/${candidate}/guides`) })),
   };
   return { head, body: html };
 }

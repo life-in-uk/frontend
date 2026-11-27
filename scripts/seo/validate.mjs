@@ -12,7 +12,7 @@ import { REDIRECTS_FILE } from "./redirects.mjs";
 import { isSpaRoute, NOT_FOUND_FILE, SPA_ROUTES_FILE } from "./routes.mjs";
 
 /** Minimum visible text of a page's <main> (characters, whitespace collapsed). */
-const MIN_TEXT = { guide: 200, hub: 80, home: 200, topic: 200 };
+const MIN_TEXT = { guide: 200, hub: 80, home: 200, topic: 200, index: 80 };
 
 const decode = (value) => value.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 const textOf = (html) => decode(html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
@@ -78,7 +78,7 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
   const routesFile = join(distDir, SPA_ROUTES_FILE);
   const routes = existsSync(routesFile) ? JSON.parse(await readFile(routesFile, "utf8")) : null;
   const canonicalOwners = new Map();
-  const counts = { guide: 0, hub: 0, home: 0, topic: 0, alias: 0 };
+  const counts = { guide: 0, hub: 0, home: 0, topic: 0, index: 0, alias: 0 };
   for (const page of pages) {
     const file = join(distDir, page.path, "index.html");
     if (!existsSync(file)) {
@@ -215,7 +215,8 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
     release,
     expected: {
       guides: pages.filter((p) => p.kind === "guide").length, hubs: pages.filter((p) => p.kind === "hub").length,
-      homes: pages.filter((p) => p.kind === "home").length, topics: pages.filter((p) => p.kind === "topic").length, aliases: aliases.size,
+      homes: pages.filter((p) => p.kind === "home").length, topics: pages.filter((p) => p.kind === "topic").length,
+      indexes: pages.filter((p) => p.kind === "index").length, aliases: aliases.size,
     },
     valid: counts,
     generatedFiles: generated.length,
@@ -233,7 +234,8 @@ export function formatReport(report, errors) {
     lines.push(
       `  Guide pages: ${report.valid.guide}/${report.expected.guides}   Topic hubs: ${report.valid.hub}/${report.expected.hubs}   ` +
         `Home pages: ${report.valid.home}/${report.expected.homes}   Family Visa topic pages: ${report.valid.topic}/${report.expected.topics}   ` +
-        `Canonical URLs: ${report.expected.guides + report.expected.hubs + report.expected.homes + report.expected.topics}   ` +
+        `Guide indexes: ${report.valid.index}/${report.expected.indexes ?? 0}   ` +
+        `Canonical URLs: ${report.expected.guides + report.expected.hubs + report.expected.homes + report.expected.topics + (report.expected.indexes ?? 0)}   ` +
         `zh-CN short URLs: ${report.valid.alias}/${report.expected.aliases - 1} pages + root redirect` +
         (report.release ? `   Redirects: ${report.redirects}` : "") + `   HTML files: ${report.generatedFiles}`,
     );

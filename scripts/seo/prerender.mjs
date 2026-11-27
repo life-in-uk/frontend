@@ -4,7 +4,7 @@
 // and the tests.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fillTemplate, staticGuidePage, staticHomePage, staticHubPage, staticTopicPage } from "../../src/seo/staticPages.ts";
+import { fillTemplate, staticGuidePage, staticHomePage, staticHubPage, staticIndexPage, staticTopicPage } from "../../src/seo/staticPages.ts";
 import { aliasFor, expectedPages, ROOT_ALIAS } from "./inventory.mjs";
 import { writeNotFound } from "./routes.mjs";
 
@@ -27,6 +27,8 @@ export async function prerender({ distDir, origin, inventory }) {
     const availableLocales = page.alternates.map((row) => row.locale);
     const rendered = page.kind === "guide"
       ? staticGuidePage({ origin, locale: page.locale, domainId: page.domainId, guide: inventory.details[page.locale].get(page.slug), published, availableLocales })
+      : page.kind === "index"
+        ? staticIndexPage({ origin, locale: page.locale, published, availableLocales })
       : page.kind === "home"
         ? staticHomePage({ origin, locale: page.locale, source: inventory.lists["zh-CN"], published })
         : page.kind === "topic"
