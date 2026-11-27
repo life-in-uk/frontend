@@ -23,12 +23,15 @@
 //      (a wrong bucket or an unexpected object set is never wiped).
 //   6. Invalidate /* (HTML revalidates anyway; this clears the 404s and
 //      redirects CloudFront may hold for a few seconds).
+//
+// The sitemap is not uploaded here: scripts/edge/publish-sitemap.mjs publishes
+// it in two phases around this deploy (see that file).
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { INTERNAL_FILES, uploadObjects } from "./objects.mjs";
+import { INTERNAL_FILES, SEPARATELY_UPLOADED, uploadObjects } from "./objects.mjs";
 import { generateViewerRequest, loadViewerRequest, viewerEvent } from "./viewer-request.mjs";
 
 export const RELEASE_ORIGIN = "https://lifeinuk.info";
@@ -77,7 +80,7 @@ function s3CopyArgs(distDir, bucket, group) {
   const include = group.asset ? `assets/*${group.ext}` : `*${group.ext}`;
   const args = ["s3", "cp", distDir, `s3://${bucket}/`, "--recursive", "--only-show-errors", "--exclude", "*", "--include", include];
   if (!group.asset) args.push("--exclude", "assets/*");
-  for (const internal of INTERNAL_FILES) args.push("--exclude", internal);
+  for (const internal of [...INTERNAL_FILES, ...SEPARATELY_UPLOADED]) args.push("--exclude", internal);
   args.push("--content-type", group.contentType, "--cache-control", group.cacheControl);
   return args;
 }
@@ -139,7 +142,7 @@ export async function deploySite({ distDir = "dist", bucket, distribution, funct
   const { code, bytes, warnings } = generateViewerRequest({ distDir: dist });
   for (const warning of warnings) log(`! ${warning}`);
   const objects = uploadObjects(dist);
-  const groups = uploadGroups(objects);
+  const groups = uploadGroups(objects.filter((object) => !SEPARATELY_UPLOADED.has(object.key)));
   const tests = functionTestEvents(code, dist);
   const work = mkdtempSync(join(tmpdir(), "lifeinuk-deploy-"));
   const functionFile = join(work, "viewer-request.js");

@@ -7,7 +7,8 @@
 // 3. Loads the published inventory from the Guide API (fails if unreachable).
 // 4. Prerenders every published Guide and topic hub (scripts/seo/prerender.mjs,
 //    the same pipeline as `build:static`) and writes the redirect manifest.
-// 5. Validates the output against the inventory and the backend sitemap.
+// 5. Writes dist/sitemap.xml from the prerendered pages (scripts/seo/sitemap.mjs).
+// 6. Validates the output against the inventory, its own sitemap and the backend sitemap.
 // Any failure exits nonzero; it never falls back to an SPA-only build.
 import { spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -17,6 +18,7 @@ import { resolveReleaseOrigin } from "./seo/origin.mjs";
 import { prerender } from "./seo/prerender.mjs";
 import { withRetryOn429 } from "./seo/retry.mjs";
 import { writeRedirects } from "./seo/redirects.mjs";
+import { renderSitemap, SITEMAP_FILE, sitemapEntries } from "./seo/sitemap.mjs";
 import { formatReport, validateSeoOutput } from "./seo/validate.mjs";
 
 const API = (process.env.API_BASE || "http://127.0.0.1:8188").replace(/\/$/, "");
@@ -69,11 +71,18 @@ try {
   console.log("▶ Prerender");
   const { written } = await prerender({ distDir: DIST, origin, inventory });
   const redirects = await writeRedirects(DIST, expectedPages(inventory));
-  console.log(`  ${written.length} HTML files, ${redirects.length} redirects`);
+  const entries = sitemapEntries(DIST, origin);
+  writeFileSync(resolve(DIST, SITEMAP_FILE), renderSitemap(entries), "utf8");
+  console.log(`  ${written.length} HTML files, ${redirects.length} redirects, sitemap of ${entries.length} URLs (${entries.filter((entry) => entry.lastmod).length} with lastmod)`);
   console.log("▶ Validate");
   const { errors, report } = await validateSeoOutput({ distDir: DIST, inventory, origin, release: true });
   const sitemap = await checkSitemap(expectedPages(inventory), origin);
   errors.push(...sitemap.errors);
+  // The release's own sitemap lists exactly its canonical pages.
+  const listed = new Set(entries.map((entry) => entry.loc));
+  for (const page of expectedPages(inventory))
+    if (!listed.has(`${origin}${page.path}`)) errors.push(`${SITEMAP_FILE} is missing ${page.path}`);
+  if (listed.size !== expectedPages(inventory).length) errors.push(`${SITEMAP_FILE} lists ${listed.size} URLs for ${expectedPages(inventory).length} canonical pages`);
   report.errors = errors.length;
   console.log(formatReport(report, errors));
   if (sitemap.count !== undefined) console.log(`  Backend sitemap URLs: ${sitemap.count}`);
