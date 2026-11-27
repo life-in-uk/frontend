@@ -115,28 +115,48 @@ serve.
 - **Precondition:** stages 1 and 2 accepted. This removes the publication gap:
   the public sitemap and the app list only deployed pages, so a backend
   publication can no longer expose a 404 URL.
-- **Content:**
-  - F5 replacement revisions (backend #92, #93, #94; Sol's append-only revision
-    process; hashes pinned).
-  - The four new Money Guides (backend #90; 20 variants).
+- **Content** (authoritative inventory: Sol's verified `EDITORIAL-MANIFEST.json`
+  files on backend `main` at `335238e`):
+  - **F5 replacements: 9 Guides, 45 localized variants.** Published through
+    Sol's existing owner revision process (`docs/editorial/localization-f5/RELEASE.md`),
+    never the new-slug publisher:
+    - `chinese-medical-records-vaccinations-england`
+    - `medicines-prescriptions-england`
+    - `nhs-dentist-england`
+    - `nhs-ihs-costs-england`
+    - `nhs-interpreter-language-help-england`
+    - `open-uk-bank-account-new-arrival`
+    - `registering-with-a-gp-england`
+    - `visiting-parents-healthcare-england`
+    - `where-to-go-when-ill-england`
+
+    `urgent-dental-care-england` is **unchanged**. Replacements keep their
+    URLs, so they don't change the canonical count.
+  - **New Money Guides: 4 Guides, 20 variants** (backend #90):
+    - `uk-first-credit-card`
+    - `uk-zero-percent-credit-cards`
+    - `uk-credit-card-cashback-and-rewards`
+    - `uk-personal-loans-apply-and-compare'
 - **During the window before stage 4:**
   - The new Money Guides are absent from the public sitemap, from every app
     list (the page list) and from the static HTML. Direct URLs are a real 404
     and are not linked anywhere.
-  - For F5 revisions, the API serves the new text and the static HTML still
-    shows the old text until stage 4. The app replaces it with the new text
+  - For the 9 replaced Guides (45 variants), the API serves the new text and
+    the static HTML still shows the old text until stage 4. The app replaces it with the new text
     when it runs. Keep the window short: dispatch stage 4 when Sol's
     publication is verified, not before.
-- **Evidence:** Sol's publication run IDs and receipts, and the API hashes of
-  the revised variants.
+- **Evidence:** Sol's publication records (new and superseded publication IDs),
+  and the API hashes of the 45 replaced and 20 new variants compared with the
+  manifests.
 - **Rollback:** Sol's revision process, which restores the previous revision.
   Run stage 4 again afterwards if stage 4 was already deployed.
 
 ## Stage 4: frontend release R2, content (protected approval #4)
 
-- **Build:** from the same `main` (or `main` plus nothing). `build:release`
-  must show 485 canonical URLs (465 + 20 Money) and the revised summaries and
-  titles of the F5 Guides.
+- **Build:** from the same `main`. `build:release` must show 485 canonical
+  URLs (465 + 20 Money variants; the 45 replaced variants keep their URLs) and
+  the revised titles and summaries of the 9 F5 Guides, matching Sol's
+  post-publication hashes.
 - **Deploy:**
   - Phase 1 publishes R1 ∩ R2: the Money pages are not listed yet.
   - Function switch, verification.
@@ -145,7 +165,8 @@ serve.
   - Everything from stage 1.
   - The 20 Money variants in five languages, the Money hub, and the related
     and language links.
-  - F5 revised content in the static HTML of all 50 variants.
+  - F5 revised content in the static HTML of all 45 replaced variants, and
+    `urgent-dental-care-england` unchanged.
   - Public sitemap = page list = 485 canonical URLs.
 - **Rollback:** `rollback_run_id=<R1 run>`. Phase 1 removes the Money URLs
   from the sitemap and page list before the switch back, and the app hides the
