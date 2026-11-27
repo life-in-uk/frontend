@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2, ListOrdered } from "lucide-react";
-import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError, startupGuide, startupGuides } from "../../guides/api";
+import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError, startupAlternateLocales, startupGuide, startupGuides } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, guideRoutePath, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo";
@@ -13,6 +13,7 @@ import { relatedLinksFor } from "../../guides/topicClusters";
 import type { ResolvedGuide } from "../../guides/topicClusters";
 import { formatUkDateFor, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
+import { currentPath } from "../../router";
 import { useReportAvailableLocales } from "../site/pageLanguages";
 import { GuideMarkdown } from "./GuideMarkdown";
 import { titleReferencesFor } from "../../guides/titleReferences";
@@ -74,7 +75,9 @@ export function GuidePage({
   // The published list for this locale; it decides which references link.
   const [published, setPublished] = useState<GuideMetadata[] | undefined>(() => startupGuides(locale));
   const references = useMemo(() => titleReferencesFor(domain, locale, published, slug), [domain, locale, published, slug]);
-  const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>([locale]);
+  // On a prerendered Guide its hreflang links already say which languages it has.
+  const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>(
+    () => startupAlternateLocales(currentPath()) ?? [locale]);
   // The header's language selector offers only the languages this Guide is published in.
   useReportAvailableLocales(availableLocales);
   const ui = GUIDE_UI[locale];
@@ -121,7 +124,8 @@ export function GuidePage({
         setPublished(guides);
       })
       .catch(() => {});
-    Promise.allSettled(GUIDE_LOCALES.map((candidate) =>
+    // A prerendered Guide's languages came from its hreflang links (initial state).
+    if (!startupAlternateLocales(currentPath())?.includes(locale)) Promise.allSettled(GUIDE_LOCALES.map((candidate) =>
       candidate === "zh-CN" ? getGuides(controller.signal) : getLocalizedGuides(candidate, controller.signal),
     )).then((results) => {
       if (!active) return;

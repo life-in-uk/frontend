@@ -74,7 +74,10 @@ try {
       const canonicalPath = (href) => href && new URL(href).pathname;
       ok(mode === "published" ? canonicalPath(seen.canonical) === canonicalPath(expected.canonical) : seen.canonical === expected.canonical,
         `${label}: canonical kept (${seen.canonical})`);
-      ok(mode === "published" || JSON.stringify(seen.hreflang) === JSON.stringify(expected.hreflang), `${label}: hreflang kept (${seen.hreflang.length})`);
+      // With the published API the app writes the same languages for the current origin: compare codes and paths.
+      const paths = (rows) => rows.map((row) => { const [code, href] = row.split(" "); return `${code} ${new URL(href).pathname}`; }).sort();
+      ok(mode === "published" ? JSON.stringify(paths(seen.hreflang)) === JSON.stringify(paths(expected.hreflang)) : JSON.stringify(seen.hreflang) === JSON.stringify(expected.hreflang),
+        `${label}: hreflang ${mode === "published" ? "matches the prerendered page" : "kept"} (${seen.hreflang.length})`);
       // Hubs: the app's hub has its own heading, so only Guide and topic content is compared.
       if (kind !== "hub") ok(seen.h1 === expected.h1, `${label}: content kept (${seen.h1?.slice(0, 40)})`);
       if (mode === "published") ok(seen.app, `${label}: the app started`);

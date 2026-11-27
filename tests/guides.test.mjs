@@ -7,6 +7,7 @@ import {
   isGuideDetail,
   isGuideList,
   isSafeExternalUrl,
+  clearSessionCache,
 } from "../src/guides/api.ts";
 import {
   groupForSlug,
@@ -19,6 +20,9 @@ import {
 } from "../src/guides/catalog.ts";
 import { formatUkDate, shortGuideTitle } from "../src/guides/format.ts";
 import { matchRoute } from "../src/router.ts";
+
+// API results are shared for the session; each test starts without them.
+test.beforeEach(() => clearSessionCache());
 
 const meta = (slug, overrides = {}) => ({
   slug,
@@ -135,7 +139,52 @@ test("getGuides requests /api/guides, preserves backend order and passes the sig
     ["z-last", "a-first"],
   );
   assert.equal(calls[0].url, "/api/guides");
-  assert.equal(calls[0].init.signal, controller.signal);
+});
+
+test("the session shares one request per list, retries after a failure, and an aborted caller does not cancel it for others", async (t) => {
+  let release;
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => {
+    await new Promise((resolve) => { release = resolve; });
+    return json([meta("a")]);
+  });
+  const controller = new AbortController();
+  const first = getGuides(controller.signal);
+  const second = getGuides();
+  controller.abort();
+  await assert.rejects(first, { name: "AbortError" });
+  release();
+  assert.deepEqual((await second).map((g) => g.slug), ["a"]);
+  await getGuides();
+  assert.equal(fetchMock.mock.callCount(), 1, "one request for three callers and a later call");
+
+  clearSessionCache();
+  fetchMock.mock.mockImplementation(async () => json({}, 503));
+  await assert.rejects(getGuides(), /Guides unavailable/);
+  fetchMock.mock.mockImplementation(async () => json([meta("b")]));
+  assert.deepEqual((await getGuides()).map((g) => g.slug), ["b"], "a failure is not kept");
+});
+
+test("a shared request is cancelled when every caller waiting for it aborts, and the next call fetches again", async (t) => {
+  const signals = [];
+  const fetchMock = t.mock.method(globalThis, "fetch", (_url, init) => {
+    signals.push(init.signal);
+    return new Promise((resolve, reject) => {
+      init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+    });
+  });
+  const a = new AbortController();
+  const b = new AbortController();
+  const first = getGuides(a.signal);
+  const second = getGuides(b.signal);
+  a.abort();
+  assert.equal(signals[0].aborted, false, "still wanted by the second caller");
+  b.abort();
+  await assert.rejects(first, { name: "AbortError" });
+  await assert.rejects(second, { name: "AbortError" });
+  assert.equal(signals[0].aborted, true, "nobody waits: the request is cancelled");
+  fetchMock.mock.mockImplementation(async () => json([meta("c")]));
+  assert.deepEqual((await getGuides()).map((g) => g.slug), ["c"]);
+  assert.equal(fetchMock.mock.callCount(), 2);
 });
 
 test("getGuides throws on HTTP errors and invalid payloads, with no fallback", async (t) => {
@@ -144,7 +193,7 @@ test("getGuides throws on HTTP errors and invalid payloads, with no fallback", a
   );
   await assert.rejects(getGuides(), /Guides unavailable/);
   fetchMock.mock.mockImplementation(async () => json([{ slug: "x" }]));
-  await assert.rejects(getGuides(), /Invalid Guides response/);
+  await assert.rejects(getGuides(), /Invalid Guides response/, "the failure was not kept");
 });
 
 test("getGuides propagates aborts", async (t) => {
@@ -164,6 +213,7 @@ test("getGuide fetches by slug and distinguishes not found from other failures",
   });
   const guide = await getGuide("nhs-dentist-england");
   assert.equal(guide.evidence[0].key, "fees");
+  clearSessionCache();
 
   fetchMock.mock.mockImplementation(async () =>
     json({ code: "GUIDE_NOT_FOUND", message: "Guide not found." }, 404),
