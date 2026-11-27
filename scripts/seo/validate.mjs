@@ -12,7 +12,7 @@ import { REDIRECTS_FILE } from "./redirects.mjs";
 import { isSpaRoute, NOT_FOUND_FILE, SPA_ROUTES_FILE } from "./routes.mjs";
 
 /** Minimum visible text of a page's <main> (characters, whitespace collapsed). */
-const MIN_TEXT = { guide: 200, hub: 80, home: 200, topic: 200 };
+const MIN_TEXT = { guide: 200, hub: 80, home: 200, topic: 200, index: 80 };
 
 const decode = (value) => value.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 const textOf = (html) => decode(html.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
@@ -78,7 +78,9 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
   const routesFile = join(distDir, SPA_ROUTES_FILE);
   const routes = existsSync(routesFile) ? JSON.parse(await readFile(routesFile, "utf8")) : null;
   const canonicalOwners = new Map();
-  const counts = { guide: 0, hub: 0, home: 0, topic: 0, alias: 0 };
+  const counts = { guide: 0, hub: 0, home: 0, topic: 0, index: 0, alias: 0 };
+  // Pages that link to each page (server HTML, not counting itself): every page needs one.
+  const inbound = new Map(pages.map((page) => [page.path, new Set()]));
   for (const page of pages) {
     const file = join(distDir, page.path, "index.html");
     if (!existsSync(file)) {
@@ -130,6 +132,13 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
       else if (!(expected.has(target) || HOME_PATHS.has(target) || (routes && isSpaRoute(target, routes)) || existsSync(join(distDir, target))))
         fail(`${where}: internal link ${href} does not resolve`);
     }
+    for (const href of parsed.links) {
+      const target = href.split(/[?#]/)[0].replace(/(.)\/$/, "$1");
+      if (target !== page.path) inbound.get(target)?.add(page.path);
+    }
+    // Every other language version of the page is a plain link (not only an hreflang annotation).
+    for (const alt of page.alternates)
+      if (alt.locale !== page.locale && !parsed.links.includes(alt.path)) fail(`${where}: no link to its ${alt.locale} version ${alt.path}`);
     // zh-CN short URL: same page, canonical on /zh-CN/…. The root has no alias page (it is the app shell; hosts redirect it).
     const alias = aliasFor(page);
     if (alias && alias !== ROOT_ALIAS) {
@@ -152,6 +161,8 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
     if (/rel="canonical"|hreflang=|application\/ld\+json/.test(html)) fail(`${NOT_FOUND_FILE}: must not carry a canonical, hreflang or structured data`);
     if (!parsePage(html).loadsApp) fail(`${NOT_FOUND_FILE}: the app script is missing`);
   }
+  for (const [path, from] of inbound)
+    if (from.size === 0 && existsSync(join(distDir, path, "index.html"))) fail(`${path}: orphan page (no other prerendered page links to it)`);
   if (!routes) fail(`${SPA_ROUTES_FILE} missing`);
   else {
     for (const home of HOME_PATHS)
@@ -215,7 +226,8 @@ export async function validateSeoOutput({ distDir, inventory, origin, release = 
     release,
     expected: {
       guides: pages.filter((p) => p.kind === "guide").length, hubs: pages.filter((p) => p.kind === "hub").length,
-      homes: pages.filter((p) => p.kind === "home").length, topics: pages.filter((p) => p.kind === "topic").length, aliases: aliases.size,
+      homes: pages.filter((p) => p.kind === "home").length, topics: pages.filter((p) => p.kind === "topic").length,
+      indexes: pages.filter((p) => p.kind === "index").length, aliases: aliases.size,
     },
     valid: counts,
     generatedFiles: generated.length,
@@ -233,7 +245,8 @@ export function formatReport(report, errors) {
     lines.push(
       `  Guide pages: ${report.valid.guide}/${report.expected.guides}   Topic hubs: ${report.valid.hub}/${report.expected.hubs}   ` +
         `Home pages: ${report.valid.home}/${report.expected.homes}   Family Visa topic pages: ${report.valid.topic}/${report.expected.topics}   ` +
-        `Canonical URLs: ${report.expected.guides + report.expected.hubs + report.expected.homes + report.expected.topics}   ` +
+        `Guide indexes: ${report.valid.index}/${report.expected.indexes ?? 0}   ` +
+        `Canonical URLs: ${report.expected.guides + report.expected.hubs + report.expected.homes + report.expected.topics + (report.expected.indexes ?? 0)}   ` +
         `zh-CN short URLs: ${report.valid.alias}/${report.expected.aliases - 1} pages + root redirect` +
         (report.release ? `   Redirects: ${report.redirects}` : "") + `   HTML files: ${report.generatedFiles}`,
     );

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, CalendarDays, GraduationCap, House } from "lucide-react";
-import { getLocalizedGuides } from "../../guides/api";
+import { getLocalizedGuides, startupAlternateLocales } from "../../guides/api";
+import { currentPath } from "../../router";
+import { GUIDE_INDEX_COPY } from "../../guides/guideIndex";
 import type { GuideMetadata } from "../../guides/api";
 import { EDUCATION_COPY, educationSections } from "../../guides/education";
 import { HOUSEHOLD_CATEGORY, HOUSEHOLD_COPY, HOUSEHOLD_SECTIONS, householdSections } from "../../guides/household";
@@ -15,13 +17,7 @@ import { groupGuidesByDomain } from "../../guides/indexGroups";
 import "./Guide.css";
 import "../work-visa/WorkVisa.css";
 
-const copy: Record<GuideLocale, { title: string; description: string; loading: string; failed: string; empty: string; updated: string; topics: string; open: string }> = {
-  "zh-CN": { title: "生活指南", description: "查看已发布的英国生活指南。", loading: "正在加载指南…", failed: "指南暂时无法加载，请稍后再试。", empty: "这个语言目前还没有已发布的指南。", updated: "更新于", topics: "按主题浏览", open: "进入专题" },
-  "zh-TW": { title: "生活指南", description: "查看已發布的英國生活指南。", loading: "正在載入指南…", failed: "指南暫時無法載入，請稍後再試。", empty: "此語言目前尚無已發布的指南。", updated: "更新於", topics: "按主題瀏覽", open: "進入專題" },
-  en: { title: "UK life guides", description: "Browse published guides to life in the UK.", loading: "Loading guides…", failed: "Guides are temporarily unavailable. Please try again later.", empty: "There are no published guides in this language yet.", updated: "Updated", topics: "Browse by topic", open: "Open section" },
-  ur: { title: "برطانیہ میں زندگی کی رہنمائی", description: "برطانیہ میں زندگی سے متعلق شائع شدہ رہنمائی دیکھیں۔", loading: "رہنمائی لوڈ ہو رہی ہے…", failed: "رہنمائی عارضی طور پر دستیاب نہیں۔ دوبارہ کوشش کریں۔", empty: "اس زبان میں ابھی کوئی رہنمائی شائع نہیں ہوئی۔", updated: "تازہ کاری", topics: "موضوع کے لحاظ سے دیکھیں", open: "حصہ کھولیں" },
-  hi: { title: "यूके जीवन मार्गदर्शिकाएँ", description: "यूके में जीवन के बारे में प्रकाशित मार्गदर्शिकाएँ देखें।", loading: "मार्गदर्शिकाएँ लोड हो रही हैं…", failed: "मार्गदर्शिकाएँ अभी उपलब्ध नहीं हैं। कृपया बाद में प्रयास करें।", empty: "इस भाषा में अभी कोई मार्गदर्शिका प्रकाशित नहीं है।", updated: "अपडेट", topics: "विषय के अनुसार देखें", open: "खंड खोलें" },
-};
+const copy = GUIDE_INDEX_COPY;
 
 
 export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; domain?: GuideDomainId }) {
@@ -34,7 +30,8 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
   const household = domain === HOUSEHOLD_CATEGORY;
   const description = education?.description ?? (household ? HOUSEHOLD_COPY[locale].description
     : domain === UNIVERSITY_CATEGORY ? UNIVERSITY_COPY[locale].description : strings.description);
-  const [available, setAvailable] = useState<GuideLocale[]>([locale]);
+  // On a prerendered hub its hreflang links already say which languages it has.
+  const [available, setAvailable] = useState<GuideLocale[]>(() => startupAlternateLocales(currentPath()) ?? [locale]);
   // A section hub exists only in languages with a published Guide there; the all-Guides index in all.
   useReportAvailableLocales(domain ? available : undefined);
   useEffect(() => {
@@ -56,6 +53,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
 
   useEffect(() => {
     if (!domain || state.status !== "ready" || state.guides.length === 0) return;
+    if (startupAlternateLocales(currentPath())?.includes(locale)) return;
     const controller = new AbortController();
     const other = GUIDE_LOCALES.filter((candidate) => candidate !== locale);
     Promise.allSettled(other.map(async (candidate) => {
@@ -71,6 +69,13 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
 
   useEffect(() => {
     if (domain && state.status === "loading") return;
+    // A failed request says nothing about the hub: keep its head tags (prerendered,
+    // if any) rather than marking it noindex. Only a hub with no Guides is noindex.
+    if (state.status === "error") {
+      document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
+      document.documentElement.dir = textDirection(locale);
+      return;
+    }
     const canonicalPath = domain ? localizedGuidePath(locale, domain) : `/${locale}/guides`;
     const origin = window.location.origin;
     const hasContent = !domain || (state.status === "ready" && state.guides.length > 0);
@@ -80,7 +85,7 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
       noIndex: !hasContent,
       alternates: !hasContent ? [] : domain
         ? hubAlternates(origin, domain).filter(({ locale: candidate }) => available.includes(candidate))
-        : localizedIndexAlternates(origin, [locale]) });
+        : localizedIndexAlternates(origin, GUIDE_LOCALES) });
     document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
     document.documentElement.dir = textDirection(locale);
     return () => clearGuideSeo();

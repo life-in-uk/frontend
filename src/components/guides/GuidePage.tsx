@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2, ListOrdered } from "lucide-react";
-import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError, startupGuide, startupGuides } from "../../guides/api";
+import { getGuide, getGuides, getLocalizedGuide, getLocalizedGuides, GuideNotFoundError, startupAlternateLocales, startupGuide, startupGuides } from "../../guides/api";
 import type { GuideDetail, GuideMetadata } from "../../guides/api";
 import { GUIDE_LOCALES, GUIDE_LOCALE_LANG, GUIDE_UI, guideHomePath, guideRoutePath, localizedGuidePath, textDirection, type GuideLocale } from "../../guides/locales";
 import { applyGuideSeo, clearGuideSeo, guideAlternates } from "../../guides/seo";
@@ -13,6 +13,7 @@ import { relatedLinksFor } from "../../guides/topicClusters";
 import type { ResolvedGuide } from "../../guides/topicClusters";
 import { formatUkDateFor, shortGuideTitle } from "../../guides/format";
 import { Link } from "../Link";
+import { currentPath } from "../../router";
 import { useReportAvailableLocales } from "../site/pageLanguages";
 import { GuideMarkdown } from "./GuideMarkdown";
 import { titleReferencesFor } from "../../guides/titleReferences";
@@ -49,6 +50,12 @@ function wideScreen(): boolean {
     && window.matchMedia("(min-width: 900px)").matches;
 }
 
+/** The path this document was loaded at (before any in-app navigation). */
+function documentPath(): string {
+  const entry = performance.getEntriesByType("navigation")[0];
+  return entry ? new URL(entry.name).pathname : currentPath();
+}
+
 export function GuidePage({
   domain,
   slug,
@@ -74,7 +81,9 @@ export function GuidePage({
   // The published list for this locale; it decides which references link.
   const [published, setPublished] = useState<GuideMetadata[] | undefined>(() => startupGuides(locale));
   const references = useMemo(() => titleReferencesFor(domain, locale, published, slug), [domain, locale, published, slug]);
-  const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>([locale]);
+  // On a prerendered Guide its hreflang links already say which languages it has.
+  const [availableLocales, setAvailableLocales] = useState<GuideLocale[]>(
+    () => startupAlternateLocales(currentPath()) ?? [locale]);
   // The header's language selector offers only the languages this Guide is published in.
   useReportAvailableLocales(availableLocales);
   const ui = GUIDE_UI[locale];
@@ -121,7 +130,8 @@ export function GuidePage({
         setPublished(guides);
       })
       .catch(() => {});
-    Promise.allSettled(GUIDE_LOCALES.map((candidate) =>
+    // A prerendered Guide's languages came from its hreflang links (initial state).
+    if (!startupAlternateLocales(currentPath())?.includes(locale)) Promise.allSettled(GUIDE_LOCALES.map((candidate) =>
       candidate === "zh-CN" ? getGuides(controller.signal) : getLocalizedGuides(candidate, controller.signal),
     )).then((results) => {
       if (!active) return;
@@ -142,10 +152,21 @@ export function GuidePage({
       applyGuideSeo({ locale, canonical, title: `${state.guide.title} · Life in UK`, description: state.guide.summary,
         alternates: guideAlternates(window.location.origin, domain.id, slug, availableLocales),
         structuredData: guideStructuredData({ origin: window.location.origin, locale, domainId: domain.id, guide: state.guide }) });
-    } else if (state.status === "not-found" || state.status === "error") {
-      applyGuideSeo({ locale, canonical: null,
-        title: state.status === "not-found" ? "Guide not found · Life in UK" : "Guide unavailable · Life in UK",
-        description: "", noIndex: true });
+    } else if (state.status === "not-found") {
+      applyGuideSeo({ locale, canonical: null, title: "Guide not found · Life in UK", description: "", noIndex: true });
+    } else if (state.status === "error") {
+      // A failed request is not a missing Guide: no noindex, and the page's own head
+      // tags (prerendered, if any) stay, so a temporary API error is never indexed as one.
+      // After an in-app navigation, load the page itself instead: its prerendered HTML
+      // does not depend on the API, and main.tsx keeps it while the API is failing.
+      // Only once: after that load the document's own URL is this page.
+      if (documentPath() !== currentPath()) {
+        window.location.replace(window.location.href);
+        return;
+      }
+      document.title = "Guide unavailable · Life in UK";
+      document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
+      document.documentElement.dir = textDirection(locale);
     } else {
       document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
       document.documentElement.dir = textDirection(locale);

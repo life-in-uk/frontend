@@ -105,7 +105,10 @@ export function FamilyVisaTopicPage({
     availability.children.status === "loading";
   // Shown only when the Guide is verified AND reviewed wording is available.
   const verified = !loading && shown;
-  useTopicSeo(topic, locale, title, description, loading ? "loading" : verified ? "verified" : "pending");
+  // A failed list request leaves the head tags alone, as while loading: the page's own
+  // (prerendered) tags stay and it is not marked noindex as unverified.
+  useTopicSeo(topic, locale, title, description,
+    loading || list.status === "error" ? "loading" : verified ? "verified" : "pending");
 
   return (
     <FamilyVisaLocaleContext.Provider value={fvLocale}>

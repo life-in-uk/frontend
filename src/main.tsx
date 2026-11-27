@@ -2,7 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { clearStartupData, primeStartupGuide } from './guides/api'
+import { clearStartupData, keepPrerenderedPage, primeStartupGuide, rememberStartupLocales } from './guides/api'
+import { prerenderedAlternateLocales } from './guides/seo'
 import { currentPath, matchRoute, pageRoute, subscribeToLocation } from './router'
 import { preloadRouteChunk } from './routeChunks'
 
@@ -20,11 +21,18 @@ const stopWatching = subscribeToLocation(() => {
 // static page stays on screen until the app can show the same content: no
 // empty or loading state in between, and no layout shift. Capped by the
 // Guide request deadline; after it the app renders as before (loading state).
+// If the page's data could not be fetched at all (rate limiting, a server or
+// network error), the app is not started: the prerendered page is complete
+// (content, links, head tags) and stays, rather than being replaced by an error
+// state that would also drop its canonical and mark it noindex.
 const STARTUP_DEADLINE_MS = 10_000
 const container = document.getElementById('root')!
 const route = pageRoute(matchRoute(currentPath()))
 const prerendered = container.childElementCount > 0
-const ready = [preloadRouteChunk(route)]
+const ready: Promise<unknown>[] = [preloadRouteChunk(route)]
+// A prerendered page lists its languages in its hreflang links: Guides and hubs use
+// them instead of fetching every locale's catalogue to find out.
+if (prerendered) rememberStartupLocales(currentPath(), prerenderedAlternateLocales())
 if (prerendered && route.name === 'guide')
   ready.push(primeStartupGuide(route.slug, 'zh-CN', AbortSignal.timeout(STARTUP_DEADLINE_MS)))
 if (prerendered && route.name === 'localized-guide')
@@ -45,7 +53,12 @@ function render() {
     </StrictMode>,
   )
 }
+// The deadline is a little later than the requests' own, so a request that times
+// out settles as "failed" first.
 Promise.race([
   Promise.allSettled(ready),
-  new Promise((resolve) => window.setTimeout(resolve, STARTUP_DEADLINE_MS)),
-]).then(render)
+  new Promise<PromiseSettledResult<unknown>[]>((resolve) => window.setTimeout(() => resolve([]), STARTUP_DEADLINE_MS + 500)),
+]).then((results) => {
+  if (prerendered && keepPrerenderedPage(results)) return
+  render()
+})

@@ -55,6 +55,11 @@ jobs:
       - name: Release build (type-check, prerender, SEO validation)
         run: npm run build:release
 
+      - name: Rendered SEO (Chrome on a site built from recorded API fixtures; no production requests)
+        env:
+          PLAYWRIGHT_CHANNEL: chrome
+        run: node tests/seo-rendered.ci.mjs
+
       - name: Release output (local URLs, noindex, build origin and API, robots.txt)
         run: node scripts/ci/check-release-output.mjs --expect-api "$API_BASE"
 
@@ -63,6 +68,7 @@ jobs:
 
       - name: Hosting contract on the edge emulator (redirects, 404s, caching, sitemap, robots)
         run: |
+          set -o pipefail # the verifier's exit status must survive the grep below
           node scripts/edge/emulator.mjs dist 4180 "$API_BASE" > emulator.log 2>&1 &
           for _ in $(seq 1 30); do curl -fsS -o /dev/null http://127.0.0.1:4180/en 2>/dev/null && break; sleep 1; done
           node scripts/edge/verify-site.mjs --base http://127.0.0.1:4180 --host lifeinuk.info --skip-api-details | grep -v '^… '
