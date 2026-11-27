@@ -21,6 +21,7 @@ import { deploySite, staleObjects, uploadGroups } from "../scripts/edge/deploy-s
 import { compareBucket, preflightSite, READ_ONLY_CALLS } from "../scripts/edge/preflight-site.mjs";
 import { createHash } from "node:crypto";
 import { uploadObjects } from "../scripts/edge/objects.mjs";
+import { renderSitemap, sitemapEntries } from "../scripts/seo/sitemap.mjs";
 import { generateViewerRequest, loadViewerRequest, MAX_FUNCTION_BYTES, viewerEvent } from "../scripts/edge/viewer-request.mjs";
 
 const ORIGIN = "https://lifeinuk.info";
@@ -71,6 +72,8 @@ async function build(inv = inventory()) {
   writeFileSync(join(dir, "favicon.svg"), "<svg/>");
   await prerender({ distDir: dir, origin: ORIGIN, inventory: inv });
   await writeRedirects(dir, expectedPages(inv));
+  // As build:release does: the release's own sitemap (served from the bucket).
+  writeFileSync(join(dir, "sitemap.xml"), renderSitemap(sitemapEntries(dir, ORIGIN)));
   return dir;
 }
 
