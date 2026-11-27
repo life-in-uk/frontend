@@ -21,7 +21,7 @@ function withFetch(respond, run) {
 const status = (code) => () => new Response(JSON.stringify({ code: "X" }), { status: code, headers: { "content-type": "application/json" } });
 
 test("a Guide's startup request reports rate limiting, server and network errors as failed", async () => {
-  for (const respond of [status(429), status(502), status(503), () => { throw new TypeError("network"); }]) {
+  for (const respond of [status(429), status(500), status(502), status(503), () => { throw new TypeError("network"); }]) {
     for (const locale of ["zh-CN", "ur"]) {
       await withFetch(respond, async () => {
         assert.equal(await primeStartupGuide("renting-deposits-fees", locale), "failed");
