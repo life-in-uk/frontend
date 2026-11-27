@@ -34,6 +34,7 @@
     "test:work-visa:browser": "node tests/work-visa.browser.mjs",
     "test:header:browser": "node tests/site-header.browser.mjs",
     "test:seo:browser": "node tests/seo-static.browser.mjs",
+    "test:seo-api-failure:browser": "node tests/seo-api-failure.browser.mjs",
     "preview:release": "node scripts/seo/static-host.mjs dist 4174",
     "edge:function": "node scripts/edge/viewer-request.mjs dist release/edge/viewer-request.js",
     "edge:emulate": "node scripts/edge/emulator.mjs dist 4180",

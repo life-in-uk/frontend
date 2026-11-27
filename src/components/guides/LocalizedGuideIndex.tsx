@@ -71,6 +71,13 @@ export function LocalizedGuideIndex({ locale, domain }: { locale: GuideLocale; d
 
   useEffect(() => {
     if (domain && state.status === "loading") return;
+    // A failed request says nothing about the hub: keep its head tags (prerendered,
+    // if any) rather than marking it noindex. Only a hub with no Guides is noindex.
+    if (state.status === "error") {
+      document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
+      document.documentElement.dir = textDirection(locale);
+      return;
+    }
     const canonicalPath = domain ? localizedGuidePath(locale, domain) : `/${locale}/guides`;
     const origin = window.location.origin;
     const hasContent = !domain || (state.status === "ready" && state.guides.length > 0);

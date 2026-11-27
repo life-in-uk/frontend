@@ -155,30 +155,60 @@ const startup = new Map<string, GuideDetail | GuideMetadata[] | LocalizedGuide>(
 const listKey = (locale: GuideLocale) => `list:${locale}`;
 const guideKey = (locale: GuideLocale, slug: string) => `guide:${locale}:${slug}`;
 
-export async function primeStartupGuide(slug: string, locale: GuideLocale, signal?: AbortSignal): Promise<void> {
+/**
+ * What a prerendered page's startup request found: its data ("ready"), a definite
+ * 404 ("not-found"), or no answer ("failed": rate limiting, a server or network
+ * error, the startup deadline). On "failed" the prerendered page is kept as it is
+ * (main.tsx), because the app could only replace it with an error state.
+ */
+export type StartupOutcome = "ready" | "not-found" | "failed";
+
+/**
+ * Whether to keep the prerendered page instead of starting the app: when its
+ * startup data could not be fetched. Values that are not outcomes (route chunks,
+ * a startup deadline that passed first) never keep it.
+ */
+export function keepPrerenderedPage(results: readonly PromiseSettledResult<unknown>[]): boolean {
+  return results.some((result) => result.status === "fulfilled" && result.value === "failed");
+}
+
+function outcomeOf(result: PromiseSettledResult<unknown>): StartupOutcome {
+  if (result.status === "fulfilled") return "ready";
+  return result.reason instanceof GuideNotFoundError ? "not-found" : "failed";
+}
+
+export async function primeStartupGuide(slug: string, locale: GuideLocale, signal?: AbortSignal): Promise<StartupOutcome> {
   const [guide, list] = await Promise.allSettled([
     locale === "zh-CN" ? getGuide(slug, signal) : getLocalizedGuide(slug, locale, signal),
     locale === "zh-CN" ? getGuides(signal) : getLocalizedGuides(locale, signal),
   ]);
   if (guide.status === "fulfilled") startup.set(guideKey(locale, slug), guide.value);
   if (list.status === "fulfilled") startup.set(listKey(locale), list.value);
+  return outcomeOf(guide);
 }
 
 /**
  * Startup data for a page built from several Guides (a Family & Visa topic
  * page): the Simplified Chinese list, the listed Guides' details and, for
- * another locale, their published translations.
+ * another locale, their published translations. "failed" when the list or any
+ * listed Guide could not be fetched for a reason other than a 404.
  */
-export async function primeStartupGuides(slugs: readonly string[], locale: GuideLocale, signal?: AbortSignal): Promise<void> {
-  const list = await getGuides(signal);
+export async function primeStartupGuides(slugs: readonly string[], locale: GuideLocale, signal?: AbortSignal): Promise<StartupOutcome> {
+  let list: GuideMetadata[];
+  try {
+    list = await getGuides(signal);
+  } catch {
+    return "failed";
+  }
   startup.set(listKey("zh-CN"), list);
   const published = slugs.filter((slug) => list.some((guide) => guide.slug === slug));
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     published.flatMap((slug) => [
       getGuide(slug, signal).then((guide) => { startup.set(guideKey("zh-CN", slug), guide); }),
       ...(locale === "zh-CN" ? [] : [getLocalizedGuide(slug, locale, signal).then((guide) => { startup.set(guideKey(locale, slug), guide); })]),
     ]),
   );
+  return results.some((result) => outcomeOf(result) === "failed") ? "failed" : "ready";
 }
 
 /** The startup Guide for this page, if it was fetched before the first render. */
