@@ -76,7 +76,8 @@ try {
   console.log(`  ${written.length} HTML files, ${redirects.length} redirects, sitemap of ${entries.length} URLs (${entries.filter((entry) => entry.lastmod).length} with lastmod)`);
   console.log("▶ Validate");
   const { errors, report } = await validateSeoOutput({ distDir: DIST, inventory, origin, release: true });
-  const sitemap = await checkSitemap(expectedPages(inventory), origin);
+  // The backend sitemap lists published Guides, hubs, homes and topic pages; the Guides index is frontend-only.
+  const sitemap = await checkSitemap(expectedPages(inventory).filter((page) => page.kind !== "index"), origin);
   errors.push(...sitemap.errors);
   // The release's own sitemap lists exactly its canonical pages.
   const listed = new Set(entries.map((entry) => entry.loc));
