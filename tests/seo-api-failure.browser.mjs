@@ -74,7 +74,10 @@ try {
       const canonicalPath = (href) => href && new URL(href).pathname;
       ok(mode === "published" ? canonicalPath(seen.canonical) === canonicalPath(expected.canonical) : seen.canonical === expected.canonical,
         `${label}: canonical kept (${seen.canonical})`);
-      ok(mode === "published" || JSON.stringify(seen.hreflang) === JSON.stringify(expected.hreflang), `${label}: hreflang kept (${seen.hreflang.length})`);
+      // With the published API the app writes the same languages for the current origin: compare codes and paths.
+      const paths = (rows) => rows.map((row) => { const [code, href] = row.split(" "); return `${code} ${new URL(href).pathname}`; }).sort();
+      ok(mode === "published" ? JSON.stringify(paths(seen.hreflang)) === JSON.stringify(paths(expected.hreflang)) : JSON.stringify(seen.hreflang) === JSON.stringify(expected.hreflang),
+        `${label}: hreflang ${mode === "published" ? "matches the prerendered page" : "kept"} (${seen.hreflang.length})`);
       // Hubs: the app's hub has its own heading, so only Guide and topic content is compared.
       if (kind !== "hub") ok(seen.h1 === expected.h1, `${label}: content kept (${seen.h1?.slice(0, 40)})`);
       if (mode === "published") ok(seen.app, `${label}: the app started`);
@@ -119,8 +122,10 @@ try {
     await page.locator(`main a[href="${next}"]`).first().click();
     await page.waitForURL((url) => url.pathname === next);
     await page.waitForTimeout(1500);
-    const during = await page.evaluate(() => ({ robots: document.querySelector('meta[name="robots"]')?.content ?? "", alert: !!document.querySelector('[role="alert"]') }));
+    const during = await page.evaluate(() => ({ robots: document.querySelector('meta[name="robots"]')?.content ?? "", alert: !!document.querySelector('[role="alert"]'), h1: document.querySelector("main h1")?.textContent?.trim(), app: !!document.querySelector("header select") }));
+    const expectedNext = head(readFileSync(join(DIST, next, "index.html"), "utf8"));
     ok(!/noindex/.test(during.robots), "recovery: an in-app request that fails is not marked noindex");
+    ok(during.h1 === expectedNext.h1 && !during.alert && !during.app, `recovery: an in-app Guide whose request fails is shown from its prerendered page (${during.h1?.slice(0, 40)})`);
     failing = false;
     await page.goBack();
     await page.waitForTimeout(500);

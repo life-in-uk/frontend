@@ -136,11 +136,13 @@ try {
       path: `${screenshots}/preview-journey-${width}.png`,
       fullPage: false,
     });
-    // Only the Guide API is called, with fixed paths.
+    // Only the Guide API is called, with fixed paths: the journey's five Guides, and the
+    // section's visitor Guide, which the hub reads for its official sources (on main too;
+    // whether that request falls inside this check depended on timing).
     for (const url of requests.filter((u) => u.includes("/api/")))
       assert.match(
         new URL(url).pathname,
-        /^\/api\/guides(\/partner-visa-(routes-overview|financial-requirement|relationship-evidence|dependent-children|application-process))?$/,
+        /^\/api\/guides(\/partner-visa-(routes-overview|financial-requirement|relationship-evidence|dependent-children|application-process)|\/visiting-family-uk-visitor-visa-eta)?$/,
       );
     // The full Guide opens from the journey.
     await stage(p, 1)
@@ -168,14 +170,14 @@ try {
     await p.locator(".family-guide-card").first().waitFor();
     // Exactly the five Family Visa Guides, by slug.
     const draftLinks = await p
-      .locator(".family-guide-card a[href^='/family-visa/partner-visa-']")
+      .locator(".family-guide-card a[href^='/zh-CN/family-visa/partner-visa-']")
       .evaluateAll((links) => links.map((a) => a.getAttribute("href")).sort());
     assert.deepEqual(draftLinks, [
-      "/family-visa/partner-visa-application-process",
-      "/family-visa/partner-visa-dependent-children",
-      "/family-visa/partner-visa-financial-requirement",
-      "/family-visa/partner-visa-relationship-evidence",
-      "/family-visa/partner-visa-routes-overview",
+      "/zh-CN/family-visa/partner-visa-application-process",
+      "/zh-CN/family-visa/partner-visa-dependent-children",
+      "/zh-CN/family-visa/partner-visa-financial-requirement",
+      "/zh-CN/family-visa/partner-visa-relationship-evidence",
+      "/zh-CN/family-visa/partner-visa-routes-overview",
     ]);
     console.log("PASS preview: 全部指南 lists exactly the five Guides");
     await context.close();

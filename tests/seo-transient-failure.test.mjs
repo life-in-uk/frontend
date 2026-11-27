@@ -5,7 +5,7 @@
 // links its prerendered topic pages, as the app's hub does.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clearStartupData, keepPrerenderedPage, primeStartupGuide, primeStartupGuides } from "../src/guides/api.ts";
+import { clearSessionCache, clearStartupData, keepPrerenderedPage, primeStartupGuide, primeStartupGuides } from "../src/guides/api.ts";
 import { staticHubPage } from "../src/seo/staticPages.ts";
 import { familyVisaTopicPath } from "../src/router.ts";
 import { GUIDE_LOCALES } from "../src/guides/locales.ts";
@@ -16,7 +16,7 @@ function withFetch(respond, run) {
     init?.signal?.throwIfAborted();
     return respond(String(url));
   };
-  return run().finally(() => { globalThis.fetch = realFetch; clearStartupData(); });
+  return run().finally(() => { globalThis.fetch = realFetch; clearStartupData(); clearSessionCache(); });
 }
 const status = (code) => () => new Response(JSON.stringify({ code: "X" }), { status: code, headers: { "content-type": "application/json" } });
 

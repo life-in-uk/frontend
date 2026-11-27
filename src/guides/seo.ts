@@ -112,3 +112,13 @@ export function applyGuideSeo(options: {
     document.head.append(robots);
   }
 }
+
+/**
+ * The languages the prerendered page in this document exists in, from its own
+ * hreflang links (x-default left out); empty when the page was not prerendered.
+ */
+export function prerenderedAlternateLocales(): GuideLocale[] {
+  const codes = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][hreflang][data-prerendered="true"]')]
+    .map((link) => link.hreflang);
+  return GUIDE_LOCALES.filter((locale) => codes.includes(GUIDE_LOCALE_HREFLANG[locale]));
+}

@@ -224,8 +224,73 @@ export function startupGuides(locale: GuideLocale): GuideMetadata[] | undefined 
   return Array.isArray(value) ? value : undefined;
 }
 
+/** The languages a prerendered page exists in (its hreflang links), for that path only. */
+let startupLocales: { path: string; locales: GuideLocale[] } | undefined;
+
+export function rememberStartupLocales(path: string, locales: GuideLocale[]): void {
+  startupLocales = locales.length > 0 ? { path, locales } : undefined;
+}
+
+export function startupAlternateLocales(path: string): GuideLocale[] | undefined {
+  return startupLocales?.path === path ? startupLocales.locales : undefined;
+}
+
 export function clearStartupData(): void {
   startup.clear();
+  startupLocales = undefined;
+}
+
+/**
+ * Published lists and Guides fetched in this session, shared by every page and
+ * component: one request per URL at a time, reused for SESSION_TTL_MS, so a
+ * page that shows the same list in several places, or a visit back to a page,
+ * does not ask the API again. Failures are not kept: the next call retries.
+ * A request still in flight is cancelled once every caller waiting for it has
+ * aborted (a page that was left), as an unshared request would be.
+ */
+const SESSION_TTL_MS = 5 * 60_000;
+type SessionEntry = { at: number; value: Promise<unknown>; settled: boolean; waiting: number; controller: AbortController };
+const session = new Map<string, SessionEntry>();
+
+function sessionRequest<T>(url: string, read: (response: Response) => Promise<T>, signal?: AbortSignal): Promise<T> {
+  signal?.throwIfAborted();
+  let entry = session.get(url);
+  if (!entry || (entry.settled && Date.now() - entry.at >= SESSION_TTL_MS)) {
+    const controller = new AbortController();
+    const created: SessionEntry = { at: Date.now(), value: Promise.resolve(), settled: false, waiting: 0, controller };
+    created.value = fetch(url, { signal: controller.signal }).then(read).then(
+      (value) => { created.settled = true; created.at = Date.now(); return value; },
+      (error: unknown) => { if (session.get(url) === created) session.delete(url); throw error; },
+    );
+    session.set(url, created);
+    entry = created;
+  }
+  const shared = entry;
+  const value = shared.value as Promise<T>;
+  if (shared.settled || !signal) {
+    if (!shared.settled) shared.waiting = Infinity; // a caller that cannot abort keeps it alive
+    return value;
+  }
+  shared.waiting += 1;
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => {
+      reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+      shared.waiting -= 1;
+      if (shared.waiting <= 0 && !shared.settled) {
+        if (session.get(url) === shared) session.delete(url);
+        shared.controller.abort(signal.reason);
+      }
+    };
+    signal.addEventListener("abort", abort, { once: true });
+    value.then(resolve, reject).finally(() => {
+      signal.removeEventListener("abort", abort);
+      if (!signal.aborted) shared.waiting -= 1;
+    });
+  });
+}
+
+export function clearSessionCache(): void {
+  session.clear();
 }
 
 export async function getGuides(
@@ -233,11 +298,12 @@ export async function getGuides(
 ): Promise<GuideMetadata[]> {
   const ready = startupGuides("zh-CN");
   if (ready) return ready;
-  const response = await fetch("/api/guides", { signal });
-  if (!response.ok) throw new Error("Guides unavailable");
-  const data: unknown = await response.json();
-  if (!isGuideList(data)) throw new Error("Invalid Guides response");
-  return data;
+  return sessionRequest("/api/guides", async (response) => {
+    if (!response.ok) throw new Error("Guides unavailable");
+    const data: unknown = await response.json();
+    if (!isGuideList(data)) throw new Error("Invalid Guides response");
+    return data;
+  }, signal);
 }
 
 export async function getGuide(
@@ -247,15 +313,14 @@ export async function getGuide(
   if (!isGuideSlug(slug)) throw new GuideNotFoundError();
   const ready = startup.get(guideKey("zh-CN", slug));
   if (ready && !Array.isArray(ready) && !("guide" in ready)) return ready;
-  const response = await fetch(`/api/guides/${encodeURIComponent(slug)}`, {
-    signal,
-  });
-  if (response.status === 404) throw new GuideNotFoundError();
-  if (!response.ok) throw new Error("Guide unavailable");
-  const data: unknown = await response.json();
-  if (!isGuideDetail(data) || data.slug !== slug)
-    throw new Error("Invalid Guide response");
-  return data;
+  return sessionRequest(`/api/guides/${encodeURIComponent(slug)}`, async (response) => {
+    if (response.status === 404) throw new GuideNotFoundError();
+    if (!response.ok) throw new Error("Guide unavailable");
+    const data: unknown = await response.json();
+    if (!isGuideDetail(data) || data.slug !== slug)
+      throw new Error("Invalid Guide response");
+    return data;
+  }, signal);
 }
 
 /** Published-only locale index. Missing translations are omitted by Spring. */
@@ -266,12 +331,13 @@ export async function getLocalizedGuides(
   // The zh-CN startup list comes from /api/guides, so only other locales match here.
   const ready = locale === "zh-CN" ? undefined : startupGuides(locale);
   if (ready) return ready;
-  const response = await fetch(`/api/guides/locales/${encodeURIComponent(locale)}`, { signal });
-  if (response.status === 404) throw new GuideNotFoundError();
-  if (!response.ok) throw new Error("Guides unavailable");
-  const data: unknown = await response.json();
-  if (!isGuideList(data)) throw new Error("Invalid localized Guides response");
-  return data;
+  return sessionRequest(`/api/guides/locales/${encodeURIComponent(locale)}`, async (response) => {
+    if (response.status === 404) throw new GuideNotFoundError();
+    if (!response.ok) throw new Error("Guides unavailable");
+    const data: unknown = await response.json();
+    if (!isGuideList(data)) throw new Error("Invalid localized Guides response");
+    return data;
+  }, signal);
 }
 
 /** Published-only localized detail. Spring returns 404 for absent/unpublished locales. */
@@ -283,15 +349,16 @@ export async function getLocalizedGuide(
   if (!isGuideSlug(slug)) throw new GuideNotFoundError();
   const ready = startup.get(guideKey(locale, slug));
   if (ready && !Array.isArray(ready) && "guide" in ready) return ready;
-  const response = await fetch(`/api/guides/${encodeURIComponent(slug)}/locales/${encodeURIComponent(locale)}`, { signal });
-  if (response.status === 404) throw new GuideNotFoundError();
-  if (!response.ok) throw new Error("Guide unavailable");
-  const data: unknown = await response.json();
-  if (!isRecord(data) || data.locale !== locale || !isGuideDetail(data.guide)
-    || data.guide.slug !== slug
-    || !(data.sourceRevisionId === null || typeof data.sourceRevisionId === "string")
-    || !(data.contentHash === null || typeof data.contentHash === "string")) {
-    throw new Error("Invalid localized Guide response");
-  }
-  return { locale, guide: data.guide, sourceRevisionId: data.sourceRevisionId, contentHash: data.contentHash };
+  return sessionRequest(`/api/guides/${encodeURIComponent(slug)}/locales/${encodeURIComponent(locale)}`, async (response) => {
+    if (response.status === 404) throw new GuideNotFoundError();
+    if (!response.ok) throw new Error("Guide unavailable");
+    const data: unknown = await response.json();
+    if (!isRecord(data) || data.locale !== locale || !isGuideDetail(data.guide)
+      || data.guide.slug !== slug
+      || !(data.sourceRevisionId === null || typeof data.sourceRevisionId === "string")
+      || !(data.contentHash === null || typeof data.contentHash === "string")) {
+      throw new Error("Invalid localized Guide response");
+    }
+    return { locale, guide: data.guide, sourceRevisionId: data.sourceRevisionId, contentHash: data.contentHash };
+  }, signal);
 }
