@@ -6,6 +6,7 @@ import { UNIVERSITY_CATEGORY } from "./guides/domains";
 import { HOUSEHOLD_CATEGORY } from "./guides/household";
 import type { Route } from "./router";
 
+export const AboutPage = lazyRoute(() => import("./components/about/AboutPage").then((m) => m.AboutPage));
 export const HealthHub = lazyRoute(() => import("./components/health/HealthHub").then((m) => m.HealthHub));
 export const FamilyVisaHub = lazyRoute(() => import("./components/family-visa/FamilyVisaHub").then((m) => m.FamilyVisaHub));
 export const FamilyVisaTopicPage = lazyRoute(() =>
@@ -45,6 +46,8 @@ export function preloadRouteChunk(route: Route): Promise<void> {
       return TravelPage.preload();
     case "localized-index":
       return LocalizedGuideIndex.preload();
+    case "about":
+      return AboutPage.preload();
     case "owner-editorial":
       return OwnerEditorialPage.preload();
     default:

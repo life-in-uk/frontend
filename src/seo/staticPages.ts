@@ -21,6 +21,7 @@ import { UNIVERSITY_CATEGORY, domainGuides, GUIDE_DOMAINS } from "../guides/doma
 import type { GuideDomain, GuideDomainId } from "../guides/domains.ts";
 import { formatUkDateFor } from "../guides/format.ts";
 import { GUIDE_INDEX_COPY } from "../guides/guideIndex.ts";
+import { ABOUT_CONTENT } from "../about/aboutContent.ts";
 import { groupGuidesByDomain } from "../guides/indexGroups.ts";
 import {
   GUIDE_LOCALE_HREFLANG,
@@ -41,7 +42,7 @@ import { moneyQuickAnswersFor } from "../guides/moneyQuickAnswersLocales.ts";
 import { RENTING_COPY, RENTING_MOVE_OUT_STEPS, RENTING_STEPS } from "../guides/rentingJourneyData.ts";
 import { SITE_UI } from "../guides/siteUi.ts";
 import { splitTitleReferences, titleReferencesFor } from "../guides/titleReferences.ts";
-import { guideStructuredData, serializeJsonLd } from "./structuredData.ts";
+import { aboutStructuredData, guideStructuredData, serializeJsonLd } from "./structuredData.ts";
 import { guideNotice } from "../guides/guideNotice.ts";
 import { CLUSTER_COPY, clusterGroupsFor, crossSectionLinksFor, CURATED_RELATED_SECTIONS, officialSourcesFor, relatedLinksFor, TOPIC_CLUSTERS } from "../guides/topicClusters.ts";
 import type { ResolvedGroup } from "../guides/topicClusters.ts";
@@ -537,6 +538,30 @@ export function staticIndexPage(input: StaticIndexInput): StaticPage | null {
   return { head, body: html };
 }
 
+/** The About and editorial-policy page as a static page (the same copy as the app, src/about/aboutContent.ts). */
+export function staticAboutPage(input: { origin: string; locale: GuideLocale; published: readonly GuideMetadata[] }): StaticPage {
+  const { origin, locale } = input;
+  const copy = ABOUT_CONTENT[locale];
+  const html = [
+    renderSiteNav(locale, input.published),
+    `<main id="main" class="static-page static-about">`,
+    `<nav class="static-breadcrumb" aria-label="${escapeHtml(STATIC_COPY.breadcrumb[locale])}"><a href="${guideHomePath(locale)}">${escapeHtml(GUIDE_UI[locale].home)}</a></nav>`,
+    `<h1>${escapeHtml(copy.title)}</h1>`,
+    ...copy.intro.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`),
+    ...copy.sections.map((section) => `<section id="${escapeHtml(section.id)}"><h2>${escapeHtml(section.heading)}</h2>${section.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</section>`),
+    `</main>`,
+  ].join("\n");
+  const head: PageHead = {
+    locale,
+    title: `${copy.title} · Life in UK`,
+    description: copy.description,
+    canonical: absolute(origin, `/${locale}/about`),
+    alternates: GUIDE_LOCALES.map((candidate) => ({ locale: candidate, href: absolute(origin, `/${candidate}/about`) })),
+    structuredData: aboutStructuredData({ origin, locale, title: copy.title, description: copy.description }),
+  };
+  return { head, body: html };
+}
+
 /** Joins a two-part hero line the way the page shows it on one line. */
 function joinParts(parts: readonly string[], locale: GuideLocale): string {
   return parts.join(locale === "zh-CN" || locale === "zh-TW" ? "" : " ");
@@ -705,7 +730,8 @@ export function staticTopicPage(input: TopicInput & { origin: string; published:
  * list), so every language version is reachable by a link, not only by hreflang.
  */
 export function renderLanguageLinks(head: PageHead): string {
-  if (head.alternates.length < 2) return "";
+  const about = `<p><a href="/${head.locale}/about">${escapeHtml(SITE_UI[head.locale].about)}</a></p>`;
+  if (head.alternates.length < 2) return `<footer class="static-footer">${about}</footer>`;
   const items = head.alternates.map(({ locale, href }) => {
     const attrs = `lang="${GUIDE_LOCALE_LANG[locale]}" dir="${textDirection(locale)}"`;
     return locale === head.locale
@@ -713,7 +739,7 @@ export function renderLanguageLinks(head: PageHead): string {
       : `<li><a href="${escapeHtml(new URL(href).pathname)}" hreflang="${GUIDE_LOCALE_HREFLANG[locale]}" ${attrs}>${escapeHtml(GUIDE_LOCALE_LABELS[locale])}</a></li>`;
   }).join("");
   const label = escapeHtml(GUIDE_UI[head.locale].language);
-  return `<footer class="static-footer"><nav aria-label="${label}"><h2>${label}</h2><ul>${items}</ul></nav></footer>`;
+  return `<footer class="static-footer">${about}<nav aria-label="${label}"><h2>${label}</h2><ul>${items}</ul></nav></footer>`;
 }
 
 export function fillTemplate(template: string, page: StaticPage): string {

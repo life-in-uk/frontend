@@ -125,10 +125,10 @@ test("the generated function is ES5, fits the quota and serves every page, redir
   const { code, bytes, stats } = generateViewerRequest({ distDir: dir });
   assert.doesNotThrow(() => acorn.parse(code, { ecmaVersion: 5 }), "CloudFront function source must parse as ES5");
   assert.ok(bytes < MAX_FUNCTION_BYTES);
-  // Guides: alpha ×5, beta ×1, GP ×3; hubs: renting ×5, health ×3; homes ×5; Guide indexes ×5.
-  assert.equal(stats.localizedPages, 27);
-  // zh-CN short URLs: the root, two hubs, the Guide index and three Guides.
-  assert.equal(stats.redirects, 7);
+  // Guides: alpha ×5, beta ×1, GP ×3; hubs: renting ×5, health ×3; homes ×5; Guide indexes ×5; About ×5.
+  assert.equal(stats.localizedPages, 32);
+  // zh-CN short URLs: the root, two hubs, the Guide index, About and three Guides.
+  assert.equal(stats.redirects, 8);
   const handle = loadViewerRequest(code);
   const unordered = viewerEvent("/renting", { query: "b=%E4%B8%AD&a=2&a=1&flag" });
   assert.equal(handle(unordered).headers.location.value,

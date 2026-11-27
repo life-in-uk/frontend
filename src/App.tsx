@@ -14,6 +14,7 @@ import {
   FamilyVisaTopicPage,
   HealthHub,
   LocalizedGuideIndex,
+  AboutPage,
   MoneyHub,
   OwnerEditorialPage,
   RentingHub,
@@ -41,7 +42,9 @@ function App() {
         ? route.domain
         : route.name === "travel"
           ? "travel"
-          : undefined;
+          : route.name === "about"
+            ? "about"
+            : undefined;
   const hubDomain = route.name === "hub" ? route.domain : undefined;
   const familyVisaHub =
     hubDomain === "family-visa" || (route.name === "localized-hub" && route.domain === "family-visa");
@@ -180,6 +183,7 @@ function App() {
           <GuidePage key={route.slug} domain={GUIDE_DOMAINS.renting} slug={route.slug} />
         )}
         {route.name === "localized-index" && <LocalizedGuideIndex locale={route.locale} />}
+        {route.name === "about" && <AboutPage locale={route.locale} />}
         {/* Health keeps its editorial landing page and Guide look in every locale. */}
         {route.name === "localized-hub" && route.domain === "health" && <HealthHub key={route.locale} locale={route.locale} />}
         {route.name === "localized-hub" && route.domain === "money" && <MoneyHub key={route.locale} locale={route.locale} />}

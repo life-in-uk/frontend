@@ -25,6 +25,7 @@ export type Route =
   | { name: "guide"; domain: GuideDomainId; slug: string }
   | { name: "localized-home"; locale: GuideLocale }
   | { name: "localized-index"; locale: GuideLocale }
+  | { name: "about"; locale: GuideLocale }
   | { name: "localized-hub"; locale: GuideLocale; domain: GuideDomainId }
   | { name: "localized-guide"; locale: GuideLocale; domain: GuideDomainId; slug: string }
   | { name: "owner-editorial" }
@@ -73,6 +74,7 @@ export function matchRoute(pathname: string): Route {
     const locale = localeValue;
     if (!section) return { name: "localized-home", locale };
     if (section === "guides" && !rawSlug) return { name: "localized-index", locale };
+    if (section === "about") return rawSlug ? { name: "not-found", locale } : { name: "about", locale };
     if (section === "travel") return rawSlug ? { name: "not-found", locale } : { name: "travel", locale };
     const domain = DOMAIN_BASES.get(section);
     if (!domain) return { name: "not-found", locale };
@@ -166,6 +168,8 @@ export function localeSwitchPath(route: Route, next: GuideLocale): string | unde
       return guideHomePath(next);
     case "localized-index":
       return `/${next}/guides`;
+    case "about":
+      return `/${next}/about`;
     case "hub":
     case "localized-hub":
       return guideRoutePath(next, route.domain);

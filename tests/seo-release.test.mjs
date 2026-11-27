@@ -71,9 +71,10 @@ test("a correct release build validates, with counts taken from the inventory", 
   // Guides: alpha ×3 locales, beta ×1, GP ×2. Hubs: renting zh-CN/en/ur, health zh-CN/en. Home pages: always five.
   // No Family & Visa Guide is published, so no topic page. Guide indexes: zh-CN, en, ur (the locales with a Guide).
   // zh-CN short URLs: 3 Guides + 2 hubs + the index (alias pages) + the root.
-  assert.deepEqual(report.expected, { guides: 6, hubs: 5, homes: 5, topics: 0, indexes: 3, aliases: 7 });
-  assert.deepEqual(report.valid, { guide: 6, hub: 5, home: 5, topic: 0, index: 3, alias: 6 });
-  assert.equal(report.redirects, 7);
+  // About pages: always five. zh-CN short URLs also include /about.
+  assert.deepEqual(report.expected, { guides: 6, hubs: 5, homes: 5, topics: 0, indexes: 3, abouts: 5, aliases: 8 });
+  assert.deepEqual(report.valid, { guide: 6, hub: 5, home: 5, topic: 0, index: 3, about: 5, alias: 7 });
+  assert.equal(report.redirects, 8);
   rmSync(dir, { recursive: true });
 });
 
@@ -82,7 +83,7 @@ test("growing the inventory grows the expected pages; no total is hardcoded", as
   const dir = await build(inv);
   const { errors, report } = await validate(dir, inv);
   assert.deepEqual(errors, []);
-  assert.deepEqual(report.expected, { guides: 8, hubs: 6, homes: 5, topics: 0, indexes: 4, aliases: 8 });
+  assert.deepEqual(report.expected, { guides: 8, hubs: 6, homes: 5, topics: 0, indexes: 4, abouts: 5, aliases: 9 });
   rmSync(dir, { recursive: true });
 });
 
@@ -151,6 +152,7 @@ test("zh-CN short URLs: canonical on /zh-CN/…, a 301 in the manifest, never a 
   const manifest = JSON.parse(readFileSync(join(dir, REDIRECTS_FILE), "utf8")).redirects;
   assert.deepEqual(manifest.map((row) => `${row.from} ${row.to} ${row.status}`), [
     "/ /zh-CN 301",
+    "/about /zh-CN/about 301",
     "/guides /zh-CN/guides 301",
     "/health /zh-CN/health 301",
     "/health/registering-with-a-gp /zh-CN/health/registering-with-a-gp 301",
@@ -267,16 +269,22 @@ test("Guide JSON-LD: one Article + BreadcrumbList matching the page; hubs carry 
     const html = readFileSync(join(dir, "ur/renting/renting-alpha/index.html"), "utf8");
     const scripts = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
     assert.equal(scripts.length, 1);
-    const [article, crumbs] = JSON.parse(scripts[0][1])["@graph"];
+    const graph = JSON.parse(scripts[0][1])["@graph"];
+    const [article, crumbs] = ["Article", "BreadcrumbList"].map((type) => graph.find((node) => node["@type"] === type));
     assert.equal(article["@type"], "Article");
     assert.equal(article.headline, "renting-alpha title (ur)");
     assert.equal(article.inLanguage, "ur");
     assert.equal(article.url, `${ORIGIN}/ur/renting/renting-alpha`);
     assert.equal(article.dateModified, "2026-11-16T14:25:00Z");
     assert.equal(article.author, undefined);
-    assert.equal(article.publisher, undefined);
+    assert.deepEqual(article.publisher, { "@id": `${ORIGIN}/#organization` }, "the site publishes; no author");
     assert.deepEqual(crumbs.itemListElement.map((row) => row.item), [`${ORIGIN}/ur`, `${ORIGIN}/ur/renting`, `${ORIGIN}/ur/renting/renting-alpha`]);
     assert.doesNotMatch(readFileSync(join(dir, "ur/renting/index.html"), "utf8"), /application\/ld\+json/);
+    // An Organization claiming more than the site's name and URL fails the release.
+    const org = `{"@type":"Organization","@id":"${ORIGIN}/#organization","name":"Life in UK","url":"${ORIGIN}/"}`;
+    assert.ok(html.includes(org));
+    writeFileSync(join(dir, "ur/renting/renting-alpha/index.html"), html.replace(org, org.replace("}", ',"logo":"x"}')));
+    assert.ok((await validate(dir, inv)).errors.includes("/ur/renting/renting-alpha: the Organization must be the site's name and URL only"));
     // Tampered headline: the release must fail.
     writeFileSync(join(dir, "ur/renting/renting-alpha/index.html"), html.replace('"headline":"renting-alpha title (ur)"', '"headline":"Something else"'));
     const { errors } = await validate(dir, inv);
