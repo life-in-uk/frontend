@@ -54,6 +54,7 @@ import { FAMILY_VISA_PUBLISHED_STRINGS } from "../guides/familyVisaPublishedWord
 import { JOURNEY_GUIDES } from "../guides/familyVisaJourney.ts";
 import type { GuideAvailability, JourneyGuideId } from "../guides/familyVisaJourney.ts";
 import type { LocalizedJourneyGuides } from "../components/family-visa/localizedJourney.ts";
+import { FAMILY_VISA_STRINGS } from "../guides/familyVisaStringsLocales.ts";
 import { familyVisaTopicPath } from "../router.ts";
 import type { FamilyVisaTopicId } from "../router.ts";
 
@@ -339,7 +340,27 @@ export type StaticHubInput = {
   availableLocales: readonly GuideLocale[];
   /** Full published Guides of this section in this locale, for hub content drawn from them. */
   details?: readonly GuideDetail[];
+  /** Family Visa topic pages prerendered in this locale (their paths), linked from the hub as in the app. */
+  topicPaths?: readonly string[];
 };
+
+/** The Family Visa hub's "special circumstances" links, with the app's wording (FamilyVisaHub.tsx). */
+const FAMILY_VISA_TOPIC_LINKS: Readonly<Record<FamilyVisaTopicId, string>> = {
+  "children-from-previous-relationship": "孩子来自上一段关系，如何准备英国签证材料？",
+};
+
+function familyVisaString(locale: GuideLocale, text: string): string {
+  return locale === "zh-CN" ? text : FAMILY_VISA_STRINGS[locale]?.[text] ?? text;
+}
+
+/** Links to the prerendered topic pages, so the static hub reaches them as the app does. */
+function renderFamilyVisaTopics(locale: GuideLocale, topicPaths: readonly string[]): string {
+  const items = (Object.keys(FAMILY_VISA_TOPIC_LINKS) as FamilyVisaTopicId[])
+    .filter((topic) => topicPaths.includes(familyVisaTopicPath(locale, topic)))
+    .map((topic) => `<li><a href="${escapeHtml(familyVisaTopicPath(locale, topic))}">${escapeHtml(familyVisaString(locale, FAMILY_VISA_TOPIC_LINKS[topic]))}</a></li>`);
+  if (items.length === 0) return "";
+  return `<section class="static-topic" data-topic="special-circumstances"><h2>${escapeHtml(familyVisaString(locale, "特殊情况"))}</h2><ul>${items.join("")}</ul></section>`;
+}
 
 const QUICK_ANSWERS_TITLE: Localized = {
   "zh-CN": "常见问题的简短回答",
@@ -451,6 +472,7 @@ export function staticHubPage(input: StaticHubInput): StaticPage | null {
         ? renderEducationSections(guides, locale, input.published, domain)
         : renderGuideList(guides, locale, domain),
     pathways ? `<p><a href="${guideRoutePath(locale, "work-visa", pathways.slug)}">${escapeHtml(pathways.title)}</a></p>` : "",
+    domain.id === "family-visa" ? renderFamilyVisaTopics(locale, input.topicPaths ?? []) : "",
     `</main>`,
   ].join("\n");
   const head: PageHead = {

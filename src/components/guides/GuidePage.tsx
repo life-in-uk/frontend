@@ -142,10 +142,14 @@ export function GuidePage({
       applyGuideSeo({ locale, canonical, title: `${state.guide.title} · Life in UK`, description: state.guide.summary,
         alternates: guideAlternates(window.location.origin, domain.id, slug, availableLocales),
         structuredData: guideStructuredData({ origin: window.location.origin, locale, domainId: domain.id, guide: state.guide }) });
-    } else if (state.status === "not-found" || state.status === "error") {
-      applyGuideSeo({ locale, canonical: null,
-        title: state.status === "not-found" ? "Guide not found · Life in UK" : "Guide unavailable · Life in UK",
-        description: "", noIndex: true });
+    } else if (state.status === "not-found") {
+      applyGuideSeo({ locale, canonical: null, title: "Guide not found · Life in UK", description: "", noIndex: true });
+    } else if (state.status === "error") {
+      // A failed request is not a missing Guide: no noindex, and the page's own head
+      // tags (prerendered, if any) stay, so a temporary API error is never indexed as one.
+      document.title = "Guide unavailable · Life in UK";
+      document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
+      document.documentElement.dir = textDirection(locale);
     } else {
       document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
       document.documentElement.dir = textDirection(locale);
