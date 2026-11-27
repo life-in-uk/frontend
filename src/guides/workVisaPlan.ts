@@ -14,10 +14,22 @@ export type WorkVisaTopic = {
   lead: Localized;
   /** Guide slugs in reading order. */
   slugs: readonly string[];
-  publishedOnly?: boolean;
 };
 
 const STUDENT_PATHWAYS = "uk-options-after-graduation";
+
+/**
+ * Guides added after the original eight. The hub lists each one only where the
+ * reader's locale publishes it; the original eight are always listed.
+ */
+export const WORK_VISA_PUBLISHED_ONLY: ReadonlySet<string> = new Set([
+  STUDENT_PATHWAYS,
+  "graduate-visa-uk",
+  "find-uk-jobs-with-visa-sponsorship",
+  "check-skilled-worker-job-offer",
+  "health-and-care-worker-visa",
+  "adult-social-care-worker-sponsorship",
+]);
 
 export function studentPathwaysEntry(guides: readonly GuideMetadata[]): GuideMetadata | undefined {
   return guides.find(({ category, slug }) => category === "work-visa" && slug === STUDENT_PATHWAYS);
@@ -47,7 +59,6 @@ export const WORK_VISA_TOPICS: readonly WorkVisaTopic[] = [
       hi: "वीज़ा खत्म होने से पहले अपने विकल्प देखें और ग्रेजुएट वीज़ा के लिए आवेदन का तरीका जानें।",
     },
     slugs: [STUDENT_PATHWAYS, "graduate-visa-uk"],
-    publishedOnly: true,
   },
   {
     id: "job",
@@ -59,7 +70,14 @@ export const WORK_VISA_TOPICS: readonly WorkVisaTopic[] = [
       ur: "کیا آجر اسپانسر کر سکتا ہے، اور کیا ملازمت اور تنخواہ اہل ہیں۔",
       hi: "क्या नियोक्ता प्रायोजन कर सकता है, और क्या नौकरी और वेतन योग्य हैं।",
     },
-    slugs: ["skilled-worker-sponsorship-cos", "skilled-worker-occupations-salary"],
+    slugs: [
+      "find-uk-jobs-with-visa-sponsorship",
+      "check-skilled-worker-job-offer",
+      "skilled-worker-sponsorship-cos",
+      "skilled-worker-occupations-salary",
+      "health-and-care-worker-visa",
+      "adult-social-care-worker-sponsorship",
+    ],
   },
   {
     id: "apply",
@@ -116,7 +134,7 @@ export const WORK_VISA_SLUGS: readonly string[] = WORK_VISA_TOPICS.flatMap((topi
 
 export function workVisaTopicsFor(published: ReadonlyMap<string, GuideMetadata>): WorkVisaTopic[] {
   return WORK_VISA_TOPICS
-    .map((topic) => topic.publishedOnly ? { ...topic, slugs: topic.slugs.filter((slug) => published.has(slug)) } : topic)
+    .map((topic) => ({ ...topic, slugs: topic.slugs.filter((slug) => !WORK_VISA_PUBLISHED_ONLY.has(slug) || published.has(slug)) }))
     .filter((topic) => topic.slugs.length > 0);
 }
 
