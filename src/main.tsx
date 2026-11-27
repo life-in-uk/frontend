@@ -2,7 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { clearStartupData, keepPrerenderedPage, primeStartupGuide } from './guides/api'
+import { clearStartupData, keepPrerenderedPage, primeStartupGuide, rememberStartupLocales } from './guides/api'
+import { prerenderedAlternateLocales } from './guides/seo'
 import { currentPath, matchRoute, pageRoute, subscribeToLocation } from './router'
 import { preloadRouteChunk } from './routeChunks'
 
@@ -29,6 +30,9 @@ const container = document.getElementById('root')!
 const route = pageRoute(matchRoute(currentPath()))
 const prerendered = container.childElementCount > 0
 const ready: Promise<unknown>[] = [preloadRouteChunk(route)]
+// A prerendered page lists its languages in its hreflang links: Guides and hubs use
+// them instead of fetching every locale's catalogue to find out.
+if (prerendered) rememberStartupLocales(currentPath(), prerenderedAlternateLocales())
 if (prerendered && route.name === 'guide')
   ready.push(primeStartupGuide(route.slug, 'zh-CN', AbortSignal.timeout(STARTUP_DEADLINE_MS)))
 if (prerendered && route.name === 'localized-guide')
