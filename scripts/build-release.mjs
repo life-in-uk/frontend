@@ -7,7 +7,7 @@
 // 3. Loads the published inventory from the Guide API (fails if unreachable).
 // 4. Prerenders every published Guide and topic hub (scripts/seo/prerender.mjs,
 //    the same pipeline as `build:static`) and writes the redirect manifest.
-// 5. Writes dist/sitemap.xml from the prerendered pages (scripts/seo/sitemap.mjs).
+// 5. Writes dist/sitemap.xml and dist/release-pages.json from the prerendered pages (scripts/seo/sitemap.mjs).
 // 6. Validates the output against the inventory, its own sitemap and the backend sitemap.
 // Any failure exits nonzero; it never falls back to an SPA-only build.
 import { spawnSync } from "node:child_process";
@@ -18,7 +18,7 @@ import { resolveReleaseOrigin } from "./seo/origin.mjs";
 import { prerender } from "./seo/prerender.mjs";
 import { withRetryOn429 } from "./seo/retry.mjs";
 import { writeRedirects } from "./seo/redirects.mjs";
-import { renderSitemap, SITEMAP_FILE, sitemapEntries } from "./seo/sitemap.mjs";
+import { RELEASE_PAGES_FILE, renderReleasePages, renderSitemap, SITEMAP_FILE, sitemapEntries } from "./seo/sitemap.mjs";
 import { formatReport, validateSeoOutput } from "./seo/validate.mjs";
 
 const API = (process.env.API_BASE || "http://127.0.0.1:8188").replace(/\/$/, "");
@@ -73,6 +73,7 @@ try {
   const redirects = await writeRedirects(DIST, expectedPages(inventory));
   const entries = sitemapEntries(DIST, origin);
   writeFileSync(resolve(DIST, SITEMAP_FILE), renderSitemap(entries), "utf8");
+  writeFileSync(resolve(DIST, RELEASE_PAGES_FILE), renderReleasePages(entries), "utf8");
   console.log(`  ${written.length} HTML files, ${redirects.length} redirects, sitemap of ${entries.length} URLs (${entries.filter((entry) => entry.lastmod).length} with lastmod)`);
   console.log("▶ Validate");
   const { errors, report } = await validateSeoOutput({ distDir: DIST, inventory, origin, release: true });

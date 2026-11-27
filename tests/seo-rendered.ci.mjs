@@ -23,6 +23,8 @@ import { expectedPages, loadInventory } from "../scripts/seo/inventory.mjs";
 import { prerender } from "../scripts/seo/prerender.mjs";
 import { writeRedirects } from "../scripts/seo/redirects.mjs";
 import { createStaticHost } from "../scripts/seo/static-host.mjs";
+import { RELEASE_PAGES_FILE, renderReleasePages, sitemapEntries } from "../scripts/seo/sitemap.mjs";
+import { writeFileSync } from "node:fs";
 
 const ORIGIN = "https://lifeinuk.info";
 const DIST = process.env.DIST || "dist";
@@ -46,6 +48,7 @@ const inventory = await loadInventory(apiBase);
 const pages = expectedPages(inventory);
 await prerender({ distDir: site, origin: ORIGIN, inventory });
 await writeRedirects(site, pages);
+writeFileSync(join(site, RELEASE_PAGES_FILE), renderReleasePages(sitemapEntries(site, ORIGIN)));
 const host = createStaticHost(site);
 const base = await listen(host);
 
@@ -134,11 +137,33 @@ try {
       `in-app failure: prerendered page shown (${now.h1})`);
     await page.close();
   }
+  // Catalogue consistency: the API lists a Guide this release has no page for (published after it,
+  // or removed by a rollback). No app surface may link it.
+  {
+    const hidden = "/en/renting/renting-tenancy-agreement";
+    const release = pages.filter((page) => page.path !== hidden).map((page) => page.path);
+    for (const path of ["/en/renting", "/en/renting/renting-deposits-fees", "/en/guides", "/en"]) {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+      await page.route("**/release-pages.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ pages: release }) }));
+      await page.route("**/api/**", (route) => {
+        const apiPath = new URL(route.request().url()).pathname;
+        return apiPath in fixture
+          ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture[apiPath]) })
+          : route.fulfill({ status: 404, contentType: "application/json", body: '{"code":"NOT_FOUND"}' });
+      });
+      await page.goto(base + path, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const started = await page.locator("header select").count() > 0;
+      const links = await page.locator(`a[href="${hidden}"]`).count();
+      ok(started && links === 0, `catalogue ${path}: no link to ${hidden} (${links}) once the app runs`);
+      await page.close();
+    }
+  }
 } finally {
   await browser.close();
   host.close();
   api.close();
   rmSync(site, { recursive: true, force: true });
 }
-console.log(failures ? `${failures} FAILED` : `PASS rendered SEO: ${TESTED.length} pages × 4 API states, withdrawal, in-app failure`);
+console.log(failures ? `${failures} FAILED` : `PASS rendered SEO: ${TESTED.length} pages × 4 API states, withdrawal, in-app failure, catalogue consistency`);
 process.exit(failures ? 1 : 0);

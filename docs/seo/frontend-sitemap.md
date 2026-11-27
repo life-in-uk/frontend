@@ -1,6 +1,6 @@
 # Frontend-owned sitemap: change plan (SEO audit F4, F9)
 
-Status: **code in this PR; the one AWS change below needs owner approval.**
+Status: **code merged with the remediation PRs; the one AWS change below is owner-approved in principle and runs only with the final execution sequence.**
 Until that change is made, nothing public changes. Deploys upload the new
 sitemap to the bucket, but CloudFront keeps serving the backend's.
 
@@ -140,16 +140,33 @@ appears.
 - **Prerendered HTML** (what non-rendering crawlers follow) only links pages
   of its own release, so it is consistent.
 
-**Proposed** (small frontend change, separate PR, after approval of this plan):
-1. The release publishes its page list (`/release-pages.json`, `no-cache`).
-2. The app shows a Guide from an API list only if that list contains it.
-3. If the list cannot be loaded, the app shows everything, as today.
+**Implemented** (owner-approved):
 
-With that, publication and rollback are consistent on every public surface.
+- Every release publishes `/release-pages.json`, its canonical page paths. It is
+  derived from the release's pages exactly like the sitemap and published by
+  the same two phases in `publish-sitemap.mjs`, with `no-cache` and an
+  invalidation. Unlike the sitemap it is always served from the bucket, so
+  phase 1 narrows it from the first deploy on.
+- The app narrows every Guide list from the API to the Guides whose page is in
+  the list (`inRelease` in `guides/api.ts`). Hubs, Guide indexes, related
+  links, home topics and the language selector and footer are all built from
+  those lists, so none of them can link a Guide published after the release or
+  removed by a rollback.
+- Without the list (a dev server, an older release, a failed request) nothing
+  is narrowed and the app works as before. A failed request is retried later.
+- Tests:
+  - `tests/release-pages.test.mjs`: publication, rollback, fail-open and retry.
+  - `tests/sitemap.test.mjs`: both files in both phases, a failed deploy,
+    rollback, and before the CloudFront switch.
+  - `tests/seo-rendered.ci.mjs` (CI, Chrome): the hub, related links, Guides
+    index and home do not link a Guide missing from the list. Without the
+    filter, all four fail.
 
-**Process (no code):** after a backend publication, dispatch the frontend
-deploy straight away. Approval latency is then the only gap, and with the
-sitemap and the page list in place, the gap no longer exposes 404s.
+**Withdrawal** remains a two-step procedure: withdraw in the backend, then
+deploy the frontend. Until that deploy, the withdrawn Guide's static page
+stays deployed. The app shows it as not found (noindex) and no longer lists
+it, but the static HTML and the sitemap keep it until the release that
+removes it.
 
 ## Coordination
 

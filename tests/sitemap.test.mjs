@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expectedPages } from "../scripts/seo/inventory.mjs";
 import { prerender } from "../scripts/seo/prerender.mjs";
-import { renderSitemap, sitemapEntries, sitemapLocs, transitionEntries } from "../scripts/seo/sitemap.mjs";
+import { releasePageLocs, renderReleasePages, renderSitemap, sitemapEntries, sitemapLocs, transitionEntries } from "../scripts/seo/sitemap.mjs";
 import { publishSitemap } from "../scripts/edge/publish-sitemap.mjs";
 import { cacheControlFor, uploadObjects } from "../scripts/edge/objects.mjs";
 import { uploadGroups } from "../scripts/edge/deploy-site.mjs";
@@ -46,31 +46,33 @@ async function release(spec) {
 const OLD = { "zh-CN": ["renting-alpha", "renting-beta"], en: ["renting-alpha", "renting-beta"] };
 const NEW = { "zh-CN": ["renting-alpha", "renting-gamma"], en: ["renting-alpha", "renting-gamma"] }; // beta withdrawn, gamma published
 
-/** A public site whose /sitemap.xml is served by S3 (the given XML) or by the backend. */
+/**
+ * A public site: /sitemap.xml from S3 (state.xml) or the backend (state.server), and
+ * /release-pages.json from S3 (state.pages, or 404 when absent).
+ */
 function site(state) {
-  return async () => ({
-    status: state.status ?? 200,
-    ok: (state.status ?? 200) < 400,
-    headers: new Headers({ server: state.server }),
-    text: async () => state.xml,
-  });
+  return async (url) => {
+    const pages = String(url).endsWith("/release-pages.json");
+    const body = pages ? state.pages : state.xml;
+    const status = pages && body === undefined ? 404 : state.status ?? 200;
+    return { status, ok: status < 400, headers: new Headers({ server: pages ? "AmazonS3" : state.server }), text: async () => body };
+  };
 }
 
-/** A fake AWS CLI that records uploads to the bucket and makes them the public sitemap. */
+/** A fake AWS CLI that records uploads and invalidations. */
 function fakeAws(state) {
   const calls = [];
   const aws = (args) => {
     calls.push(args.slice(0, 2).join(" "));
-    if (args[0] === "s3" && args[1] === "cp") {
-      state.uploaded = (state.uploaded ?? 0) + 1;
-      state.pendingXml = args[2];
-      return "";
-    }
+    if (args[0] === "s3" && args[1] === "cp") return "";
     if (args[0] === "cloudfront" && args[1] === "create-invalidation") return { Invalidation: { Id: "I1" } };
     throw new Error(`unexpected ${args.join(" ")}`);
   };
   return { aws, calls };
 }
+
+/** What the public serves once a phase's files are live. */
+const goLive = (state, result) => { if (state.server === "AmazonS3") state.xml = result.xml; state.pages = result.pages; };
 
 test("the sitemap lists each canonical page once, with its own alternates and lastmod only for Guides", async () => {
   const { dir, inventory } = await release(OLD);
@@ -104,26 +106,40 @@ test("transition: a published page waits for the switch, a withdrawn page leaves
 test("publish: phases 1 and 2, a failed deploy in between, and the public check", async () => {
   const before = await release(OLD);
   const after = await release(NEW);
-  const liveXml = renderSitemap(sitemapEntries(before.dir, ORIGIN));
-  const state = { server: "AmazonS3", xml: liveXml };
+  const liveEntries = sitemapEntries(before.dir, ORIGIN);
+  const state = { server: "AmazonS3", xml: renderSitemap(liveEntries), pages: renderReleasePages(liveEntries) };
   const { aws, calls } = fakeAws(state);
-  const run = (phase, extra = {}) => publishSitemap({ phase, distDir: after.dir, bucket: "b", distribution: "E1", execute: true, log() {}, aws, fetchImpl: site(state), waitMs: 0, attempts: 2, ...extra });
+  const run = (phase) => publishSitemap({ phase, distDir: after.dir, bucket: "b", distribution: "E1", execute: true, log() {}, aws, fetchImpl: site(state), waitMs: 0, attempts: 2 });
 
   const phase1 = await run("transition");
-  assert.deepEqual(calls, ["s3 cp", "cloudfront create-invalidation"]);
-  state.xml = phase1.xml; // what the public now serves
-  // A deploy that fails here leaves this sitemap: every URL is served by the old and the new release.
-  const oldLocs = sitemapLocs(liveXml);
+  assert.deepEqual(calls, ["s3 cp", "s3 cp", "cloudfront create-invalidation"], "sitemap and page list, one invalidation");
+  goLive(state, phase1);
+  // A deploy that fails here leaves these: every page is served by the old and the new release.
+  const oldLocs = new Set(liveEntries.map((e) => e.loc));
   const newLocs = new Set(sitemapEntries(after.dir, ORIGIN).map((e) => e.loc));
-  for (const loc of sitemapLocs(phase1.xml)) assert.ok(oldLocs.has(loc) && newLocs.has(loc), loc);
+  for (const loc of [...sitemapLocs(phase1.xml), ...releasePageLocs(phase1.pages, ORIGIN)]) assert.ok(oldLocs.has(loc) && newLocs.has(loc), loc);
 
-  // Phase 2: the public sitemap does not change (a stale edge) → it fails; once it matches → passes.
+  // Phase 2: the public files do not change (a stale edge) → it fails; once they match → passes.
   await assert.rejects(run("full"), /does not match this release/);
-  const full = renderSitemap(sitemapEntries(after.dir, ORIGIN));
-  state.xml = full;
+  const full = sitemapEntries(after.dir, ORIGIN);
+  goLive(state, { xml: renderSitemap(full), pages: renderReleasePages(full) });
   const done = await run("full");
   assert.equal(done.public, "bucket");
   assert.equal(sitemapLocs(done.xml).size, newLocs.size);
+  assert.deepEqual(releasePageLocs(done.pages, ORIGIN), newLocs);
+  rmSync(before.dir, { recursive: true });
+  rmSync(after.dir, { recursive: true });
+});
+
+test("before the CloudFront switch: phase 1 narrows the page list (served by the bucket) and the sitemap file", async () => {
+  const before = await release(OLD);
+  const after = await release(NEW);
+  const state = { server: "nginx", xml: "<urlset/>", pages: renderReleasePages(sitemapEntries(before.dir, ORIGIN)) };
+  const { aws } = fakeAws(state);
+  const phase1 = await publishSitemap({ phase: "transition", distDir: after.dir, bucket: "b", distribution: "E1", execute: true, log() {}, aws, fetchImpl: site(state), waitMs: 0, attempts: 1 });
+  const pages = [...releasePageLocs(phase1.pages, ORIGIN)];
+  assert.ok(!pages.some((loc) => /renting-(beta|gamma)/.test(loc)), "withdrawn and new Guides are not in the page list during the switch");
+  assert.ok(pages.includes(`${ORIGIN}/en/renting/renting-alpha`));
   rmSync(before.dir, { recursive: true });
   rmSync(after.dir, { recursive: true });
 });
@@ -131,28 +147,31 @@ test("publish: phases 1 and 2, a failed deploy in between, and the public check"
 test("rollback to an older release: its own pages only, also when it is older than the sitemap steps", async () => {
   const newer = await release(NEW);
   const older = await release(OLD);
-  const state = { server: "AmazonS3", xml: renderSitemap(sitemapEntries(newer.dir, ORIGIN)) };
+  const newerEntries = sitemapEntries(newer.dir, ORIGIN);
+  const state = { server: "AmazonS3", xml: renderSitemap(newerEntries), pages: renderReleasePages(newerEntries) };
   const { aws } = fakeAws(state);
   const run = (phase) => publishSitemap({ phase, distDir: older.dir, bucket: "b", distribution: "E1", execute: true, log() {}, aws, fetchImpl: site(state), waitMs: 0, attempts: 1 });
   const phase1 = await run("transition");
   assert.ok(!phase1.xml.includes("renting-gamma"), "the newer release's page leaves before the switch back");
   assert.ok(!phase1.xml.includes("renting-beta"), "the older release's page waits for the switch back");
-  state.xml = renderSitemap(sitemapEntries(older.dir, ORIGIN));
+  goLive(state, { xml: renderSitemap(sitemapEntries(older.dir, ORIGIN)), pages: renderReleasePages(sitemapEntries(older.dir, ORIGIN)) });
   const done = await run("full");
   assert.ok(done.xml.includes("renting-beta") && !done.xml.includes("renting-gamma"));
+  assert.ok(done.pages.includes("renting-beta") && !done.pages.includes("renting-gamma"), "the app's page list is the restored release's");
   rmSync(newer.dir, { recursive: true });
   rmSync(older.dir, { recursive: true });
 });
 
-test("before CloudFront serves the sitemap from the bucket: phase 1 changes nothing, phase 2 uploads without comparing", async () => {
+test("first deploy with neither file live: phase 1 changes nothing, phase 2 uploads both and checks the page list", async () => {
   const { dir } = await release(NEW);
   const state = { server: "nginx", xml: "<urlset/>" };
   const { aws, calls } = fakeAws(state);
   const run = (phase) => publishSitemap({ phase, distDir: dir, bucket: "b", distribution: "E1", execute: true, log() {}, aws, fetchImpl: site(state), waitMs: 0, attempts: 1 });
   assert.equal((await run("transition")).urls, null);
   assert.deepEqual(calls, []);
+  await assert.rejects(run("full"), /does not match/, "the page list must be public after phase 2");
+  state.pages = renderReleasePages(sitemapEntries(dir, ORIGIN));
   assert.equal((await run("full")).public, "backend");
-  assert.deepEqual(calls, ["s3 cp", "cloudfront create-invalidation"]);
   await assert.rejects(publishSitemap({ phase: "full", distDir: mkdtempSync(join(tmpdir(), "empty-")), bucket: "b", distribution: "E1", aws, fetchImpl: site(state), log() {} }), /empty sitemap/);
   rmSync(dir, { recursive: true });
 });
@@ -161,6 +180,7 @@ test("the sitemap revalidates, is never part of the bulk upload, and is never de
   const { dir } = await release(NEW);
   writeFileSync(join(dir, "sitemap.xml"), renderSitemap(sitemapEntries(dir, ORIGIN)));
   assert.equal(cacheControlFor("sitemap.xml"), "no-cache");
+  assert.equal(cacheControlFor("release-pages.json"), "no-cache");
   const objects = uploadObjects(dir);
   assert.ok(objects.some((o) => o.key === "sitemap.xml"), "part of the release (not deleted as stale)");
   const groups = uploadGroups(objects.filter((o) => o.key !== "sitemap.xml"));

@@ -293,17 +293,63 @@ export function clearSessionCache(): void {
   session.clear();
 }
 
+/**
+ * The Guides the deployed release has pages for, as "locale/slug" (catalogue
+ * consistency). The release publishes its page list (/release-pages.json,
+ * scripts/seo/sitemap.mjs); a Guide page is /{locale}/{section}/{slug} and slugs
+ * are unique across sections. Lists from the API are narrowed to these, so the
+ * app never links a Guide that was published after this release, or that a
+ * rollback removed. Without the list (a dev server, an older release, an error)
+ * nothing is narrowed: the app works as before.
+ */
+let releaseGuides: Promise<ReadonlySet<string> | null> | undefined;
+
+function deployedGuides(): Promise<ReadonlySet<string> | null> {
+  // Only a page in a browser has a deployed release to ask (not Node: tests, build tools).
+  if (typeof window === "undefined") return Promise.resolve(null);
+  releaseGuides ??= fetch("/release-pages.json", { cache: "no-cache" })
+    .then(async (response) => {
+      if (!response.ok) return null;
+      const data: unknown = await response.json();
+      if (!isRecord(data) || !Array.isArray(data.pages)) return null;
+      const keys = new Set<string>();
+      for (const path of data.pages)
+        if (typeof path === "string") {
+          const parts = path.split("/");
+          if (parts.length === 4 && parts[0] === "") keys.add(`${parts[1]}/${parts[3]}`);
+        }
+      return keys;
+    })
+    .catch(() => null)
+    .then((keys) => {
+      if (keys === null) releaseGuides = undefined; // try again next time
+      return keys;
+    });
+  return releaseGuides;
+}
+
+/** Only the Guides of `list` whose page this release serves (all of them if the release does not say). */
+export async function inRelease(list: GuideMetadata[], locale: GuideLocale): Promise<GuideMetadata[]> {
+  const keys = await deployedGuides();
+  return keys ? list.filter((guide) => keys.has(`${locale}/${guide.slug}`)) : list;
+}
+
+export function clearReleaseGuides(): void {
+  releaseGuides = undefined;
+}
+
 export async function getGuides(
   signal?: AbortSignal,
 ): Promise<GuideMetadata[]> {
   const ready = startupGuides("zh-CN");
   if (ready) return ready;
-  return sessionRequest("/api/guides", async (response) => {
+  const list = await sessionRequest("/api/guides", async (response) => {
     if (!response.ok) throw new Error("Guides unavailable");
     const data: unknown = await response.json();
     if (!isGuideList(data)) throw new Error("Invalid Guides response");
     return data;
   }, signal);
+  return inRelease(list, "zh-CN");
 }
 
 export async function getGuide(
@@ -331,13 +377,14 @@ export async function getLocalizedGuides(
   // The zh-CN startup list comes from /api/guides, so only other locales match here.
   const ready = locale === "zh-CN" ? undefined : startupGuides(locale);
   if (ready) return ready;
-  return sessionRequest(`/api/guides/locales/${encodeURIComponent(locale)}`, async (response) => {
+  const list = await sessionRequest(`/api/guides/locales/${encodeURIComponent(locale)}`, async (response) => {
     if (response.status === 404) throw new GuideNotFoundError();
     if (!response.ok) throw new Error("Guides unavailable");
     const data: unknown = await response.json();
     if (!isGuideList(data)) throw new Error("Invalid localized Guides response");
     return data;
   }, signal);
+  return inRelease(list, locale);
 }
 
 /** Published-only localized detail. Spring returns 404 for absent/unpublished locales. */

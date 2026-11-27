@@ -17,6 +17,12 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const SITEMAP_FILE = "sitemap.xml";
+/**
+ * The release's page list for the app (catalogue consistency): the same pages as
+ * the sitemap, as paths. The app shows a Guide from an API list only if its page
+ * is in this list, so it never links a page the live release does not serve.
+ */
+export const RELEASE_PAGES_FILE = "release-pages.json";
 
 const decode = (value) => value.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 const encode = (value) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -92,4 +98,16 @@ export function transitionEntries(previousLocs, entries) {
   return entries
     .filter((entry) => both.has(entry.loc))
     .map((entry) => ({ ...entry, alternates: entry.alternates.filter((alt) => both.has(alt.href)) }));
+}
+
+/** The release page list for a set of sitemap entries. */
+export function renderReleasePages(entries) {
+  return `${JSON.stringify({ pages: entries.map((entry) => new URL(entry.loc).pathname) })}\n`;
+}
+
+/** The page URLs of a release page list, on `origin`. */
+export function releasePageLocs(json, origin) {
+  const data = JSON.parse(json);
+  if (!Array.isArray(data?.pages)) throw new Error(`${RELEASE_PAGES_FILE} has no pages array`);
+  return new Set(data.pages.map((path) => `${origin}${path}`));
 }
