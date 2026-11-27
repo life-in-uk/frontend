@@ -1,40 +1,66 @@
 # Final coordinated release plan (SEO remediation, About, F5 revisions, Money)
 
-Status: **for owner approval.** Each stage has its own protected approval and
-rollback evidence. A stage starts only when the previous one is accepted.
-Nothing is published in the backend before stage 2 is accepted.
+Status: **stage 0 complete (27 Nov 2026); stages 1–4 each await their own
+protected approval.** A stage starts only when the previous one is accepted.
+Nothing is published in the backend before stage 2 is accepted. Nothing in
+production changes without the approval for that stage.
 
-## Stage 0: merge (owner, GitHub)
+## Approval gates
 
-Merge in this order. After each merge, Claude merges `main` into the next
-branch, retargets it to `main` if needed, and waits for CI to pass.
+| Gate | Stage | What changes in production | Who | Rollback |
+|---|---|---|---|---|
+| #1 | 1: frontend release R1 (code only) | Site bucket, edge function, invalidations, `release-pages.json` | Owner (workflow `production` environment) | `rollback_run_id=45990262568` (R0) |
+| #2 | 2: CloudFront sitemap switch | One cache behaviour (`/sitemap.xml`) removed | Owner (own AWS profile) | `update-distribution` with `cf-before.json` |
+| #3 | 3: backend publication (F5 revisions, Money) | Backend Guide content | Sol and owner | Sol's revision process |
+| #4 | 4: frontend release R2 (content) | Site bucket, edge function, sitemap, page list | Owner (workflow `production` environment) | `rollback_run_id=<R1 run>` |
 
-| Order | PR | Scope |
-|---|---|---|
-| 1 | #50 | F1/F7: temporary API failures never noindex |
-| 2 | #54 | F2: 2 API calls per Guide; Guides readable during outages |
-| 3 | #59 | Rendered-SEO test in CI; hub hreflang fix |
-| 4 | #56 | F3: language links; orphan and cross-language checks |
-| 5 | #52 | F6: related links for the four new Work Visa Guides |
-| 6 | #57 | F4/F9: frontend sitemap, two-phase publication, CI pipefail |
-| 7 | #58 | F8: prerendered Guides index (known two-line conflict with #56, resolved on the integration branch) |
-| 8 | #60 | F10 capacity plan (docs) |
-| 9 | #61 | F10 option A: hashed page set |
-| 10 | #62 | Catalogue consistency: release page list |
-| 11 | #63 | F12: About and editorial policy; Organization publisher |
+Each gate is approved separately. Approving one gate never implies approval of
+the next.
 
-The integration branch (`integration/seo-remediation`) shows the merged
-result.
-- **Tests:** unit 377 pass, lint clean; the CI rendered test passes; the
-  emulator hosting contract passes with the exact sitemap.
-- **Release build of the current catalogue:** 465 canonical URLs; edge
-  function 6,094 bytes with #61.
+## Stage 0: merge (owner, GitHub) — complete
+
+Merged in this order on 27 Nov 2026. Before each merge, `main` was merged into
+the branch (no force-push), the PR retargeted to `main`, and CI passed on the
+exact head that was merged.
+
+| Order | PR | Scope | Merge commit |
+|---|---|---|---|
+| 1 | #50 | F1/F7: temporary API failures never noindex | `12d3f60` |
+| 2 | #54 | F2: 2 API calls per Guide; Guides readable during outages | `969c2ca` |
+| 3 | #59 | Rendered-SEO test in CI; hub hreflang fix | `2fe6fa0` |
+| 4 | #56 | F3: language links; orphan and cross-language checks | `1b03ea1` |
+| 5 | #52 | F6: related links for the four new Work Visa Guides | `aabc2b0` |
+| 6 | #57 | F4/F9: frontend sitemap, two-phase publication, CI pipefail | `9699a0a` |
+| 7 | #58 | F8: prerendered Guides index (the two conflicts with #56 in `validate.mjs` and `LocalizedGuideIndex.tsx` resolved by keeping both sides) | `8f85ad8` |
+| 8 | #60 | F10 capacity plan (docs) | `9174150` |
+| 9 | #61 | F10 option A: hashed page set | `d376a3e` |
+| 10 | #62 | Catalogue consistency: release page list | `2583493` |
+| 11 | #63 | F12: About and editorial policy; Organization publisher | `069402d` |
+
+Verified figures (CI on the #63 head `c5d137c`, identical in content to
+`main` at `069402d`, release built from the production Guide API):
+- **Tests:** 385 unit and release tests, 378 pass, 0 fail, 7 skipped; lint
+  clean; the CI rendered-SEO test passes (15 pages × 4 API states,
+  withdrawal, in-app failure, catalogue consistency); the emulator hosting
+  contract passes (930 canonical-page checks, redirects, 404s, sitemap and
+  robots).
+- **Release build of the current catalogue:** 465 canonical URLs (405 Guide
+  variants, 40 topic hubs, 5 homes, 5 Family Visa topic pages, 5 Guides
+  indexes, 5 About pages), 93 redirects, 557 HTML files.
+- **Edge function:** 6,285 bytes of 10,240, 465 pages. Routing of the hashed
+  function was compared with the previous generator on the real release:
+  15,556 requests, 0 differences.
+- **About pages:** all five indexable, self-canonical, reciprocal hreflang
+  (five languages + `x-default` → `/zh-CN/about`), copy identical to
+  `docs/editorial/about-page/` (`b54d18c`), and linked from every page.
 
 ## Stage 1: frontend release R1, code only (protected approval #1)
 
 - **Content:** `main` after stage 0. No new backend content.
 - **Before:** production is run `45990262568` (`2154a21`, bundle
-  `index-h_29Elbc.js`). Record it as R0.
+  `index-h_29Elbc.js`). Record it as R0. Confirmed read-only on 27 Nov 2026
+  after stage 0: the public bundle is `index-h_29Elbc.js`,
+  `/release-pages.json` is 404, and `/sitemap.xml` is served by the backend.
 - **Deploy** (the workflow, unchanged in shape):
   1. Sitemap and page-list phase 1. This does nothing on the first run,
      because neither file is live in the bucket yet.
@@ -136,7 +162,7 @@ serve.
     - `uk-first-credit-card`
     - `uk-zero-percent-credit-cards`
     - `uk-credit-card-cashback-and-rewards`
-    - `uk-personal-loans-apply-and-compare'
+    - `uk-personal-loans-apply-and-compare`
 - **During the window before stage 4:**
   - The new Money Guides are absent from the public sitemap, from every app
     list (the page list) and from the static HTML. Direct URLs are a real 404
@@ -186,6 +212,38 @@ serve.
   - WebKit (Safari's engine) not tested;
   - Search Console attribution of the 55 "crawled – currently not indexed" and
     26 noindex URLs still needs the exports.
+
+## Residual limitation: catalogue fallback
+
+Catalogue consistency (#62) limits app lists to the Guides that both the
+release that served the page (its embedded page list) and the live release
+(`/release-pages.json`) have pages for. Its fallbacks leave these known gaps,
+accepted for R1:
+
+- **Live page list unreachable or malformed:** the app uses the embedded list
+  alone. A tab opened on an older release can then still list a Guide that a
+  later release withdrew, until the live list is readable again (asked again
+  every minute). The link leads to the not-found page (noindex), never to an
+  indexable error.
+- **Rollback to R0:** R0 has no embedded list, so its app does not narrow the
+  catalogue (fails open, as production does today). After a rollback to R0,
+  Guides published in the backend but absent from R0 can be listed again and
+  their URLs are a 404 until a release that has them is deployed. Rolling
+  back to R1 or later does not have this gap.
+- **Embedded list unreachable:** Guide lists show their error state (never
+  unfiltered, never noindex) and ask again later.
+- **Withdrawal stays two-step:** withdraw in the backend, then deploy. Until
+  the deploy, the static page and sitemap entry remain; the app shows the
+  Guide as not found (noindex) and stops listing it.
+
+## Rollback summary
+
+| Stage | Trigger | Action | Time to effect |
+|---|---|---|---|
+| 1 | R1 acceptance fails | Deploy workflow, `rollback_run_id=45990262568` | One deploy run (~minutes); sitemap and page list follow in two phases |
+| 2 | Sitemap not served correctly from S3 | `update-distribution` with `cf-before.json`, invalidate `/sitemap.xml` | Minutes, no deploy |
+| 3 | Published content wrong | Sol's revision process; re-run stage 4 if already deployed | Sol's process |
+| 4 | R2 acceptance fails | Deploy workflow, `rollback_run_id=<R1 run>` | One deploy run; Money URLs leave the sitemap and page list in phase 1 |
 
 ## Reverse Work Visa links (Sol)
 
