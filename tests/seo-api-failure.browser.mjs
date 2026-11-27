@@ -122,8 +122,10 @@ try {
     await page.locator(`main a[href="${next}"]`).first().click();
     await page.waitForURL((url) => url.pathname === next);
     await page.waitForTimeout(1500);
-    const during = await page.evaluate(() => ({ robots: document.querySelector('meta[name="robots"]')?.content ?? "", alert: !!document.querySelector('[role="alert"]') }));
+    const during = await page.evaluate(() => ({ robots: document.querySelector('meta[name="robots"]')?.content ?? "", alert: !!document.querySelector('[role="alert"]'), h1: document.querySelector("main h1")?.textContent?.trim(), app: !!document.querySelector("header select") }));
+    const expectedNext = head(readFileSync(join(DIST, next, "index.html"), "utf8"));
     ok(!/noindex/.test(during.robots), "recovery: an in-app request that fails is not marked noindex");
+    ok(during.h1 === expectedNext.h1 && !during.alert && !during.app, `recovery: an in-app Guide whose request fails is shown from its prerendered page (${during.h1?.slice(0, 40)})`);
     failing = false;
     await page.goBack();
     await page.waitForTimeout(500);

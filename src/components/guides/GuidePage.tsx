@@ -50,6 +50,12 @@ function wideScreen(): boolean {
     && window.matchMedia("(min-width: 900px)").matches;
 }
 
+/** The path this document was loaded at (before any in-app navigation). */
+function documentPath(): string {
+  const entry = performance.getEntriesByType("navigation")[0];
+  return entry ? new URL(entry.name).pathname : currentPath();
+}
+
 export function GuidePage({
   domain,
   slug,
@@ -151,6 +157,13 @@ export function GuidePage({
     } else if (state.status === "error") {
       // A failed request is not a missing Guide: no noindex, and the page's own head
       // tags (prerendered, if any) stay, so a temporary API error is never indexed as one.
+      // After an in-app navigation, load the page itself instead: its prerendered HTML
+      // does not depend on the API, and main.tsx keeps it while the API is failing.
+      // Only once: after that load the document's own URL is this page.
+      if (documentPath() !== currentPath()) {
+        window.location.replace(window.location.href);
+        return;
+      }
       document.title = "Guide unavailable · Life in UK";
       document.documentElement.lang = GUIDE_LOCALE_LANG[locale];
       document.documentElement.dir = textDirection(locale);
