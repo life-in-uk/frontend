@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import {
   WORK_VISA_COPY,
   WORK_VISA_KEY_DATES,
+  WORK_VISA_PUBLISHED_ONLY,
   WORK_VISA_SLUGS,
   WORK_VISA_TOPICS,
   studentPathwaysEntry,
@@ -34,15 +35,25 @@ const SLUGS = [
 
 const PATHWAYS = "uk-options-after-graduation";
 const GRADUATE = "graduate-visa-uk";
+// Later "Job and employer" Guides, listed only where published.
+const JOB_SEARCH = "find-uk-jobs-with-visa-sponsorship";
+const JOB_OFFER = "check-skilled-worker-job-offer";
+const HEALTH_CARE = "health-and-care-worker-visa";
+const SOCIAL_CARE = "adult-social-care-worker-sponsorship";
+const LATER = [PATHWAYS, GRADUATE, JOB_SEARCH, JOB_OFFER, HEALTH_CARE, SOCIAL_CARE];
 const meta = (slug, category = "work-visa") => ({ slug, category, title: slug, summary: "", updatedAt: "", publishedAt: "" });
 
 test("the plan lists each Guide once and shows only published post-study entries", () => {
-  assert.deepEqual([...WORK_VISA_SLUGS], [SLUGS[0], PATHWAYS, GRADUATE, ...SLUGS.slice(1)]);
+  assert.deepEqual([...WORK_VISA_SLUGS], [SLUGS[0], PATHWAYS, GRADUATE, JOB_SEARCH, JOB_OFFER, SLUGS[1], SLUGS[2],
+    HEALTH_CARE, SOCIAL_CARE, ...SLUGS.slice(3)]);
+  assert.deepEqual([...WORK_VISA_PUBLISHED_ONLY].sort(), [...LATER].sort());
   assert.equal(new Set(WORK_VISA_TOPICS.map((t) => t.id)).size, WORK_VISA_TOPICS.length);
   const slugs = (published) => workVisaTopicsFor(new Map(published.map((slug) => [slug, meta(slug)]))).flatMap((t) => t.slugs);
   assert.deepEqual(slugs([]), SLUGS);
   assert.deepEqual(slugs([GRADUATE]), [SLUGS[0], GRADUATE, ...SLUGS.slice(1)]);
-  assert.deepEqual(slugs([GRADUATE, PATHWAYS]), WORK_VISA_SLUGS);
+  assert.deepEqual(slugs([GRADUATE, PATHWAYS]), [SLUGS[0], PATHWAYS, GRADUATE, ...SLUGS.slice(1)]);
+  assert.deepEqual(slugs([JOB_OFFER, SOCIAL_CARE]), [SLUGS[0], JOB_OFFER, SLUGS[1], SLUGS[2], SOCIAL_CARE, ...SLUGS.slice(3)]);
+  assert.deepEqual(slugs(LATER), WORK_VISA_SLUGS);
 });
 
 test("education and university hubs link to the published pathways Guide in each locale", () => {
