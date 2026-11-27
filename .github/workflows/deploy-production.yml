@@ -220,6 +220,7 @@ jobs:
 
       - name: Re-check the release before any AWS access
         run: |
+          set -o pipefail # a failed release check must fail this step, not be hidden by tail
           node scripts/ci/check-release-output.mjs --expect-api "$API_BASE"
           node scripts/edge/deploy-site.mjs --bucket "$SITE_BUCKET" --distribution "$DISTRIBUTION" --function "$FUNCTION" | tail -n 3
         env:
