@@ -1,6 +1,6 @@
 # Frontend-owned sitemap: change plan (SEO audit F4, F9)
 
-Status: **code in this PR; the one AWS change below needs owner approval.**
+Status: **code merged with the remediation PRs; the one AWS change below is owner-approved in principle and runs only with the final execution sequence.**
 Until that change is made, nothing public changes. Deploys upload the new
 sitemap to the bucket, but CloudFront keeps serving the backend's.
 
@@ -140,16 +140,53 @@ appears.
 - **Prerendered HTML** (what non-rendering crawlers follow) only links pages
   of its own release, so it is consistent.
 
-**Proposed** (small frontend change, separate PR, after approval of this plan):
-1. The release publishes its page list (`/release-pages.json`, `no-cache`).
-2. The app shows a Guide from an API list only if that list contains it.
-3. If the list cannot be loaded, the app shows everything, as today.
+**Implemented** (owner-approved):
 
-With that, publication and rollback are consistent on every public surface.
+- Every release publishes `/release-pages.json`, its canonical page paths. It is
+  derived from the release's pages exactly like the sitemap and published by
+  the same two phases in `publish-sitemap.mjs`, with `no-cache` and an
+  invalidation. Unlike the sitemap it is always served from the bucket, so
+  phase 1 narrows it from the first deploy on.
+- Each release also **embeds** its page list: an immutable, content-hashed asset
+  (`/assets/release-pages-<hash>.json`) named by
+  `<meta name="release-pages">` in every HTML file of the release (pages, the
+  app shell, the 404 page). The release validator fails a build in which any
+  HTML file lacks it, names another list, or the list differs from the
+  canonical pages.
+- The app shows a Guide from an API list only if it is in **the embedded list
+  ∩ the live `/release-pages.json`** (`inRelease` in `guides/api.ts`). Hubs,
+  Guide indexes, related links, home topics and the language selector and
+  footer are built from those lists:
+  - **Publication:** a Guide not in the page's own release is never linked,
+    even if the live list is already the next release's.
+  - **Withdrawal or rollback:** a Guide the live release no longer serves is
+    hidden, also in an open tab of an older release (earlier assets stay
+    available for days).
+  - **Live list missing, malformed, stale or unreachable:** the embedded list
+    alone. This is still release-bound, never the unfiltered catalogue.
+  - **Embedded list missing or malformed:** Guide lists fail like an API error
+    (error state, never noindex) and are asked again later.
+  - **No meta (dev server only):** nothing to narrow.
+- **CloudFront propagation:** phase 1 waits for its invalidation to complete
+  before the deploy switches the edge function, so no edge can serve the
+  previous sitemap or list (which may name a page the new release withdraws)
+  under the new function. A model test checks every mix of file and function
+  versions an edge may serve at each step. Without the wait it finds a listed
+  404.
+- **Tests:**
+  - `tests/release-pages.test.mjs`: publication, withdrawal, rollback; the
+    live list missing, malformed, stale or unreachable; the embedded list
+    missing, malformed or unreachable, with recovery; dev.
+  - `tests/sitemap.test.mjs`: both files in both phases, the propagation model,
+    a failed deploy, rollback, before the CloudFront switch.
+  - `tests/seo-rendered.ci.mjs` (CI, Chrome): five scenarios × hub, related
+    links, Guides index and home. All fail with an unfiltered catalogue.
 
-**Process (no code):** after a backend publication, dispatch the frontend
-deploy straight away. Approval latency is then the only gap, and with the
-sitemap and the page list in place, the gap no longer exposes 404s.
+**Withdrawal** remains a two-step procedure: withdraw in the backend, then
+deploy the frontend. Until that deploy, the withdrawn Guide's static page
+stays deployed. The app shows it as not found (noindex) and no longer lists
+it, but the static HTML and the sitemap keep it until the release that
+removes it.
 
 ## Coordination
 

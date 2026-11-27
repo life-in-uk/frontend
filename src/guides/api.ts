@@ -293,17 +293,92 @@ export function clearSessionCache(): void {
   session.clear();
 }
 
+/**
+ * Catalogue consistency: the Guides the app may link are those whose page the
+ * release that served this document has (its embedded, content-hashed page
+ * list, named by <meta name="release-pages">) and that the live release still
+ * serves (/release-pages.json, published in two phases around each deploy).
+ * A Guide page is /{locale}/{section}/{slug}; slugs are unique across sections.
+ *
+ * - Live list missing, malformed or unreachable: the embedded list alone (still
+ *   bound to this release, never the unfiltered API catalogue).
+ * - Embedded list unreachable or malformed: Guide lists fail like an API error
+ *   (the page shows its error state, never noindex); asked again next time.
+ * - No meta (a dev server, not a release build): nothing to narrow.
+ */
+export class ReleaseInventoryError extends Error {
+  constructor() {
+    super("Release page list unavailable");
+    this.name = "ReleaseInventoryError";
+  }
+}
+
+const LIVE_TTL_MS = 60_000;
+let embeddedGuides: Promise<ReadonlySet<string>> | undefined;
+let liveGuides: { at: number; value: Promise<ReadonlySet<string> | null> } | undefined;
+
+/** "locale/slug" of every Guide page in a page list, or null if it is not one. */
+function guideKeys(data: unknown): ReadonlySet<string> | null {
+  if (!isRecord(data) || !Array.isArray(data.pages) || data.pages.length === 0) return null;
+  const keys = new Set<string>();
+  for (const path of data.pages) {
+    if (typeof path !== "string" || !path.startsWith("/")) return null;
+    const parts = path.split("/");
+    if (parts.length === 4) keys.add(`${parts[1]}/${parts[3]}`);
+  }
+  return keys;
+}
+
+function readList(url: string, cache: RequestCache): Promise<ReadonlySet<string> | null> {
+  return fetch(url, { cache })
+    .then(async (response) => (response.ok ? guideKeys(await response.json()) : null))
+    .catch(() => null);
+}
+
+function releaseMetaUrl(): string | null {
+  if (typeof document === "undefined") return null; // not a page (tests, build tools)
+  return document.querySelector<HTMLMetaElement>('meta[name="release-pages"]')?.content || null;
+}
+
+async function deployedGuides(): Promise<ReadonlySet<string> | null> {
+  const url = releaseMetaUrl();
+  if (!url) return null;
+  embeddedGuides ??= readList(url, "force-cache").then((keys) => {
+    if (keys === null) {
+      embeddedGuides = undefined; // ask again next time
+      throw new ReleaseInventoryError();
+    }
+    return keys;
+  });
+  if (!liveGuides || Date.now() - liveGuides.at > LIVE_TTL_MS)
+    liveGuides = { at: Date.now(), value: readList("/release-pages.json", "no-cache") };
+  const [embedded, live] = await Promise.all([embeddedGuides, liveGuides.value]);
+  return live ? new Set([...embedded].filter((key) => live.has(key))) : embedded;
+}
+
+/** Only the Guides of `list` that this release has pages for and the live release still serves. */
+export async function inRelease(list: GuideMetadata[], locale: GuideLocale): Promise<GuideMetadata[]> {
+  const keys = await deployedGuides();
+  return keys ? list.filter((guide) => keys.has(`${locale}/${guide.slug}`)) : list;
+}
+
+export function clearReleaseGuides(): void {
+  embeddedGuides = undefined;
+  liveGuides = undefined;
+}
+
 export async function getGuides(
   signal?: AbortSignal,
 ): Promise<GuideMetadata[]> {
   const ready = startupGuides("zh-CN");
   if (ready) return ready;
-  return sessionRequest("/api/guides", async (response) => {
+  const list = await sessionRequest("/api/guides", async (response) => {
     if (!response.ok) throw new Error("Guides unavailable");
     const data: unknown = await response.json();
     if (!isGuideList(data)) throw new Error("Invalid Guides response");
     return data;
   }, signal);
+  return inRelease(list, "zh-CN");
 }
 
 export async function getGuide(
@@ -331,13 +406,14 @@ export async function getLocalizedGuides(
   // The zh-CN startup list comes from /api/guides, so only other locales match here.
   const ready = locale === "zh-CN" ? undefined : startupGuides(locale);
   if (ready) return ready;
-  return sessionRequest(`/api/guides/locales/${encodeURIComponent(locale)}`, async (response) => {
+  const list = await sessionRequest(`/api/guides/locales/${encodeURIComponent(locale)}`, async (response) => {
     if (response.status === 404) throw new GuideNotFoundError();
     if (!response.ok) throw new Error("Guides unavailable");
     const data: unknown = await response.json();
     if (!isGuideList(data)) throw new Error("Invalid localized Guides response");
     return data;
   }, signal);
+  return inRelease(list, locale);
 }
 
 /** Published-only localized detail. Spring returns 404 for absent/unpublished locales. */

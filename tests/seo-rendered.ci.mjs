@@ -23,6 +23,8 @@ import { expectedPages, loadInventory } from "../scripts/seo/inventory.mjs";
 import { prerender } from "../scripts/seo/prerender.mjs";
 import { writeRedirects } from "../scripts/seo/redirects.mjs";
 import { createStaticHost } from "../scripts/seo/static-host.mjs";
+import { embedReleasePages, RELEASE_PAGES_FILE, renderReleasePages, sitemapEntries } from "../scripts/seo/sitemap.mjs";
+import { writeFileSync } from "node:fs";
 
 const ORIGIN = "https://lifeinuk.info";
 const DIST = process.env.DIST || "dist";
@@ -46,6 +48,8 @@ const inventory = await loadInventory(apiBase);
 const pages = expectedPages(inventory);
 await prerender({ distDir: site, origin: ORIGIN, inventory });
 await writeRedirects(site, pages);
+writeFileSync(join(site, RELEASE_PAGES_FILE), renderReleasePages(sitemapEntries(site, ORIGIN)));
+const EMBEDDED = embedReleasePages(site, sitemapEntries(site, ORIGIN));
 const host = createStaticHost(site);
 const base = await listen(host);
 
@@ -134,11 +138,48 @@ try {
       `in-app failure: prerendered page shown (${now.h1})`);
     await page.close();
   }
+  // Catalogue consistency: the API lists a Guide that the page's release (embedded list) or the live
+  // release (live list) has no page for. No app surface may link it; a missing embedded list is an
+  // error state (never noindex, never an unfiltered catalogue).
+  {
+    const hidden = "/en/renting/renting-tenancy-agreement";
+    const all = pages.map((page) => page.path);
+    const without = all.filter((path) => path !== hidden);
+    const body = (value) => (value === "malformed" ? "{oops" : JSON.stringify({ pages: value }));
+    const scenarios = [
+      { name: "publication (not in this release)", embedded: without, live: all },
+      { name: "withdrawal or rollback (no longer live)", embedded: all, live: without },
+      { name: "live list malformed (embedded alone)", embedded: without, live: "malformed" },
+      { name: "live list missing (embedded alone)", embedded: without, live: 404 },
+      { name: "embedded list missing (error state)", embedded: 404, live: all },
+    ];
+    for (const scenario of scenarios) for (const path of ["/en/renting", "/en/renting/renting-deposits-fees", "/en/guides", "/en"]) {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+      const answer = (route, value) => typeof value === "number"
+        ? route.fulfill({ status: value, contentType: "application/json", body: "{}" })
+        : route.fulfill({ status: 200, contentType: "application/json", body: body(value) });
+      await page.route(`**${EMBEDDED}`, (route) => answer(route, scenario.embedded));
+      await page.route("**/release-pages.json", (route) => answer(route, scenario.live));
+      await page.route("**/api/**", (route) => {
+        const apiPath = new URL(route.request().url()).pathname;
+        return apiPath in fixture
+          ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture[apiPath]) })
+          : route.fulfill({ status: 404, contentType: "application/json", body: '{"code":"NOT_FOUND"}' });
+      });
+      await page.goto(base + path, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const started = await page.locator("header select").count() > 0;
+      const links = await page.locator(`a[href="${hidden}"]`).count();
+      const robots = await page.evaluate(() => document.querySelector('meta[name="robots"]')?.content ?? "");
+      ok(started && links === 0 && !/noindex/.test(robots), `catalogue, ${scenario.name}, ${path}: no link to ${hidden} (${links}), not noindex`);
+      await page.close();
+    }
+  }
 } finally {
   await browser.close();
   host.close();
   api.close();
   rmSync(site, { recursive: true, force: true });
 }
-console.log(failures ? `${failures} FAILED` : `PASS rendered SEO: ${TESTED.length} pages × 4 API states, withdrawal, in-app failure`);
+console.log(failures ? `${failures} FAILED` : `PASS rendered SEO: ${TESTED.length} pages × 4 API states, withdrawal, in-app failure, catalogue consistency`);
 process.exit(failures ? 1 : 0);

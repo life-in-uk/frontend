@@ -1,34 +1,43 @@
-// Publishes a release's sitemap in two phases around its deploy, so the public
-// sitemap never lists a URL that the live edge does not serve (SEO audit F4):
+// Publishes a release's sitemap and page list in two phases around its deploy,
+// so neither the public sitemap nor the app (which shows only Guides in the page
+// list) ever points at a URL that the live edge does not serve (SEO audit F4,
+// catalogue consistency):
 //
 //   node scripts/edge/publish-sitemap.mjs --phase transition --dist dist --bucket <b> --distribution <id> [--execute]
 //   node scripts/edge/publish-sitemap.mjs --phase full       --dist dist --bucket <b> --distribution <id> [--execute]
 //
-// transition (before the deploy switches the edge function): if the public
-//   sitemap is served from the bucket, replace it with the URLs that both the
-//   live release and the new one serve. Pages the new release withdraws leave
-//   the sitemap before they stop being served; new pages wait for phase 2.
-// full (after the public site has been verified): the release's full sitemap,
-//   then a check that the public one is exactly it.
+// transition (before the deploy switches the edge function): replace both with
+//   the pages that both the live release and the new one serve, and wait until
+//   their invalidation has completed, so no edge still serves the previous ones
+//   when the function switches. Pages the new
+//   release withdraws leave before they stop being served; new pages wait for
+//   phase 2. The live set is read from the public sitemap when the bucket serves
+//   it, otherwise from the public page list; with neither, nothing is narrowed.
+// full (after the public site has been verified): the release's full sitemap
+//   and page list, then a check that the public ones are exactly these.
 //
-// The sitemap is derived from the release's own pages (scripts/seo/sitemap.mjs),
-// so it is correct for any release artifact, including an older one restored
+// Both are derived from the release's own pages (scripts/seo/sitemap.mjs), so
+// they are correct for any release artifact, including an older one restored
 // by a rollback. The workflow runs this file from its own commit, not the
-// release's, so older releases get the same two phases. Only Node built-ins
-// and the sitemap module are imported (no npm install needed).
+// release's, so older releases get the same phases. Only Node built-ins and the
+// sitemap module are imported (no npm install needed).
 //
-// AWS: s3 PutObject on sitemap.xml and a CloudFront invalidation of it, both
-// within the deploy role; the live sitemap is read over HTTPS, not from S3.
+// AWS: s3 PutObject on the two keys and a CloudFront invalidation of them,
+// both within the deploy role; the live files are read over HTTPS, not from S3.
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderSitemap, SITEMAP_FILE, sitemapEntries, sitemapLocs, transitionEntries } from "../seo/sitemap.mjs";
+import {
+  RELEASE_PAGES_FILE, releasePageLocs, renderReleasePages, renderSitemap, SITEMAP_FILE, sitemapEntries, sitemapLocs, transitionEntries,
+} from "../seo/sitemap.mjs";
 
 export const RELEASE_ORIGIN = "https://lifeinuk.info";
-const CONTENT_TYPE = "application/xml";
-const CACHE_CONTROL = "no-cache";
+const FILES = {
+  [SITEMAP_FILE]: { contentType: "application/xml", render: renderSitemap },
+  [RELEASE_PAGES_FILE]: { contentType: "application/json", render: renderReleasePages },
+};
 
 function defaultAws(args, { json = true } = {}) {
   const binary = process.env.AWS_CLI || "aws";
@@ -37,13 +46,22 @@ function defaultAws(args, { json = true } = {}) {
   return json && result.stdout.trim() ? JSON.parse(result.stdout) : result.stdout;
 }
 
-/** The public sitemap if it is served from the bucket (the release's own); null while the backend serves it or none exists. */
-export async function readLiveSitemap({ origin = RELEASE_ORIGIN, fetchImpl = fetch } = {}) {
-  const response = await fetchImpl(`${origin}/${SITEMAP_FILE}`, { headers: { "cache-control": "no-cache" } });
+/** A public file if the bucket serves it (the release's own); null while the backend serves it, or it does not exist. */
+async function readLive(file, { origin, fetchImpl }) {
+  const response = await fetchImpl(`${origin}/${file}`, { headers: { "cache-control": "no-cache" } });
   if (!/AmazonS3/i.test(response.headers.get("server") ?? "")) return null;
   if (response.status === 404 || response.status === 403) return null;
-  if (!response.ok) throw new Error(`the live sitemap answered ${response.status}`);
+  if (!response.ok) throw new Error(`the live ${file} answered ${response.status}`);
   return response.text();
+}
+
+/** The page URLs the live release serves, if they can be known: from the bucket's sitemap, else its page list. */
+export async function liveLocs({ origin = RELEASE_ORIGIN, fetchImpl = fetch } = {}) {
+  const sitemap = await readLive(SITEMAP_FILE, { origin, fetchImpl });
+  if (sitemap !== null) return { locs: sitemapLocs(sitemap), from: SITEMAP_FILE, sitemapPublic: true };
+  const pages = await readLive(RELEASE_PAGES_FILE, { origin, fetchImpl });
+  if (pages !== null) return { locs: releasePageLocs(pages, origin), from: RELEASE_PAGES_FILE, sitemapPublic: false };
+  return { locs: null, from: null, sitemapPublic: false };
 }
 
 export async function publishSitemap({ phase, distDir = "dist", bucket, distribution, execute = false, log = console.log, aws = defaultAws, fetchImpl = fetch, origin = RELEASE_ORIGIN, waitMs = 30_000, attempts = 10 }) {
@@ -52,52 +70,63 @@ export async function publishSitemap({ phase, distDir = "dist", bucket, distribu
   const entries = sitemapEntries(resolve(distDir), origin);
   if (entries.length === 0) throw new Error("the release has no canonical pages: refusing to publish an empty sitemap");
   const work = mkdtempSync(join(tmpdir(), "lifeinuk-sitemap-"));
-  const upload = (xml) => {
-    const file = join(work, SITEMAP_FILE);
-    writeFileSync(file, xml, "utf8");
-    const args = ["s3", "cp", file, `s3://${bucket}/${SITEMAP_FILE}`, "--only-show-errors", "--content-type", CONTENT_TYPE, "--cache-control", CACHE_CONTROL];
-    if (execute) aws(args, { json: false });
-    else log(`  aws ${args.join(" ")}`);
-  };
-  const invalidate = () => {
-    const args = ["cloudfront", "create-invalidation", "--distribution-id", distribution, "--paths", `/${SITEMAP_FILE}`];
-    if (execute) log(`  invalidation ${aws(args).Invalidation.Id}`);
-    else log(`  aws ${args.join(" ")}`);
+  const upload = (rows) => {
+    const bodies = {};
+    for (const [file, { contentType, render }] of Object.entries(FILES)) {
+      const path = join(work, file);
+      bodies[file] = render(rows);
+      writeFileSync(path, bodies[file], "utf8");
+      const args = ["s3", "cp", path, `s3://${bucket}/${file}`, "--only-show-errors", "--content-type", contentType, "--cache-control", "no-cache"];
+      if (execute) aws(args, { json: false });
+      else log(`  aws ${args.join(" ")}`);
+    }
+    const invalidate = ["cloudfront", "create-invalidation", "--distribution-id", distribution, "--paths", ...Object.keys(FILES).map((file) => `/${file}`)];
+    if (execute) {
+      const id = aws(invalidate).Invalidation.Id;
+      log(`  invalidation ${id}`);
+      // Until it completes an edge may still serve the previous files; the deploy must not
+      // switch the edge function while a file listing a page it withdraws can still be served.
+      if (phase === "transition") {
+        aws(["cloudfront", "wait", "invalidation-completed", "--distribution-id", distribution, "--id", id], { json: false });
+        log("  invalidation completed");
+      }
+    } else log(`  aws ${invalidate.join(" ")}${phase === "transition" ? " (then wait until it completes)" : ""}`);
+    return bodies;
   };
   try {
-    const live = await readLiveSitemap({ origin, fetchImpl });
     if (phase === "transition") {
-      log(`\n▶ Sitemap, phase 1: only URLs that the live release and this one both serve`);
-      if (live === null) {
-        log("  the public sitemap is not served from the bucket: nothing to narrow");
+      log("\n▶ Sitemap and page list, phase 1: only pages that the live release and this one both serve");
+      const live = await liveLocs({ origin, fetchImpl });
+      if (live.locs === null) {
+        log("  no live sitemap or page list in the bucket: nothing to narrow");
         return { phase, urls: null };
       }
-      const transition = transitionEntries(sitemapLocs(live), entries);
-      log(`  ${transition.length} URL(s) served by both (${sitemapLocs(live).size} live, ${entries.length} in this release)`);
-      upload(renderSitemap(transition));
-      invalidate();
-      return { phase, urls: transition.length, xml: renderSitemap(transition) };
+      const transition = transitionEntries(live.locs, entries);
+      log(`  ${transition.length} page(s) served by both (${live.locs.size} live from ${live.from}, ${entries.length} in this release)`);
+      const bodies = upload(transition);
+      return { phase, urls: transition.length, xml: bodies[SITEMAP_FILE], pages: bodies[RELEASE_PAGES_FILE] };
     }
-    log(`\n▶ Sitemap, phase 2: publish ${entries.length} URLs (${entries.filter((entry) => entry.lastmod).length} with lastmod)`);
-    const xml = renderSitemap(entries);
-    upload(xml);
-    invalidate();
-    if (!execute) return { phase, urls: entries.length, xml };
+    log(`\n▶ Sitemap and page list, phase 2: publish ${entries.length} pages (${entries.filter((entry) => entry.lastmod).length} with lastmod)`);
+    const bodies = upload(entries);
+    const result = { phase, urls: entries.length, xml: bodies[SITEMAP_FILE], pages: bodies[RELEASE_PAGES_FILE] };
+    if (!execute) return result;
     const want = new Set(entries.map((entry) => entry.loc));
+    const same = (locs) => locs.size === want.size && [...want].every((loc) => locs.has(loc));
     for (let attempt = 1; attempt <= attempts; attempt++) {
-      const now = await readLiveSitemap({ origin, fetchImpl });
-      if (now === null) {
-        log("  the public sitemap is still served by the backend (CloudFront /sitemap.xml behaviour not switched): not compared");
-        return { phase, urls: entries.length, xml, public: "backend" };
-      }
-      const locs = sitemapLocs(now);
-      if (locs.size === want.size && [...want].every((loc) => locs.has(loc))) {
-        log(`  ✓ the public sitemap lists exactly the ${want.size} URLs of this release`);
-        return { phase, urls: entries.length, xml, public: "bucket" };
+      const pages = await readLive(RELEASE_PAGES_FILE, { origin, fetchImpl });
+      const sitemap = await readLive(SITEMAP_FILE, { origin, fetchImpl });
+      const pagesOk = pages !== null && same(releasePageLocs(pages, origin));
+      const sitemapOk = sitemap === null || same(sitemapLocs(sitemap));
+      if (pagesOk && sitemapOk) {
+        log(`  ✓ the public page list lists exactly the ${want.size} pages of this release`);
+        log(sitemap === null
+          ? "  the public sitemap is still served by the backend (CloudFront /sitemap.xml behaviour not switched): not compared"
+          : `  ✓ the public sitemap lists exactly the ${want.size} URLs of this release`);
+        return { ...result, public: sitemap === null ? "backend" : "bucket" };
       }
       if (attempt < attempts) await new Promise((r) => setTimeout(r, waitMs));
     }
-    throw new Error("the public sitemap does not match this release after the invalidation");
+    throw new Error("the public sitemap or page list does not match this release after the invalidation");
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
