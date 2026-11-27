@@ -183,6 +183,18 @@ jobs:
           ref: ${{ needs.build.outputs.sha }}
           persist-credentials: false
 
+      # The sitemap steps always run from this workflow's own commit, so a rollback to an older
+      # release (whose scripts predate them) publishes that release's sitemap in the same two phases.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: tooling
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/seo/sitemap.mjs
+            scripts/edge/publish-sitemap.mjs
+          sparse-checkout-cone-mode: false
+
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -234,6 +246,13 @@ jobs:
           FUNCTION: ${{ vars.CLOUDFRONT_FUNCTION_NAME }}
         run: node scripts/edge/preflight-site.mjs --bucket "$SITE_BUCKET" --distribution "$DISTRIBUTION" --function "$FUNCTION"
 
+      - name: Sitemap phase 1 (only URLs both the live release and this one serve)
+        if: ${{ !inputs.preflight }}
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          DISTRIBUTION: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: node tooling/scripts/edge/publish-sitemap.mjs --phase transition --dist dist --bucket "$SITE_BUCKET" --distribution "$DISTRIBUTION" --execute
+
       - name: Deploy (upload, function test + publish, stale objects, invalidation)
         if: ${{ !inputs.preflight }}
         env:
@@ -246,13 +265,22 @@ jobs:
         if: ${{ !inputs.preflight }}
         # The function and invalidation take a minute or two to reach every edge.
         run: |
+          # The sitemap may still be the phase-1 one; releases older than that option verify as before.
+          partial=""; if grep -q -- "--sitemap-partial" scripts/edge/verify-site.mjs; then partial="--sitemap-partial"; fi
           for attempt in 1 2 3 4; do
-            if node scripts/edge/verify-site.mjs --base "$PUBLIC_ORIGIN" --production > verify.log 2>&1; then
+            if node scripts/edge/verify-site.mjs --base "$PUBLIC_ORIGIN" --production $partial > verify.log 2>&1; then
               grep -v '^… ' verify.log; exit 0
             fi
             echo "attempt $attempt: $(grep -c '^  - ' verify.log || true) failure(s)"; [ "$attempt" = 4 ] || sleep 60
           done
           grep -v '^… ' verify.log; exit 1
+
+      - name: Sitemap phase 2 (the full sitemap, only after the site is verified)
+        if: ${{ !inputs.preflight }}
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          DISTRIBUTION: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: node tooling/scripts/edge/publish-sitemap.mjs --phase full --dist dist --bucket "$SITE_BUCKET" --distribution "$DISTRIBUTION" --execute
 
       - name: Report
         if: always()
