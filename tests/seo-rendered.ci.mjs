@@ -23,7 +23,7 @@ import { expectedPages, loadInventory } from "../scripts/seo/inventory.mjs";
 import { prerender } from "../scripts/seo/prerender.mjs";
 import { writeRedirects } from "../scripts/seo/redirects.mjs";
 import { createStaticHost } from "../scripts/seo/static-host.mjs";
-import { RELEASE_PAGES_FILE, renderReleasePages, sitemapEntries } from "../scripts/seo/sitemap.mjs";
+import { embedReleasePages, RELEASE_PAGES_FILE, renderReleasePages, sitemapEntries } from "../scripts/seo/sitemap.mjs";
 import { writeFileSync } from "node:fs";
 
 const ORIGIN = "https://lifeinuk.info";
@@ -49,6 +49,7 @@ const pages = expectedPages(inventory);
 await prerender({ distDir: site, origin: ORIGIN, inventory });
 await writeRedirects(site, pages);
 writeFileSync(join(site, RELEASE_PAGES_FILE), renderReleasePages(sitemapEntries(site, ORIGIN)));
+const EMBEDDED = embedReleasePages(site, sitemapEntries(site, ORIGIN));
 const host = createStaticHost(site);
 const base = await listen(host);
 
@@ -137,14 +138,28 @@ try {
       `in-app failure: prerendered page shown (${now.h1})`);
     await page.close();
   }
-  // Catalogue consistency: the API lists a Guide this release has no page for (published after it,
-  // or removed by a rollback). No app surface may link it.
+  // Catalogue consistency: the API lists a Guide that the page's release (embedded list) or the live
+  // release (live list) has no page for. No app surface may link it; a missing embedded list is an
+  // error state (never noindex, never an unfiltered catalogue).
   {
     const hidden = "/en/renting/renting-tenancy-agreement";
-    const release = pages.filter((page) => page.path !== hidden).map((page) => page.path);
-    for (const path of ["/en/renting", "/en/renting/renting-deposits-fees", "/en/guides", "/en"]) {
+    const all = pages.map((page) => page.path);
+    const without = all.filter((path) => path !== hidden);
+    const body = (value) => (value === "malformed" ? "{oops" : JSON.stringify({ pages: value }));
+    const scenarios = [
+      { name: "publication (not in this release)", embedded: without, live: all },
+      { name: "withdrawal or rollback (no longer live)", embedded: all, live: without },
+      { name: "live list malformed (embedded alone)", embedded: without, live: "malformed" },
+      { name: "live list missing (embedded alone)", embedded: without, live: 404 },
+      { name: "embedded list missing (error state)", embedded: 404, live: all },
+    ];
+    for (const scenario of scenarios) for (const path of ["/en/renting", "/en/renting/renting-deposits-fees", "/en/guides", "/en"]) {
       const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-      await page.route("**/release-pages.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ pages: release }) }));
+      const answer = (route, value) => typeof value === "number"
+        ? route.fulfill({ status: value, contentType: "application/json", body: "{}" })
+        : route.fulfill({ status: 200, contentType: "application/json", body: body(value) });
+      await page.route(`**${EMBEDDED}`, (route) => answer(route, scenario.embedded));
+      await page.route("**/release-pages.json", (route) => answer(route, scenario.live));
       await page.route("**/api/**", (route) => {
         const apiPath = new URL(route.request().url()).pathname;
         return apiPath in fixture
@@ -155,7 +170,8 @@ try {
       await page.waitForTimeout(800);
       const started = await page.locator("header select").count() > 0;
       const links = await page.locator(`a[href="${hidden}"]`).count();
-      ok(started && links === 0, `catalogue ${path}: no link to ${hidden} (${links}) once the app runs`);
+      const robots = await page.evaluate(() => document.querySelector('meta[name="robots"]')?.content ?? "");
+      ok(started && links === 0 && !/noindex/.test(robots), `catalogue, ${scenario.name}, ${path}: no link to ${hidden} (${links}), not noindex`);
       await page.close();
     }
   }

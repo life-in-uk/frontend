@@ -66,6 +66,7 @@ function fakeAws(state) {
     calls.push(args.slice(0, 2).join(" "));
     if (args[0] === "s3" && args[1] === "cp") return "";
     if (args[0] === "cloudfront" && args[1] === "create-invalidation") return { Invalidation: { Id: "I1" } };
+    if (args[0] === "cloudfront" && args[1] === "wait") return "";
     throw new Error(`unexpected ${args.join(" ")}`);
   };
   return { aws, calls };
@@ -112,7 +113,7 @@ test("publish: phases 1 and 2, a failed deploy in between, and the public check"
   const run = (phase) => publishSitemap({ phase, distDir: after.dir, bucket: "b", distribution: "E1", execute: true, log() {}, aws, fetchImpl: site(state), waitMs: 0, attempts: 2 });
 
   const phase1 = await run("transition");
-  assert.deepEqual(calls, ["s3 cp", "s3 cp", "cloudfront create-invalidation"], "sitemap and page list, one invalidation");
+  assert.deepEqual(calls, ["s3 cp", "s3 cp", "cloudfront create-invalidation", "cloudfront wait"], "sitemap and page list, one invalidation, completed before the switch");
   goLive(state, phase1);
   // A deploy that fails here leaves these: every page is served by the old and the new release.
   const oldLocs = new Set(liveEntries.map((e) => e.loc));
@@ -186,4 +187,31 @@ test("the sitemap revalidates, is never part of the bulk upload, and is never de
   const groups = uploadGroups(objects.filter((o) => o.key !== "sitemap.xml"));
   assert.ok(!groups.some((g) => g.keys.includes("sitemap.xml")));
   rmSync(dir, { recursive: true });
+});
+
+test("propagation: whatever mix of file and function versions an edge serves at each step, no listed page is a 404", async () => {
+  const r0 = await release(OLD);
+  const r1 = await release(NEW);
+  const pagesOf = (dir) => new Set(sitemapEntries(dir, ORIGIN).map((e) => e.loc));
+  const served = { R0: pagesOf(r0.dir), R1: pagesOf(r1.dir) };
+  const transition = new Set(transitionEntries(served.R0, sitemapEntries(r1.dir, ORIGIN)).map((e) => e.loc));
+  const files = { R0: served.R0, T: transition, R1: served.R1 };
+  // What an edge may serve at each step of a deploy (each file and the function propagate on their own).
+  const steps = [
+    { step: "phase 1 uploaded, invalidation in progress", files: ["R0", "T"], functions: ["R0"] },
+    { step: "invalidation completed (phase 1 waits for it), function switching", files: ["T"], functions: ["R0", "R1"] },
+    { step: "verified, phase 2 uploaded, invalidation in progress", files: ["T", "R1"], functions: ["R1"] },
+    { step: "deploy fails after phase 1", files: ["T"], functions: ["R0", "R1"] },
+  ];
+  for (const { step, files: versions, functions } of steps)
+    for (const sitemapVersion of versions) for (const listVersion of versions) for (const fn of functions) {
+      for (const loc of files[sitemapVersion]) assert.ok(served[fn].has(loc), `${step}: sitemap ${sitemapVersion} lists ${loc}, function ${fn} does not serve it`);
+      // The app links only embedded ∩ live; a page loaded from either release's edge.
+      for (const embedded of ["R0", "R1"]) for (const loc of files[listVersion])
+        if (files[embedded].has(loc)) assert.ok(served[fn].has(loc), `${step}: app (embedded ${embedded}, live ${listVersion}) links ${loc}, function ${fn} does not serve it`);
+    }
+  // Without the wait, an edge could still serve R0's files with R1's function: a withdrawn page would be listed.
+  assert.ok([...files.R0].some((loc) => !served.R1.has(loc)), "without the wait, R0's sitemap under R1's function lists a 404");
+  rmSync(r0.dir, { recursive: true });
+  rmSync(r1.dir, { recursive: true });
 });

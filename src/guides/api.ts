@@ -294,48 +294,77 @@ export function clearSessionCache(): void {
 }
 
 /**
- * The Guides the deployed release has pages for, as "locale/slug" (catalogue
- * consistency). The release publishes its page list (/release-pages.json,
- * scripts/seo/sitemap.mjs); a Guide page is /{locale}/{section}/{slug} and slugs
- * are unique across sections. Lists from the API are narrowed to these, so the
- * app never links a Guide that was published after this release, or that a
- * rollback removed. Without the list (a dev server, an older release, an error)
- * nothing is narrowed: the app works as before.
+ * Catalogue consistency: the Guides the app may link are those whose page the
+ * release that served this document has (its embedded, content-hashed page
+ * list, named by <meta name="release-pages">) and that the live release still
+ * serves (/release-pages.json, published in two phases around each deploy).
+ * A Guide page is /{locale}/{section}/{slug}; slugs are unique across sections.
+ *
+ * - Live list missing, malformed or unreachable: the embedded list alone (still
+ *   bound to this release, never the unfiltered API catalogue).
+ * - Embedded list unreachable or malformed: Guide lists fail like an API error
+ *   (the page shows its error state, never noindex); asked again next time.
+ * - No meta (a dev server, not a release build): nothing to narrow.
  */
-let releaseGuides: Promise<ReadonlySet<string> | null> | undefined;
-
-function deployedGuides(): Promise<ReadonlySet<string> | null> {
-  // Only a page in a browser has a deployed release to ask (not Node: tests, build tools).
-  if (typeof window === "undefined") return Promise.resolve(null);
-  releaseGuides ??= fetch("/release-pages.json", { cache: "no-cache" })
-    .then(async (response) => {
-      if (!response.ok) return null;
-      const data: unknown = await response.json();
-      if (!isRecord(data) || !Array.isArray(data.pages)) return null;
-      const keys = new Set<string>();
-      for (const path of data.pages)
-        if (typeof path === "string") {
-          const parts = path.split("/");
-          if (parts.length === 4 && parts[0] === "") keys.add(`${parts[1]}/${parts[3]}`);
-        }
-      return keys;
-    })
-    .catch(() => null)
-    .then((keys) => {
-      if (keys === null) releaseGuides = undefined; // try again next time
-      return keys;
-    });
-  return releaseGuides;
+export class ReleaseInventoryError extends Error {
+  constructor() {
+    super("Release page list unavailable");
+    this.name = "ReleaseInventoryError";
+  }
 }
 
-/** Only the Guides of `list` whose page this release serves (all of them if the release does not say). */
+const LIVE_TTL_MS = 60_000;
+let embeddedGuides: Promise<ReadonlySet<string>> | undefined;
+let liveGuides: { at: number; value: Promise<ReadonlySet<string> | null> } | undefined;
+
+/** "locale/slug" of every Guide page in a page list, or null if it is not one. */
+function guideKeys(data: unknown): ReadonlySet<string> | null {
+  if (!isRecord(data) || !Array.isArray(data.pages) || data.pages.length === 0) return null;
+  const keys = new Set<string>();
+  for (const path of data.pages) {
+    if (typeof path !== "string" || !path.startsWith("/")) return null;
+    const parts = path.split("/");
+    if (parts.length === 4) keys.add(`${parts[1]}/${parts[3]}`);
+  }
+  return keys;
+}
+
+function readList(url: string, cache: RequestCache): Promise<ReadonlySet<string> | null> {
+  return fetch(url, { cache })
+    .then(async (response) => (response.ok ? guideKeys(await response.json()) : null))
+    .catch(() => null);
+}
+
+function releaseMetaUrl(): string | null {
+  if (typeof document === "undefined") return null; // not a page (tests, build tools)
+  return document.querySelector<HTMLMetaElement>('meta[name="release-pages"]')?.content || null;
+}
+
+async function deployedGuides(): Promise<ReadonlySet<string> | null> {
+  const url = releaseMetaUrl();
+  if (!url) return null;
+  embeddedGuides ??= readList(url, "force-cache").then((keys) => {
+    if (keys === null) {
+      embeddedGuides = undefined; // ask again next time
+      throw new ReleaseInventoryError();
+    }
+    return keys;
+  });
+  if (!liveGuides || Date.now() - liveGuides.at > LIVE_TTL_MS)
+    liveGuides = { at: Date.now(), value: readList("/release-pages.json", "no-cache") };
+  const [embedded, live] = await Promise.all([embeddedGuides, liveGuides.value]);
+  return live ? new Set([...embedded].filter((key) => live.has(key))) : embedded;
+}
+
+/** Only the Guides of `list` that this release has pages for and the live release still serves. */
 export async function inRelease(list: GuideMetadata[], locale: GuideLocale): Promise<GuideMetadata[]> {
   const keys = await deployedGuides();
   return keys ? list.filter((guide) => keys.has(`${locale}/${guide.slug}`)) : list;
 }
 
 export function clearReleaseGuides(): void {
-  releaseGuides = undefined;
+  embeddedGuides = undefined;
+  liveGuides = undefined;
 }
 
 export async function getGuides(

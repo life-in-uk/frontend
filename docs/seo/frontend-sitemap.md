@@ -147,20 +147,40 @@ appears.
   the same two phases in `publish-sitemap.mjs`, with `no-cache` and an
   invalidation. Unlike the sitemap it is always served from the bucket, so
   phase 1 narrows it from the first deploy on.
-- The app narrows every Guide list from the API to the Guides whose page is in
-  the list (`inRelease` in `guides/api.ts`). Hubs, Guide indexes, related
-  links, home topics and the language selector and footer are all built from
-  those lists, so none of them can link a Guide published after the release or
-  removed by a rollback.
-- Without the list (a dev server, an older release, a failed request) nothing
-  is narrowed and the app works as before. A failed request is retried later.
-- Tests:
-  - `tests/release-pages.test.mjs`: publication, rollback, fail-open and retry.
-  - `tests/sitemap.test.mjs`: both files in both phases, a failed deploy,
-    rollback, and before the CloudFront switch.
-  - `tests/seo-rendered.ci.mjs` (CI, Chrome): the hub, related links, Guides
-    index and home do not link a Guide missing from the list. Without the
-    filter, all four fail.
+- Each release also **embeds** its page list: an immutable, content-hashed asset
+  (`/assets/release-pages-<hash>.json`) named by
+  `<meta name="release-pages">` in every HTML file of the release (pages, the
+  app shell, the 404 page). The release validator fails a build in which any
+  HTML file lacks it, names another list, or the list differs from the
+  canonical pages.
+- The app shows a Guide from an API list only if it is in **the embedded list
+  ∩ the live `/release-pages.json`** (`inRelease` in `guides/api.ts`). Hubs,
+  Guide indexes, related links, home topics and the language selector and
+  footer are built from those lists:
+  - **Publication:** a Guide not in the page's own release is never linked,
+    even if the live list is already the next release's.
+  - **Withdrawal or rollback:** a Guide the live release no longer serves is
+    hidden, also in an open tab of an older release (earlier assets stay
+    available for days).
+  - **Live list missing, malformed, stale or unreachable:** the embedded list
+    alone. This is still release-bound, never the unfiltered catalogue.
+  - **Embedded list missing or malformed:** Guide lists fail like an API error
+    (error state, never noindex) and are asked again later.
+  - **No meta (dev server only):** nothing to narrow.
+- **CloudFront propagation:** phase 1 waits for its invalidation to complete
+  before the deploy switches the edge function, so no edge can serve the
+  previous sitemap or list (which may name a page the new release withdraws)
+  under the new function. A model test checks every mix of file and function
+  versions an edge may serve at each step. Without the wait it finds a listed
+  404.
+- **Tests:**
+  - `tests/release-pages.test.mjs`: publication, withdrawal, rollback; the
+    live list missing, malformed, stale or unreachable; the embedded list
+    missing, malformed or unreachable, with recovery; dev.
+  - `tests/sitemap.test.mjs`: both files in both phases, the propagation model,
+    a failed deploy, rollback, before the CloudFront switch.
+  - `tests/seo-rendered.ci.mjs` (CI, Chrome): five scenarios × hub, related
+    links, Guides index and home. All fail with an unfiltered catalogue.
 
 **Withdrawal** remains a two-step procedure: withdraw in the backend, then
 deploy the frontend. Until that deploy, the withdrawn Guide's static page
